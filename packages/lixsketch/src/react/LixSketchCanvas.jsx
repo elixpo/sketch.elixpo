@@ -35,6 +35,8 @@ import ShortcutsModal from './components/modals/ShortcutsModal.jsx';
 import CommandPalette from './components/modals/CommandPalette.jsx';
 import ExportImageModal from './components/modals/ExportImageModal.jsx';
 import HelpModal from './components/modals/HelpModal.jsx';
+import LixScriptModal from './components/modals/LixScriptModal.jsx';
+import GraphModal from './components/modals/GraphModal.jsx';
 
 const SAVE_DEBOUNCE_MS = 1500;
 
@@ -221,6 +223,8 @@ export default function LixSketchCanvas({
       <CommandPalette />
       <ExportImageModal />
       <HelpModal />
+      <LixScriptModal />
+      <GraphModal />
       <ContextMenu />
       <FindBar />
       <ImageSourcePicker />
@@ -230,6 +234,22 @@ export default function LixSketchCanvas({
           hide this strip by setting CSS `.lixsketch-floating-header { display: none }`
           if they render their own chrome (blogs.elixpo's CanvasSubpage does). */}
       <div className="lixsketch-floating-header absolute top-2 right-2 z-[1000] flex items-center gap-1.5 font-[lixFont]">
+        <button
+          type="button"
+          title="LixScript — write shapes in DSL"
+          onClick={() => useUIStore.getState().toggleAIModal?.()}
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
+        >
+          <i className="bx bx-code-alt text-base" />
+        </button>
+        <button
+          type="button"
+          title="Graph — plot equations"
+          onClick={() => useUIStore.getState().toggleGraphModal?.()}
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
+        >
+          <i className="bx bx-line-chart text-base" />
+        </button>
         <button
           type="button"
           title="Help (?)"

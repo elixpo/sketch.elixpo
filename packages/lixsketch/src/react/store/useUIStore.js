@@ -98,6 +98,7 @@ const useUIStore = create((set, get) => ({
   shortcutsModalOpen: false,
   saveModalOpen: false,
   aiModalOpen: false,
+  graphModalOpen: false,
   commandPaletteOpen: false,
   helpModalOpen: false,
   exportImageModalOpen: false,
@@ -111,6 +112,8 @@ const useUIStore = create((set, get) => ({
     set((s) => ({ saveModalOpen: !s.saveModalOpen })),
   toggleAIModal: () =>
     set((s) => ({ aiModalOpen: !s.aiModalOpen })),
+  toggleGraphModal: () =>
+    set((s) => ({ graphModalOpen: !s.graphModalOpen })),
   toggleCommandPalette: () =>
     set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
   toggleHelpModal: () =>
@@ -128,7 +131,7 @@ const useUIStore = create((set, get) => ({
   closeImageGenerateModal: () =>
     set({ imageGenerateModalOpen: false }),
   closeAllModals: () =>
-    set({ shortcutsModalOpen: false, saveModalOpen: false, aiModalOpen: false, commandPaletteOpen: false, helpModalOpen: false, exportImageModalOpen: false, findBarOpen: false, canvasPropertiesOpen: false, imageGenerateModalOpen: false }),
+    set({ shortcutsModalOpen: false, saveModalOpen: false, aiModalOpen: false, graphModalOpen: false, commandPaletteOpen: false, helpModalOpen: false, exportImageModalOpen: false, findBarOpen: false, canvasPropertiesOpen: false, imageGenerateModalOpen: false }),
 
   // --- Menu ---
   menuOpen: false,
