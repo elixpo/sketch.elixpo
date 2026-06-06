@@ -738,7 +738,7 @@ function cross(ax, ay, bx, by, cx, cy) {
  * Automatically attach an arrow endpoint to a shape.
  * This makes edges follow nodes when they're moved.
  */
-function autoAttach(arrow, shape, isStart, contactPoint) {
+export function autoAttach(arrow, shape, isStart, contactPoint) {
     if (!arrow || !shape) return;
     if (typeof arrow.attachToShape !== 'function') return;
 
@@ -1306,6 +1306,11 @@ export function generateFramePreviewSVG(frame, width = 500, height = 350) {
 // ============================================================
 
 export function initAIRenderer() {
+    // Expose the autoAttach helper so sibling renderers (Mermaid flowchart,
+    // Graph, LixScript) can wire arrow endpoints into shapes without
+    // import-cycling through this large module.
+    window.__autoAttach = autoAttach;
+
     // Lazy-load sequence renderer
     let _seqParser = null;
     let _seqPreview = null;
