@@ -220,36 +220,55 @@ const [docOpen, setDocOpen] = useState(false)
 
         <hr className="border-border-light my-1" />
 
-        {/* Document layout */}
-        <div className="px-3 py-1.5">
-          <p className="text-text-dim text-[10px] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <i className="bx bx-file-blank text-[11px]" />
-            Document
-          </p>
-          <div className="flex items-center gap-1 bg-surface/60 border border-border-light rounded-lg p-0.5">
-            {[
-              { key: 'canvas', icon: 'bx-pen', label: 'Canvas' },
-              { key: 'split', icon: 'bx-layout', label: 'Split' },
-              { key: 'docs', icon: 'bxs-notepad', label: 'Docs' },
-            ].map((m) => {
-              const active = layoutMode === m.key
-              return (
-                <button
-                  key={m.key}
-                  onClick={() => handleSetLayout(m.key)}
-                  title={m.label}
-                  className={`flex-1 flex items-center justify-center gap-1 h-6 rounded-md text-[10.5px] transition-all duration-150 ${
-                    active
-                      ? 'bg-accent-blue text-text-primary'
-                      : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
-                  }`}
-                >
-                  <i className={`bx ${m.icon} text-[11px]`} />
-                  {m.label}
-                </button>
-              )
-            })}
-          </div>
+        {/* Document — side flyout (issue #24, bug #11). */}
+        <div className="relative">
+          <button
+            onClick={() => { setDocOpen((d) => !d); setPrefsOpen(false) }}
+            className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[12.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200 ${docOpen ? 'bg-surface-hover' : ''}`}
+          >
+            <span className="flex items-center gap-2">
+              <i className="bx bx-file-blank text-sm" />
+              Document
+            </span>
+            <i className="bx bx-chevron-left text-sm text-text-dim" />
+          </button>
+
+          {docOpen && (
+            <div
+              className="absolute right-full top-0 mr-2 w-[240px] bg-surface/95 backdrop-blur-lg rounded-2xl border border-border-light p-1.5 shadow-2xl shadow-black/40"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-text-dim text-[10px] uppercase tracking-wider px-2 pb-1.5 pt-0.5 flex items-center gap-1.5">
+                <i className="bx bx-file-blank text-[11px]" />
+                Document layout
+              </p>
+              {[
+                { key: 'canvas', icon: 'bx-pen',     label: 'Canvas', subtext: 'Drawing only' },
+                { key: 'split',  icon: 'bx-layout',  label: 'Split',  subtext: 'Canvas + docs side-by-side' },
+                { key: 'docs',   icon: 'bxs-notepad', label: 'Docs',   subtext: 'Document editor only' },
+              ].map((m) => {
+                const active = layoutMode === m.key
+                return (
+                  <button
+                    key={m.key}
+                    onClick={() => { handleSetLayout(m.key); setDocOpen(false) }}
+                    className={`w-full flex items-start gap-2.5 px-3 py-2 rounded-lg text-left transition-all duration-150 ${
+                      active ? 'bg-accent-blue/15 text-text-primary' : 'text-text-secondary hover:bg-surface-hover'
+                    }`}
+                  >
+                    <i className={`bx ${m.icon} text-base mt-0.5 ${active ? 'text-accent-blue' : 'text-text-muted'}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[12px] flex items-center gap-1.5">
+                        {m.label}
+                        {active && <i className="bx bx-check text-sm text-accent-blue" />}
+                      </div>
+                      <div className="text-text-dim text-[10px]">{m.subtext}</div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Sync doc now (Ctrl+S triggers both, but explicit action is useful from menu) */}
