@@ -223,6 +223,7 @@ export function installEngineShortcuts(engine, options = {}) {
                 }
 
                 if (isFrame && !isDiagramFrame) {
+                    shape.containedShapes = [];
                     if (shape.group && shape.group.parentNode) shape.group.parentNode.removeChild(shape.group);
                     if (shape.clipGroup && shape.clipGroup.parentNode) shape.clipGroup.parentNode.removeChild(shape.clipGroup);
                     if (shape.clipPath && shape.clipPath.parentNode) shape.clipPath.parentNode.removeChild(shape.clipPath);

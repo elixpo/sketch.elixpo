@@ -1101,6 +1101,7 @@ export function redo() {
                     child.parentFrame = null;
                     delete child.isBeingMovedByFrame;
                 }
+                action.shape.containedShapes = [];
                 if (action.shape.group && action.shape.group.parentNode) action.shape.group.parentNode.removeChild(action.shape.group);
                 if (action.shape.clipGroup && action.shape.clipGroup.parentNode) action.shape.clipGroup.parentNode.removeChild(action.shape.clipGroup);
                 if (action.shape.clipPath && action.shape.clipPath.parentNode) action.shape.clipPath.parentNode.removeChild(action.shape.clipPath);
