@@ -99,8 +99,8 @@ const [docOpen, setDocOpen] = useState(false)
     <>
       {menuOpen && (
         <div
-          className="fixed inset-0 z-[999]"
-          onClick={() => { closeMenu(); setPrefsOpen(false) }}
+          className="fixed inset-0 z-999"
+          onClick={() => { closeMenu(); setPrefsOpen(false); setDocOpen(false) }}
         />
       )}
       <div
@@ -220,7 +220,6 @@ const [docOpen, setDocOpen] = useState(false)
 
         <hr className="border-border-light my-1" />
 
-        {/* Document — side flyout (issue #24, bug #11). */}
         <div className="relative">
           <button
             onClick={() => { setDocOpen((d) => !d); setPrefsOpen(false) }}
@@ -289,7 +288,6 @@ const [docOpen, setDocOpen] = useState(false)
 
         <hr className="border-border-light my-1" />
 
-        {/* Preferences — side flyout (issue #24, bug #11). */}
         <div className="relative">
           <button
             onClick={() => { setPrefsOpen((p) => !p); setDocOpen(false) }}
