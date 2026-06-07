@@ -214,7 +214,7 @@ export default function SaveModal() {
 
       {/* Modal */}
       <div
-        className="relative bg-surface-card border border-border-light rounded-2xl w-[420px] mx-4 max-h-[90vh] overflow-y-auto docs-scroll"
+        className="relative bg-surface-card border border-border-light rounded-2xl w-[640px] max-w-[94vw] mx-4 max-h-[90vh] overflow-y-auto docs-scroll"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

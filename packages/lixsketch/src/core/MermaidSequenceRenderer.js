@@ -396,26 +396,13 @@ export function renderSequenceOnCanvas(diagram) {
     const frameX = vcx - frameW / 2;
     const frameY = vcy - frameH / 2;
 
-    const title = diagram.title || 'Sequence Diagram';
-
-    // Create frame
-    let frame;
-    try {
-        frame = new window.Frame(frameX, frameY, frameW, frameH, {
-            stroke: '#888', strokeWidth: 2, fill: 'transparent', opacity: 1,
-            frameName: title,
-        });
-        frame._diagramType = 'sequence';
-        frame._diagramData = diagram;
-
-        window.shapes.push(frame);
-        if (window.pushCreateAction) window.pushCreateAction(frame);
-    } catch (err) {
-        console.error('[SequenceRenderer] Frame creation failed:', err);
-        return false;
-    }
-
-    // Insert SVG content into the canvas
+    // Phase B (issue #24, bug #1): no wrapper frame, no stub. Sequence
+    // diagrams have interlocked geometry (lifelines + messages flowing
+    // top-to-bottom) that can't split cleanly into per-actor / per-message
+    // engine shapes the way a flowchart can, so we keep the rendered SVG
+    // as ONE block — but as a first-class shape (`contains` / `move` /
+    // `selectShape` / `removeSelection`) so it's selectable, draggable,
+    // and picked up by the multi-selection rect like any user-drawn shape.
     const NS = 'http://www.w3.org/2000/svg';
     try {
         const graphGroup = document.createElementNS(NS, 'g');
@@ -435,45 +422,83 @@ export function renderSequenceOnCanvas(diagram) {
             }
         }
 
-        // Copy all child elements (skip defs)
         while (svgEl.childNodes.length > 0) {
             const child = svgEl.childNodes[0];
-            if (child.nodeName === 'defs') {
-                svgEl.removeChild(child);
-                continue;
-            }
+            if (child.nodeName === 'defs') { svgEl.removeChild(child); continue; }
             graphGroup.appendChild(child);
         }
-
         window.svg.appendChild(graphGroup);
 
-        // Wrap as a shape-like object for the frame
         const seqShape = {
-            shapeName: 'sequenceContent',
+            shapeName: 'sequence',                 // first-class shapeName
+            shapeID: `sequence-${Date.now().toString(36)}-${Math.floor(Math.random() * 10000)}`,
             group: graphGroup,
             element: graphGroup,
             x: frameX + framePad,
             y: frameY + framePad,
             width: gWidth,
             height: gHeight,
-            move(dx, dy) {
-                this.x += dx;
-                this.y += dy;
-                this.group.setAttribute('transform', `translate(${this.x}, ${this.y})`);
+            rotation: 0,
+            isSelected: false,
+            _selectionRect: null,
+            _diagramType: 'sequence',
+            _diagramData: diagram,
+
+            // ── Shape API ─────────────────────────────────────────────
+            contains(px, py) {
+                return px >= this.x && px <= this.x + this.width
+                    && py >= this.y && py <= this.y + this.height;
             },
-            updateAttachedArrows() {},
+            move(dx, dy) {
+                this.x += dx; this.y += dy;
+                this.group.setAttribute('transform', `translate(${this.x}, ${this.y})`);
+                this._updateSelectionRect();
+            },
+            selectShape() {
+                this.isSelected = true;
+                if (this._selectionRect) return;
+                const r = document.createElementNS(NS, 'rect');
+                r.setAttribute('fill', 'none');
+                r.setAttribute('stroke', '#9b7bf7');
+                r.setAttribute('stroke-width', '1.5');
+                r.setAttribute('stroke-dasharray', '4 3');
+                r.setAttribute('pointer-events', 'none');
+                window.svg.appendChild(r);
+                this._selectionRect = r;
+                this._updateSelectionRect();
+            },
+            removeSelection() {
+                this.isSelected = false;
+                if (this._selectionRect && this._selectionRect.parentNode) {
+                    this._selectionRect.parentNode.removeChild(this._selectionRect);
+                }
+                this._selectionRect = null;
+            },
+            _updateSelectionRect() {
+                if (!this._selectionRect) return;
+                const pad = 4;
+                this._selectionRect.setAttribute('x', this.x - pad);
+                this._selectionRect.setAttribute('y', this.y - pad);
+                this._selectionRect.setAttribute('width', this.width + pad * 2);
+                this._selectionRect.setAttribute('height', this.height + pad * 2);
+            },
+            updateAttachedArrows() {
+                if (typeof window.updateAttachedArrows === 'function') {
+                    window.updateAttachedArrows(this);
+                }
+            },
         };
 
         window.shapes.push(seqShape);
-        if (frame.addShapeToFrame) frame.addShapeToFrame(seqShape);
+        if (window.pushCreateAction) window.pushCreateAction(seqShape);
+
+        // Auto-select so the user sees something landed.
+        window.currentShape = seqShape;
+        seqShape.selectShape();
     } catch (err) {
         console.error('[SequenceRenderer] SVG insertion failed:', err);
+        return false;
     }
-
-    // Select the frame
-    window.currentShape = frame;
-    if (frame.selectFrame) frame.selectFrame();
-    if (window.__sketchStoreApi) window.__sketchStoreApi.setSelectedShapeSidebar('frame');
 
     return true;
 }
