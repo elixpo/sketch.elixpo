@@ -2,7 +2,7 @@
 // Multi-selection system - copied from selection.js
 
 import { cleanupAttachments } from '../tools/arrowTool.js';
-import { pushTransformAction, pushFrameAttachmentAction } from './UndoRedo.js';
+import { pushTransformAction, pushFrameAttachmentAction, pushDeleteAction } from './UndoRedo.js';
 import { calculateSnap, clearSnapGuides } from './SnapGuides.js';
 
 let isMultiSelecting = false;
@@ -1830,37 +1830,76 @@ function deleteSelectedShapes() {
     const releasedChildren = [];
 
     shapesToDelete.forEach(shape => {
-        // Remove from DOM
-        if (shape.group && shape.group.parentNode) {
-            shape.group.parentNode.removeChild(shape.group);
-        } else if (shape.element && shape.element.parentNode) {
-            shape.element.parentNode.removeChild(shape.element);
-        }
+        const isFrame = shape.shapeName === 'frame';
+        const isDiagramFrame = isFrame && !!shape._diagramType;
 
-        // Remove from parent frame if any
-        if (shape.parentFrame && typeof shape.parentFrame.removeShapeFromFrame === 'function') {
-            shape.parentFrame.removeShapeFromFrame(shape);
-        }
-
-        // Cleanup arrow attachments
-        cleanupAttachments(shape);
-
-        // Destroy frame and release children
-        if (shape.shapeName === 'frame' && typeof shape.destroy === 'function') {
-            const isDiagram = !!shape._diagramType;
-            if (!isDiagram) {
-                // Snapshot the children BEFORE destroy() empties the array.
-                for (const child of shape.containedShapes || []) {
-                    if (child && child !== shape) releasedChildren.push(child);
+        // Issue #24 bug #7: for a regular (non-diagram) frame, we don't
+        // want destroy() — it empties containedShapes and tears down the
+        // clipGroup, leaving nothing for undo to rehydrate. Instead:
+        //   1. snapshot the children references (for the undo action),
+        //   2. release each child visually back to the svg root,
+        //   3. detach the frame's <g>, clipGroup, clipPath from DOM.
+        // The frame JS object stays alive in the undo action's `shape`
+        // reference; on undo, the UndoRedo branch re-appends clipGroup +
+        // clipPath and re-attaches each child via addShapeToFrame.
+        let childSnapshot = null;
+        if (isFrame && !isDiagramFrame) {
+            childSnapshot = [...(shape.containedShapes || [])];
+            for (const child of childSnapshot) {
+                if (!child || child === shape) continue;
+                const el = child.group || child.element;
+                if (el) {
+                    if (shape.clipGroup && el.parentNode === shape.clipGroup) {
+                        shape.clipGroup.removeChild(el);
+                    }
+                    if (window.svg && el.parentNode !== window.svg) window.svg.appendChild(el);
                 }
+                child.parentFrame = null;
+                delete child.isBeingMovedByFrame;
+                releasedChildren.push(child);
             }
-            shape.destroy();
+
+            // Clear containedShapes — undo will repopulate via
+            // addShapeToFrame, which short-circuits on an existing entry.
+            shape.containedShapes = [];
+
+            // Detach the frame's own DOM bits — but keep the JS object
+            // and its clipGroup/clipPath references intact for undo.
+            if (shape.group && shape.group.parentNode) shape.group.parentNode.removeChild(shape.group);
+            if (shape.clipGroup && shape.clipGroup.parentNode) shape.clipGroup.parentNode.removeChild(shape.clipGroup);
+            if (shape.clipPath && shape.clipPath.parentNode) shape.clipPath.parentNode.removeChild(shape.clipPath);
+        } else {
+            // Non-frame OR diagram frame: standard delete path.
+            if (shape.group && shape.group.parentNode) {
+                shape.group.parentNode.removeChild(shape.group);
+            } else if (shape.element && shape.element.parentNode) {
+                shape.element.parentNode.removeChild(shape.element);
+            }
+            if (shape.parentFrame && typeof shape.parentFrame.removeShapeFromFrame === 'function') {
+                shape.parentFrame.removeShapeFromFrame(shape);
+            }
+            cleanupAttachments(shape);
+            if (isDiagramFrame && typeof shape.destroy === 'function') {
+                shape.destroy();
+            }
         }
 
         // Remove from shapes array
         const idx = shapes.indexOf(shape);
-        if (idx !== -1) {
-            shapes.splice(idx, 1);
+        if (idx !== -1) shapes.splice(idx, 1);
+
+        // Issue #24 bug #7: record the delete on the undo stack. Without
+        // this the user can't undo a multi-selection delete at all —
+        // the action just disappears. For frames we attach the child
+        // snapshot so undo can re-attach them.
+        try {
+            if (childSnapshot) {
+                pushDeleteAction(shape, { childSnapshot });
+            } else {
+                pushDeleteAction(shape);
+            }
+        } catch (err) {
+            console.warn('[deleteSelectedShapes] pushDeleteAction failed:', err);
         }
     });
 
