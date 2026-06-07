@@ -4,7 +4,7 @@ import { useState } from 'react'
 import useUIStore from '@/store/useUIStore'
 import useSketchStore from '@/store/useSketchStore'
 import useAuthStore from '@/store/useAuthStore'
-import { triggerCloudSync } from '@/hooks/useAutoSave'
+import { triggerCloudSync, writeLocalScene } from '@/hooks/useAutoSave'
 import { triggerDocCloudSync, persistLayoutMode } from '@/hooks/useDocAutoSave'
 import { useTranslation } from '@/hooks/useTranslation'
 
@@ -130,8 +130,9 @@ const [docOpen, setDocOpen] = useState(false)
               const workspaceName = useUIStore.getState().workspaceName || 'Untitled'
               const sceneData = serializer.save(workspaceName)
               const sessionId = window.__sessionID
-              const key = sessionId ? `lixsketch-autosave-${sessionId}` : 'lixsketch-autosave'
-              localStorage.setItem(key, JSON.stringify(sceneData))
+              if (sessionId) {
+                writeLocalScene(`lixsketch-autosave-${sessionId}`, sceneData)
+              }
               useUIStore.getState().setSaveStatus('local')
               triggerCloudSync()
             }
