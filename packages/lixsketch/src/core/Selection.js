@@ -1823,6 +1823,12 @@ function deleteSelectedShapes() {
     const shapesToDelete = Array.from(multiSelection.selectedShapes);
     multiSelection.clearSelection();
 
+    // Issue #24 bug #3: when deleting a (regular, non-diagram) frame, its
+    // children are released back to the canvas — capture them here so we
+    // can re-select them and drop the user into the pointer tool. Diagram
+    // frames destroy their children together, so we skip those.
+    const releasedChildren = [];
+
     shapesToDelete.forEach(shape => {
         // Remove from DOM
         if (shape.group && shape.group.parentNode) {
@@ -1841,6 +1847,13 @@ function deleteSelectedShapes() {
 
         // Destroy frame and release children
         if (shape.shapeName === 'frame' && typeof shape.destroy === 'function') {
+            const isDiagram = !!shape._diagramType;
+            if (!isDiagram) {
+                // Snapshot the children BEFORE destroy() empties the array.
+                for (const child of shape.containedShapes || []) {
+                    if (child && child !== shape) releasedChildren.push(child);
+                }
+            }
             shape.destroy();
         }
 
@@ -1850,6 +1863,19 @@ function deleteSelectedShapes() {
             shapes.splice(idx, 1);
         }
     });
+
+    // Bug #3 follow-through: auto-select the released children and switch
+    // to the pointer tool so the user can immediately keep manipulating
+    // them. Skip if nothing was released (no frames deleted).
+    if (releasedChildren.length > 0) {
+        for (const child of releasedChildren) {
+            if (shapes.indexOf(child) === -1) continue;
+            multiSelection.addShape(child);
+        }
+        if (window.__sketchStoreApi && typeof window.__sketchStoreApi.setActiveTool === 'function') {
+            window.__sketchStoreApi.setActiveTool('select');
+        }
+    }
 }
 
 /**
