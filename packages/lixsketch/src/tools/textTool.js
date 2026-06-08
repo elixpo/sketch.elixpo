@@ -127,13 +127,17 @@ function addText(event) {
     textElement.setAttribute("cursor", "default");
     textElement.setAttribute("white-space", "pre");
     textElement.setAttribute("dominant-baseline", "hanging");
-    // Issue #34 bug #5b: SVG <text> only fires pointer events on the
-    // painted glyphs by default — so a click between letters or in the
-    // padding around the text never bubbles to the <g> and the selection
-    // tool can't pick the shape up. `bounding-box` extends the hit area
-    // to the entire bounding box (SVG 2; supported in Chromium/WebKit/
-    // Firefox), which is what every other shape tool relies on.
-    textElement.setAttribute("pointer-events", "bounding-box");
+    // Issue #48 bugs #1 / #3: reverted the previous `bounding-box` hit
+    // area (introduced for #34 #5b) — extending the text's hit zone to
+    // its full bbox meant the negative space between glyphs and around
+    // the text was stealing clicks from shapes drawn ON TOP of the text
+    // (drag a rect over text → text intercepts; select text then click a
+    // different shape elsewhere → click lands in text's invisible bbox
+    // and the text stays selected). Default `painted` only fires on
+    // glyph pixels, which restores the expected pass-through. Trade-off:
+    // empty-padding clicks no longer select the text — the user has to
+    // click on the letters.
+    textElement.setAttribute("pointer-events", "painted");
     textElement.textContent = "";
 
     gElement.setAttribute("data-x", x);
@@ -256,11 +260,16 @@ function makeTextEditable(textElement, groupElement) {
     input.style.lineHeight = "1.2em";
     input.style.textAlign = currentAnchor === "middle" ? "center" : currentAnchor === "end" ? "right" : "left";
     input.style.backgroundColor = "transparent";
-    // Issue #34 bug #5a: dashed creation outline that grows with the
-    // text — same visual cue the frame tool uses while drawing. Inset
-    // padding-box border so the dashes follow the textarea size as the
-    // user types instead of clipping behind the glyphs.
-    input.style.border = "1px dashed rgba(255,255,255,0.55)";
+    // Issue #34 bug #5a + #48 bug #2: dashed creation outline that grows
+    // with the text. Originally `rgba(255,255,255,0.55)` — invisible on
+    // the new light canvas. Read the active theme so the dashes stay
+    // visible in both modes.
+    const _isDark = typeof document !== 'undefined'
+        && document.body
+        && document.body.classList.contains('theme-dark');
+    input.style.border = _isDark
+        ? "1px dashed rgba(255,255,255,0.55)"
+        : "1px dashed rgba(40,40,60,0.45)";
     input.style.borderRadius = "3px";
     input.style.outline = "none";
     document.body.appendChild(input);
