@@ -16,11 +16,11 @@
     "theme": "Theme",
     "canvasBackground": "Canvas Background",
     "canvasBg": {
-      "black": "Black",
-      "darkGray": "Dark Gray",
-      "blueBlack": "Blue Black",
-      "darkYellow": "Dark Yellow",
-      "darkBrown": "Dark Brown"
+      "white": "White",
+      "cream": "Cream",
+      "paper": "Paper",
+      "skyTint": "Sky Tint",
+      "sageTint": "Sage Tint"
     }
   },
   "links": {

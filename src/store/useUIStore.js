@@ -58,6 +58,10 @@ function applyTheme(theme) {
   html.classList.add(resolved)
 
   if (resolved === 'light') {
+    // Issue #38 bug #1: tokens raised vs the previous light branch so small
+    // labels (10–11px) stay legible. Keep these in sync with the
+    // `@theme` block in src/app/globals.css so the initial paint and the
+    // post-toggle paint stay identical.
     html.style.setProperty('--color-surface', '#f0f0f5')
     html.style.setProperty('--color-surface-hover', '#e0e0ea')
     html.style.setProperty('--color-surface-active', '#d0d0e0')
@@ -65,8 +69,8 @@ function applyTheme(theme) {
     html.style.setProperty('--color-surface-card', '#ffffff')
     html.style.setProperty('--color-text-primary', '#1a1a2e')
     html.style.setProperty('--color-text-secondary', '#2a2a40')
-    html.style.setProperty('--color-text-muted', '#6a6a80')
-    html.style.setProperty('--color-text-dim', '#9090a0')
+    html.style.setProperty('--color-text-muted', '#525266')
+    html.style.setProperty('--color-text-dim', '#6a6a80')
     html.style.setProperty('--color-border', '#d0d0dd')
     html.style.setProperty('--color-border-light', '#c0c0d0')
     html.style.setProperty('--color-border-accent', '#8080c0')
@@ -82,8 +86,9 @@ function applyTheme(theme) {
     html.style.setProperty('--color-surface-card', '#1e1e28')
     html.style.setProperty('--color-text-primary', '#fff')
     html.style.setProperty('--color-text-secondary', '#e8e8ee')
-    html.style.setProperty('--color-text-muted', '#a0a0b0')
-    html.style.setProperty('--color-text-dim', '#787888')
+    // Issue #38 bug #3 (same fix as #39): bump muted/dim for AA contrast.
+    html.style.setProperty('--color-text-muted', '#b8b8c8')
+    html.style.setProperty('--color-text-dim', '#a0a0b0')
     html.style.setProperty('--color-border', '#333')
     html.style.setProperty('--color-border-light', '#3a3a50')
     html.style.setProperty('--color-border-accent', '#5555a0')
@@ -182,7 +187,9 @@ const useUIStore = create((set, get) => ({
   setCanvasLoading: (loading, message) => set({ canvasLoading: loading, canvasLoadingMessage: message || 'Loading canvas...' }),
 
   // --- Theme ---
-  theme: 'dark',
+  // Issue #38 bug #1: light is the default. `applyTheme('dark')` is
+  // still wired below for the toggle path.
+  theme: 'light',
   setTheme: (newTheme) => {
     const prev = get().theme
     const resolve = (t) => t === 'system'
