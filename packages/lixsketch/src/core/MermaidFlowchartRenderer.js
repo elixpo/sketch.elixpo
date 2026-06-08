@@ -18,7 +18,16 @@ const SIDE_MARGIN = 50;
 const TOP_MARGIN = 40;
 const FONT_FAMILY = 'lixFont, sans-serif';
 
-// Theme colors (dark theme)
+// Issue #38 follow-up: theme-aware stroke / fill. Resolved at draw time
+// so a single render call uses whichever palette is active.
+function isThemeDark() {
+    if (typeof document === 'undefined') return true;
+    return !!(document.body && document.body.classList.contains('theme-dark'));
+}
+function nodeStrokeColor() { return isThemeDark() ? '#fff' : '#1a1a2e'; }
+function edgeStrokeColor() { return isThemeDark() ? '#888' : '#444'; }
+
+// Theme colors (dark theme — used by the SVG-string preview path only)
 const THEME = {
     bg: '#1e1e28',
     nodeBg: 'transparent',
@@ -405,7 +414,11 @@ export function renderFlowchartOnCanvas(diagram) {
     // Created up-front so we can call addShapeToFrame as each child is
     // built. _diagramType marks it so Frame.destroy() takes the children
     // along on delete (issue #34 bug #3).
-    const PADDING = 40;
+    //
+    // PADDING bumped from 40 → 90 so edge labels, rotated diamond nodes,
+    // and arrow heads near the diagram boundary stay inside the frame
+    // instead of getting clipped at the corners.
+    const PADDING = 90;
     const frameTitle = diagram.title || 'Mermaid diagram';
     const frame = new window.Frame(
         vcx - dw / 2 - PADDING,
@@ -436,12 +449,13 @@ export function renderFlowchartOnCanvas(diagram) {
         const cy = ny + nh / 2;
 
         const opts = {
-            stroke: n.stroke || '#fff',
+            stroke: n.stroke || nodeStrokeColor(),
             strokeWidth: n.strokeWidth ?? 1.5,
             fill: n.fill || 'transparent',
             fillStyle: n.fill && n.fill !== 'transparent' ? 'solid' : 'none',
             roughness: 1,
             label: n.label || '',
+            labelColor: n.labelColor || nodeStrokeColor(),
         };
 
         let shape = null;
@@ -488,11 +502,12 @@ export function renderFlowchartOnCanvas(diagram) {
         const isDotted = style === 'dotted';
 
         const opts = {
-            stroke: e.stroke || '#fff',
+            stroke: e.stroke || edgeStrokeColor(),
             strokeWidth: isThick ? 3 : 1.5,
             roughness: 1,
             strokeDasharray: isDotted ? '5 3' : '',
             label: e.label || '',
+            labelColor: e.labelColor || edgeStrokeColor(),
         };
 
         let connector = null;
