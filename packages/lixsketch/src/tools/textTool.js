@@ -27,7 +27,7 @@ import {
 
 let textSize = "30px";
 let textFont = "lixFont";
-let textColor = "#fff";
+let textColor = null;
 let textAlign = "left";
 
 let textColorOptions = document.querySelectorAll(".textColorSpan");

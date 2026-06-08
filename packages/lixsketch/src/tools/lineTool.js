@@ -9,7 +9,7 @@ let currentLine = null;
 let lineStartX = 0;      
 let lineStartY = 0;      
 let currentLineGroup = null;    
-let lineColor = "#fff";
+let lineColor = null;
 let lineStrokeWidth = 3;
 let lineStrokeStyle = "solid";
 let lineEdgeType = 1;
@@ -71,7 +71,7 @@ const handleMouseDown = (e) => {
             { x, y },
             { x, y },
             {
-                stroke: lineColor,
+                stroke: lineColor ?? getThemeStroke(),
                 strokeWidth: lineStrokeWidth,
                 roughness: lineSktetchRate,
                 bowing: lineEdgeType,

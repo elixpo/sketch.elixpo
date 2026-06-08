@@ -10,7 +10,7 @@ let isResizing = false;
 let isDragging = false;
 let activeAnchor = null;
 let isDrawingArrow = false;
-let arrowStrokeColor = "#fff";
+let arrowStrokeColor = null;
 let arrowStrokeThickness = 2;
 let arrowOutlineStyle = "solid";
 let arrowCurved = "straight";
@@ -68,7 +68,7 @@ const handleMouseDown = (e) => {
     if (isArrowToolActive) {
         isDrawingArrow = true;
         currentArrow = new Arrow({ x, y }, { x, y }, {
-            stroke: arrowStrokeColor,
+            stroke: arrowStrokeColor ?? getThemeStroke(),
             strokeWidth: arrowStrokeThickness,
             arrowOutlineStyle: arrowOutlineStyle,
             arrowHeadStyle: arrowHeadStyle,

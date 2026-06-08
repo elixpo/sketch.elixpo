@@ -13,7 +13,7 @@ import { cleanupAttachments, updateAttachedArrows } from './arrowTool.js';
 
 let codeTextSize = "25px";
 let codeTextFont = "lixCode";
-let codeTextColor = "#fff";
+let codeTextColor = null;
 let codeTextAlign = "left";
 let codeLanguage = "auto";
 

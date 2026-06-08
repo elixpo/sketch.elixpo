@@ -16,7 +16,7 @@ const rc = rough.svg(svg);
 let startX, startY;
 
 
-let circleStrokecolor = "#fff";
+let circleStrokecolor = null;
 let circleBackgroundColor = "transparent";
 let circleFillStyleValue = "none";
 let circleStrokeThicknes = 2;
@@ -83,7 +83,7 @@ const handleMouseDown = (e) => {
             disableAllSideBars();
         }
         let initialOptions = {
-            stroke: circleStrokecolor,
+            stroke: circleStrokecolor ?? getThemeStroke(),
             fill: circleBackgroundColor,
             fillStyle: circleFillStyleValue,
             strokeWidth: circleStrokeThicknes,

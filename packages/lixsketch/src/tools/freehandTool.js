@@ -13,7 +13,7 @@ const strokeThicknesses = document.querySelectorAll(".strokeThickness span");
 const strokeStyles = document.querySelectorAll(".strokeStyleSpan");
 const strokeTapers = document.querySelectorAll(".strokeTaperSpan");
 const strokeRoughnesses = document.querySelectorAll(".strokeRoughnessSpan");
-let strokeColor = "#fff";
+let strokeColor = null;
 let strokeThickness = 2;
 let strokeStyleValue = "solid";
 let strokeThinning = 0;
@@ -140,7 +140,7 @@ function handleMouseDown(e) {
         lastTime = Date.now();
 
         currentStroke = new FreehandStroke(points, {
-            stroke: strokeColor,
+            stroke: strokeColor ?? getThemeStroke(),
             strokeWidth: strokeThickness
         });
 
