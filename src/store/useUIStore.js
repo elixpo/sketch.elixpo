@@ -86,8 +86,9 @@ function applyTheme(theme) {
     html.style.setProperty('--color-surface-card', '#1e1e28')
     html.style.setProperty('--color-text-primary', '#fff')
     html.style.setProperty('--color-text-secondary', '#e8e8ee')
-    html.style.setProperty('--color-text-muted', '#a0a0b0')
-    html.style.setProperty('--color-text-dim', '#787888')
+    // Issue #38 bug #3 (same fix as #39): bump muted/dim for AA contrast.
+    html.style.setProperty('--color-text-muted', '#b8b8c8')
+    html.style.setProperty('--color-text-dim', '#a0a0b0')
     html.style.setProperty('--color-border', '#333')
     html.style.setProperty('--color-border-light', '#3a3a50')
     html.style.setProperty('--color-border-accent', '#5555a0')
