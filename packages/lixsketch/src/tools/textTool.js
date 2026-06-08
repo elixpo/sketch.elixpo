@@ -260,11 +260,16 @@ function makeTextEditable(textElement, groupElement) {
     input.style.lineHeight = "1.2em";
     input.style.textAlign = currentAnchor === "middle" ? "center" : currentAnchor === "end" ? "right" : "left";
     input.style.backgroundColor = "transparent";
-    // Issue #34 bug #5a: dashed creation outline that grows with the
-    // text — same visual cue the frame tool uses while drawing. Inset
-    // padding-box border so the dashes follow the textarea size as the
-    // user types instead of clipping behind the glyphs.
-    input.style.border = "1px dashed rgba(255,255,255,0.55)";
+    // Issue #34 bug #5a + #48 bug #2: dashed creation outline that grows
+    // with the text. Originally `rgba(255,255,255,0.55)` — invisible on
+    // the new light canvas. Read the active theme so the dashes stay
+    // visible in both modes.
+    const _isDark = typeof document !== 'undefined'
+        && document.body
+        && document.body.classList.contains('theme-dark');
+    input.style.border = _isDark
+        ? "1px dashed rgba(255,255,255,0.55)"
+        : "1px dashed rgba(40,40,60,0.45)";
     input.style.borderRadius = "3px";
     input.style.outline = "none";
     document.body.appendChild(input);
