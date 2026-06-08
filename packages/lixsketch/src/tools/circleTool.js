@@ -16,7 +16,7 @@ const rc = rough.svg(svg);
 let startX, startY;
 
 
-let circleStrokecolor = "#1a1a20";
+let circleStrokecolor = "#fff";
 let circleBackgroundColor = "transparent";
 let circleFillStyleValue = "none";
 let circleStrokeThicknes = 2;
@@ -393,13 +393,16 @@ const handleMouseUp = (e) => {
     }
     
     if((isDraggingShapeCircle || isResizingShapeCircle || isRotatingShapeCircle) && dragOldPosCircle && currentShape) {
-        const newPos = { 
-            x: currentShape.x, 
-            y: currentShape.y, 
-            rx: currentShape.rx, 
-            ry: currentShape.ry, 
+        // Issue #34 bug #2: see rectangleTool — record the hovered frame
+        // as the destination, not the stale `parentFrame` (containment
+        // transfer happens later in this handler).
+        const newPos = {
+            x: currentShape.x,
+            y: currentShape.y,
+            rx: currentShape.rx,
+            ry: currentShape.ry,
             rotation: currentShape.rotation,
-            parentFrame: currentShape.parentFrame 
+            parentFrame: isDraggingShapeCircle ? (hoveredFrameCircle || null) : currentShape.parentFrame,
         };
         const oldPos = {
             ...dragOldPosCircle,

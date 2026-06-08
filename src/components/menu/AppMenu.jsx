@@ -103,7 +103,15 @@ const [docOpen, setDocOpen] = useState(false)
         />
       )}
       <div
-        className={`absolute top-14 right-4 w-[230px] max-h-[calc(100vh-140px)] overflow-y-auto no-scrollbar bg-surface/75 backdrop-blur-lg rounded-2xl z-[1000] border border-border-light p-1.5 font-[lixFont] text-[13px] transition-all duration-200 ${
+        className={`absolute top-14 right-4 w-[230px] max-h-[calc(100vh-140px)] no-scrollbar bg-surface/75 backdrop-blur-lg rounded-2xl z-[1000] border border-border-light p-1.5 font-[lixFont] text-[13px] transition-all duration-200 ${
+          // Issue #38 bug #2: per CSS spec, `overflow-y: auto` forces
+          // `overflow-x` to `auto` as well, which clipped the side-
+          // flyouts (`absolute right-full ...`) so the user saw nothing
+          // when they clicked Preferences or Document. Toggle the y-scroll
+          // off while a flyout is open so the flyout can escape the panel;
+          // restore it the moment the flyout closes.
+          (prefsOpen || docOpen) ? 'overflow-visible' : 'overflow-y-auto'
+        } ${
           menuOpen
             ? 'opacity-100 blur-0 pointer-events-auto'
             : 'opacity-0 blur-[20px] pointer-events-none'
