@@ -22,22 +22,7 @@
   --color-border-light: #3a3a50;
   --color-border-accent: #5555a0;
 }
-
-/* Issue #38 bug #1: canvas-only light theme. The canvas page adds the
- * `canvas-mode` class to <body> on mount (see src/app/c/[sessionId]/
- * page.jsx). Inside this scope all theme tokens swap to the light
- * palette so the canvas opens bright by default — but landing / blog
- * / pricing stay on the original dark theme because they never enter
- * this selector. When the user explicitly toggles dark from the menu,
- * `applyTheme` adds the `theme-dark` class to <body> and the second
- * block below restores the dark palette inside the canvas. */
 body.canvas-mode {
-  /* Light-mode palette — unified warm off-white. Surface and surface-dark
-   * are very close so the canvas, docs panel, and header all share one
-   * soft tint instead of the patchwork (white navbar + cream canvas +
-   * grey docs) that read as multi-theme. `surface-card` and `surface`
-   * differ only slightly so floating panels still pop without harsh
-   * contrast. */
   --color-surface: #f4f3ee;
   --color-surface-hover: #eceae3;
   --color-surface-active: #dcd9cd;
@@ -55,10 +40,6 @@ body.canvas-mode {
 }
 
 body.canvas-mode.theme-dark {
-  /* Dark-mode palette — pitch-black softened a notch. The old #1a1a20
-   * read as near-black; #20202a feels like night without being inky.
-   * surface and surface-dark unified so the canvas / docs / panel
-   * chrome share one dark plane. */
   --color-surface: #25252f;
   --color-surface-hover: #35354a;
   --color-surface-active: #444480;
