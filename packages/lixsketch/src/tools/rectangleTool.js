@@ -16,7 +16,7 @@ let startRotationMouseAngleSquare = 0;
 let startShapeRotationSquare = 0;
 const rc = rough.svg(svg); 
 let startX, startY;
-let squareStrokecolor = "#1a1a20";
+let squareStrokecolor = "#fff";
 let squareBackgroundColor = "transparent";
 let squareFillStyleValue = "none";
 let squareStrokeThicknes = 2;
@@ -363,13 +363,19 @@ const handleMouseUpRect = (e) => {
     }
 
     if ((isDraggingShapeSquare || isResizingShapeSquare || isRotatingShapeSquare) && dragOldPosSquare && currentShape) {
-        const newPos = { 
-            x: currentShape.x, 
-            y: currentShape.y, 
-            width: currentShape.width, 
-            height: currentShape.height, 
+        // Issue #34 bug #2: for drag operations the actual frame transfer
+        // happens AFTER this mouseUp block — so `currentShape.parentFrame`
+        // at this point still points at the OLD frame. Use the hovered
+        // frame (tracked during mousemove) as the authoritative new
+        // destination instead, so the undo action records a real
+        // attachment delta and Ctrl+Z re-attaches the shape correctly.
+        const newPos = {
+            x: currentShape.x,
+            y: currentShape.y,
+            width: currentShape.width,
+            height: currentShape.height,
             rotation: currentShape.rotation,
-            parentFrame: currentShape.parentFrame
+            parentFrame: isDraggingShapeSquare ? (hoveredFrame || null) : currentShape.parentFrame,
         };
         const oldPos = {
             ...dragOldPosSquare,

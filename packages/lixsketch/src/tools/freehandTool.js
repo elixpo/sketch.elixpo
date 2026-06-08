@@ -13,7 +13,7 @@ const strokeThicknesses = document.querySelectorAll(".strokeThickness span");
 const strokeStyles = document.querySelectorAll(".strokeStyleSpan");
 const strokeTapers = document.querySelectorAll(".strokeTaperSpan");
 const strokeRoughnesses = document.querySelectorAll(".strokeRoughnessSpan");
-let strokeColor = "#1a1a20";
+let strokeColor = "#fff";
 let strokeThickness = 2;
 let strokeStyleValue = "solid";
 let strokeThinning = 0;
@@ -411,9 +411,15 @@ function handleMouseUp(e) {
             ...dragOldPosStroke,
             parentFrame: draggedShapeInitialFrameStroke
         };
+        // Issue #34 bug #2: for drag, hoveredFrameStroke is the actual
+        // destination — currentShape.parentFrame at this point is still
+        // the OLD frame. Resize / rotate don't track hover, fall back to
+        // the shape's own parent.
         const newPosForUndo = {
             ...newPos,
-            parentFrame: currentShape.parentFrame
+            parentFrame: isDraggingStroke
+                ? (hoveredFrameStroke || null)
+                : currentShape.parentFrame,
         };
         
         const frameChanged = oldPos.parentFrame !== newPosForUndo.parentFrame;

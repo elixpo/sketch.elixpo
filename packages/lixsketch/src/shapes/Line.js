@@ -4,7 +4,7 @@
 import { updateAttachedArrows as updateArrowsForShape } from '../tools/arrowTool.js';
 
 const rc = rough.svg(svg);
-const lineColor = "#1a1a20";
+const lineColor = "#fff";
 const lineStrokeWidth = 2;
 let hoveredFrameLine = null;
 
