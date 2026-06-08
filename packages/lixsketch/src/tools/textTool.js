@@ -464,11 +464,18 @@ function createSelectionFeedback(groupElement) {
     selectionBox.setAttribute("pointer-events", "none");
     groupElement.appendChild(selectionBox);
 
+    // Issue #48 bug #5: added E/W midpoint anchors so the user can
+    // drag the text's width without grabbing a corner. The text shape
+    // scales font-size proportionally (no wrap support), so E/W still
+    // produce a uniform scale — they just let horizontal mouse motion
+    // drive the scale calculation instead of vertical.
     const handlesData = [
         { name: 'nw', x: selX, y: selY, cursor: 'nwse-resize' },
         { name: 'ne', x: selX + selWidth, y: selY, cursor: 'nesw-resize' },
         { name: 'sw', x: selX, y: selY + selHeight, cursor: 'nesw-resize' },
-        { name: 'se', x: selX + selWidth, y: selY + selHeight, cursor: 'nwse-resize' }
+        { name: 'se', x: selX + selWidth, y: selY + selHeight, cursor: 'nwse-resize' },
+        { name: 'e',  x: selX + selWidth, y: selY + selHeight / 2, cursor: 'ew-resize' },
+        { name: 'w',  x: selX, y: selY + selHeight / 2, cursor: 'ew-resize' },
     ];
 
     resizeHandles = {};
@@ -573,7 +580,11 @@ function updateSelectionFeedback() {
         { name: 'nw', x: selX, y: selY },
         { name: 'ne', x: selX + selWidth, y: selY },
         { name: 'sw', x: selX, y: selY + selHeight },
-        { name: 'se', x: selX + selWidth, y: selY + selHeight }
+        { name: 'se', x: selX + selWidth, y: selY + selHeight },
+        // Issue #48 bug #5: keep E/W midpoint handles aligned with the
+        // resize so they follow the box as it scales.
+        { name: 'e',  x: selX + selWidth, y: selY + selHeight / 2 },
+        { name: 'w',  x: selX, y: selY + selHeight / 2 },
     ];
 
     handlesData.forEach(handle => {
@@ -865,6 +876,7 @@ const handleMouseMove = (event) => {
         const startHeight = startBBox.height;
 
         let anchorX, anchorY;
+        const isEdgeWidth = currentResizeHandle === 'e' || currentResizeHandle === 'w';
 
         switch (currentResizeHandle) {
             case 'nw':
@@ -883,12 +895,26 @@ const handleMouseMove = (event) => {
                 anchorX = startX;
                 anchorY = startY;
                 break;
+            // Issue #48 bug #5: E/W edges — anchor the OPPOSITE side and
+            // let only the X axis drive the scale.
+            case 'e':
+                anchorX = startX;
+                anchorY = startY + startHeight / 2;
+                break;
+            case 'w':
+                anchorX = startX + startWidth;
+                anchorY = startY + startHeight / 2;
+                break;
         }
 
         const newWidth = Math.abs(currentPoint.x - anchorX);
         const newHeight = Math.abs(currentPoint.y - anchorY);
 
-        const chosenScale = newHeight / startHeight;
+        // Corners use height delta (legacy behaviour). E/W use width delta
+        // so horizontal mouse motion drives the font-size scale.
+        const chosenScale = isEdgeWidth
+            ? newWidth / startWidth
+            : newHeight / startHeight;
 
         const minScale = 0.1;
         const maxScale = 10.0;
@@ -920,6 +946,14 @@ const handleMouseMove = (event) => {
             case 'se':
                 newAnchorX = currentBBox.x;
                 newAnchorY = currentBBox.y;
+                break;
+            case 'e':
+                newAnchorX = currentBBox.x;
+                newAnchorY = currentBBox.y + currentBBox.height / 2;
+                break;
+            case 'w':
+                newAnchorX = currentBBox.x + currentBBox.width;
+                newAnchorY = currentBBox.y + currentBBox.height / 2;
                 break;
         }
 
