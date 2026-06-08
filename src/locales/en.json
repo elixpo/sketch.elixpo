@@ -20,7 +20,12 @@
       "cream": "Cream",
       "paper": "Paper",
       "skyTint": "Sky Tint",
-      "sageTint": "Sage Tint"
+      "sageTint": "Sage Tint",
+      "black": "Black",
+      "darkGray": "Dark Gray",
+      "blueBlack": "Blue Black",
+      "darkYellow": "Dark Yellow",
+      "darkBrown": "Dark Brown"
     }
   },
   "links": {

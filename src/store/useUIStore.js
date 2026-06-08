@@ -173,6 +173,26 @@ const useUIStore = create((set, get) => ({
     invertShapeColors(resolve(prev), resolve(newTheme))
     applyTheme(newTheme)
     set({ theme: newTheme })
+
+    // Issue #38 follow-up: when the user toggles themes, swap the canvas
+    // background to a matching swatch from the NEW theme's palette if it
+    // currently matches one from the OLD theme's. This keeps a swatch
+    // highlighted as "selected" in the menu and prevents the canvas from
+    // looking light in dark mode (or vice versa). User-customised colours
+    // (not in either list) stay untouched. Lazy-load the sketch store to
+    // avoid the cross-store import cycle.
+    const LIGHT_BGS = ['#ffffff', '#faf9f5', '#f5f3ed', '#f0f5fb', '#f0f5ef', '#f4f3ee']
+    const DARK_BGS  = ['#000000', '#161718', '#13171C', '#181605', '#1B1615']
+    const resolved = resolve(newTheme)
+    Promise.resolve().then(async () => {
+      const { default: useSketchStore } = await import('@/store/useSketchStore')
+      const ss = useSketchStore.getState()
+      const cur = (ss.canvasBackground || '').toLowerCase()
+      const inLight = LIGHT_BGS.some((c) => c.toLowerCase() === cur)
+      const inDark  = DARK_BGS .some((c) => c.toLowerCase() === cur)
+      if (resolved === 'dark' && inLight) ss.setCanvasBackground(DARK_BGS[2])  // blue-black, the previous default
+      else if (resolved === 'light' && inDark) ss.setCanvasBackground(LIGHT_BGS[1])  // cream
+    }).catch(() => {})
   },
 
   // --- Language / i18n ---
