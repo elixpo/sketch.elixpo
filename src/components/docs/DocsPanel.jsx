@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import useSketchStore from '@/store/useSketchStore'
 import useUIStore from '@/store/useUIStore'
 import useDocAutoSave, { triggerDocSync } from '@/hooks/useDocAutoSave'
@@ -28,6 +29,15 @@ export default function DocsPanel() {
   // theme — light by default, follows the user's toggle from then on.
   const canvasTheme = useUIStore((s) => s.theme)
   const docTheme = canvasTheme === 'dark' ? 'dark' : 'light'
+
+  // LixThemeProvider reads from `localStorage[storageKey]` BEFORE
+  // applying `defaultTheme`, so stale 'dark' from a prior session
+  // overrode the new default and pinned the editor in dark mode. Sync
+  // the storage key to `docTheme` BEFORE the provider mounts so it
+  // picks up the canvas theme instead.
+  useEffect(() => {
+    try { localStorage.setItem('lixsketch_doc_theme', docTheme) } catch {}
+  }, [docTheme])
 
   const { initialContent, ready } = useDocAutoSave(visible)
 
