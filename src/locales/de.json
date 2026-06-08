@@ -20,7 +20,12 @@
       "cream": "Creme",
       "paper": "Papier",
       "skyTint": "Himmelton",
-      "sageTint": "Salbeiton"
+      "sageTint": "Salbeiton",
+      "black": "Schwarz",
+      "darkGray": "Dunkelgrau",
+      "blueBlack": "Blauschwarz",
+      "darkYellow": "Dunkelgelb",
+      "darkBrown": "Dunkelbraun"
     }
   },
   "links": {

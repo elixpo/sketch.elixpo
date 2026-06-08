@@ -7,12 +7,23 @@ import useAuthStore from '@/store/useAuthStore'
 import { triggerCloudSync, writeLocalScene } from '@/hooks/useAutoSave'
 import { triggerDocCloudSync, persistLayoutMode } from '@/hooks/useDocAutoSave'
 import { useTranslation } from '@/hooks/useTranslation'
-const CANVAS_BACKGROUNDS = [
+// Issue #38 follow-up: swatches are paired per theme. The light set
+// pairs with the soothing warm-off-white canvas; the dark set restores
+// the original night palette. The menu picks the matching list at render
+// time based on the active theme.
+const CANVAS_BACKGROUNDS_LIGHT = [
   { color: '#ffffff', label: 'menu.canvasBg.white' },
   { color: '#faf9f5', label: 'menu.canvasBg.cream' },
   { color: '#f5f3ed', label: 'menu.canvasBg.paper' },
   { color: '#f0f5fb', label: 'menu.canvasBg.skyTint' },
   { color: '#f0f5ef', label: 'menu.canvasBg.sageTint' },
+]
+const CANVAS_BACKGROUNDS_DARK = [
+  { color: '#000000', label: 'menu.canvasBg.black' },
+  { color: '#161718', label: 'menu.canvasBg.darkGray' },
+  { color: '#13171C', label: 'menu.canvasBg.blueBlack' },
+  { color: '#181605', label: 'menu.canvasBg.darkYellow' },
+  { color: '#1B1615', label: 'menu.canvasBg.darkBrown' },
 ]
 
 export default function AppMenu() {
@@ -474,7 +485,7 @@ const [docOpen, setDocOpen] = useState(false)
             {t('menu.canvasBackground')}
           </p>
           <div className="flex items-center gap-1.5">
-            {CANVAS_BACKGROUNDS.map((bg) => (
+            {(theme === 'dark' ? CANVAS_BACKGROUNDS_DARK : CANVAS_BACKGROUNDS_LIGHT).map((bg) => (
               <button
                 key={bg.color}
                 onClick={() => setCanvasBackground(bg.color)}
