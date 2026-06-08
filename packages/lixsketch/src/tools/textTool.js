@@ -1001,11 +1001,14 @@ const handleMouseUp = (event) => {
                 rotation: extractRotationFromTransform(selectedElement) || 0,
                 parentFrame: draggedShapeInitialFrameText
             };
+            // Issue #34 bug #2: hoveredFrameText is the actual destination
+            // tracked during drag — textShape.parentFrame is still the OLD
+            // frame at this point.
             const newPosWithFrame = {
                 x: finalTranslateX,
                 y: finalTranslateY,
                 rotation: extractRotationFromTransform(selectedElement) || 0,
-                parentFrame: textShape ? textShape.parentFrame : null
+                parentFrame: hoveredFrameText || null,
             };
 
             const stateChanged = initialX !== finalTranslateX || initialY !== finalTranslateY;

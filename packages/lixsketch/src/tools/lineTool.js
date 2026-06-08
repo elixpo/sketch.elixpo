@@ -319,11 +319,13 @@ const handleMouseUp = (e) => {
     }
     
     if (isDraggingLine && dragOldPosLine && currentShape) {
+        // Issue #34 bug #2: use hoveredFrameLine (actual destination) instead
+        // of the stale parentFrame — containment transfer hasn't happened yet.
         const newPos = {
             startPoint: { x: currentShape.startPoint.x, y: currentShape.startPoint.y },
             endPoint: { x: currentShape.endPoint.x, y: currentShape.endPoint.y },
             controlPoint: currentShape.controlPoint ? { x: currentShape.controlPoint.x, y: currentShape.controlPoint.y } : null,
-            parentFrame: currentShape.parentFrame
+            parentFrame: hoveredFrameLine || null,
         };
         const oldPos = {
             ...dragOldPosLine,
