@@ -405,7 +405,11 @@ export function renderFlowchartOnCanvas(diagram) {
     // Created up-front so we can call addShapeToFrame as each child is
     // built. _diagramType marks it so Frame.destroy() takes the children
     // along on delete (issue #34 bug #3).
-    const PADDING = 40;
+    //
+    // PADDING bumped from 40 → 90 so edge labels, rotated diamond nodes,
+    // and arrow heads near the diagram boundary stay inside the frame
+    // instead of getting clipped at the corners.
+    const PADDING = 90;
     const frameTitle = diagram.title || 'Mermaid diagram';
     const frame = new window.Frame(
         vcx - dw / 2 - PADDING,
