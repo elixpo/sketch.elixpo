@@ -11,6 +11,8 @@ import {
     updateSelectedElement
 } from '../core/UndoRedo.js';
 import { cleanupAttachments, updateAttachedArrows } from './arrowTool.js';
+
+function getThemeStroke() { if (typeof document === "undefined") return "#fff"; return document.body && document.body.classList.contains("theme-dark") ? "#fff" : "#1a1a2e"; }
 import {
     addCodeBlock,
     wrapCodeElement,
@@ -27,7 +29,7 @@ import {
 
 let textSize = "30px";
 let textFont = "lixFont";
-let textColor = "#fff";
+let textColor = null;
 let textAlign = "left";
 
 let textColorOptions = document.querySelectorAll(".textColorSpan");
@@ -118,7 +120,7 @@ function addText(event) {
 
     textElement.setAttribute("x", 0);
     textElement.setAttribute("y", 0);
-    textElement.setAttribute("fill", textColor);
+    textElement.setAttribute("fill", textColor ?? getThemeStroke());
     textElement.setAttribute("font-size", textSize);
     textElement.setAttribute("font-family", textFont);
     textElement.setAttribute("text-anchor", textAlignElement);
@@ -138,7 +140,7 @@ function addText(event) {
     gElement.setAttribute("data-y", y);
     textElement.setAttribute("data-initial-size", textSize);
     textElement.setAttribute("data-initial-font", textFont);
-    textElement.setAttribute("data-initial-color", textColor);
+    textElement.setAttribute("data-initial-color", textColor ?? getThemeStroke());
     textElement.setAttribute("data-initial-align", textAlign);
     textElement.setAttribute("data-type", "text");
     gElement.appendChild(textElement);

@@ -4,6 +4,8 @@ import { pushCreateAction, pushDeleteAction, pushOptionsChangeAction, pushTransf
 import { cleanupAttachments } from './arrowTool.js';
 import { calculateSnap, clearSnapGuides } from '../core/SnapGuides.js';
 
+function getThemeStroke() { if (typeof document === "undefined") return "#fff"; return document.body && document.body.classList.contains("theme-dark") ? "#fff" : "#1a1a2e"; }
+
 let isDrawingCircle = false;
 let isDraggingShapeCircle = false;
 let isResizingShapeCircle = false;
@@ -16,7 +18,7 @@ const rc = rough.svg(svg);
 let startX, startY;
 
 
-let circleStrokecolor = "#fff";
+let circleStrokecolor = null;
 let circleBackgroundColor = "transparent";
 let circleFillStyleValue = "none";
 let circleStrokeThicknes = 2;
@@ -83,7 +85,7 @@ const handleMouseDown = (e) => {
             disableAllSideBars();
         }
         let initialOptions = {
-            stroke: circleStrokecolor,
+            stroke: circleStrokecolor ?? getThemeStroke(),
             fill: circleBackgroundColor,
             fillStyle: circleFillStyleValue,
             strokeWidth: circleStrokeThicknes,

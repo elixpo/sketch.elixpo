@@ -4,13 +4,15 @@ import { pushCreateAction, pushDeleteAction, pushOptionsChangeAction, pushTransf
 import { calculateSnap, clearSnapGuides } from '../core/SnapGuides.js';
 
 
+function getThemeStroke() { if (typeof document === "undefined") return "#fff"; return document.body && document.body.classList.contains("theme-dark") ? "#fff" : "#1a1a2e"; }
+
 let arrowStartX, arrowStartY;
 let currentArrow = null;
 let isResizing = false;
 let isDragging = false;
 let activeAnchor = null;
 let isDrawingArrow = false;
-let arrowStrokeColor = "#fff";
+let arrowStrokeColor = null;
 let arrowStrokeThickness = 2;
 let arrowOutlineStyle = "solid";
 let arrowCurved = "straight";
@@ -68,7 +70,7 @@ const handleMouseDown = (e) => {
     if (isArrowToolActive) {
         isDrawingArrow = true;
         currentArrow = new Arrow({ x, y }, { x, y }, {
-            stroke: arrowStrokeColor,
+            stroke: arrowStrokeColor ?? getThemeStroke(),
             strokeWidth: arrowStrokeThickness,
             arrowOutlineStyle: arrowOutlineStyle,
             arrowHeadStyle: arrowHeadStyle,
