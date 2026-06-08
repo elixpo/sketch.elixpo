@@ -32,40 +32,44 @@
  * `applyTheme` adds the `theme-dark` class to <body> and the second
  * block below restores the dark palette inside the canvas. */
 body.canvas-mode {
-  /* Issue #38 follow-up: dropped the strict black-on-white pairing for
-   * something softer. Surfaces are warm off-white tints (paper-like
-   * instead of sterile #fff), and text moves from near-black to a
-   * relaxed dark slate. Still clears AA contrast, just less harsh. */
-  --color-surface: #f7f6f2;
-  --color-surface-hover: #ebe9e2;
-  --color-surface-active: #ddd9cd;
-  --color-surface-dark: #f0eee5;
-  --color-surface-card: #fdfcf8;
-  --color-text-primary: #33334d;
-  --color-text-secondary: #444460;
-  --color-text-muted: #5e5e72;
-  --color-text-dim: #7a7a8a;
-  --color-border: #d8d6cc;
-  --color-border-light: #c9c7be;
+  /* Light-mode palette — unified warm off-white. Surface and surface-dark
+   * are very close so the canvas, docs panel, and header all share one
+   * soft tint instead of the patchwork (white navbar + cream canvas +
+   * grey docs) that read as multi-theme. `surface-card` and `surface`
+   * differ only slightly so floating panels still pop without harsh
+   * contrast. */
+  --color-surface: #f4f3ee;
+  --color-surface-hover: #eceae3;
+  --color-surface-active: #dcd9cd;
+  --color-surface-dark: #f4f3ee;
+  --color-surface-card: #fbfaf6;
+  --color-text-primary: #38384e;
+  --color-text-secondary: #4a4a60;
+  --color-text-muted: #62627a;
+  --color-text-dim: #80808f;
+  --color-border: #d6d4ca;
+  --color-border-light: #c5c3ba;
   --color-border-accent: #8080c0;
-  /* Frame.js + SVGCanvas read these for grid strokes. Light theme
-   * uses dark-on-light. */
-  --lixsketch-grid-fine: rgba(60, 60, 80, 0.08);
-  --lixsketch-grid-major: rgba(60, 60, 80, 0.16);
+  --lixsketch-grid-fine: rgba(60, 60, 80, 0.07);
+  --lixsketch-grid-major: rgba(60, 60, 80, 0.14);
 }
 
 body.canvas-mode.theme-dark {
-  --color-surface: #232329;
-  --color-surface-hover: #343448;
+  /* Dark-mode palette — pitch-black softened a notch. The old #1a1a20
+   * read as near-black; #20202a feels like night without being inky.
+   * surface and surface-dark unified so the canvas / docs / panel
+   * chrome share one dark plane. */
+  --color-surface: #25252f;
+  --color-surface-hover: #35354a;
   --color-surface-active: #444480;
-  --color-surface-dark: #1a1a20;
-  --color-surface-card: #1e1e28;
-  --color-text-primary: #fff;
-  --color-text-secondary: #e8e8ee;
-  --color-text-muted: #b8b8c8;
-  --color-text-dim: #a0a0b0;
-  --color-border: #333;
-  --color-border-light: #3a3a50;
+  --color-surface-dark: #20202a;
+  --color-surface-card: #292932;
+  --color-text-primary: #f0f0f5;
+  --color-text-secondary: #d8d8e0;
+  --color-text-muted: #b0b0c0;
+  --color-text-dim: #92929e;
+  --color-border: #383848;
+  --color-border-light: #3e3e52;
   --color-border-accent: #5555a0;
   --lixsketch-grid-fine: rgba(255, 255, 255, 0.06);
   --lixsketch-grid-major: rgba(255, 255, 255, 0.12);
