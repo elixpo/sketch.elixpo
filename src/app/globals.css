@@ -32,22 +32,26 @@
  * `applyTheme` adds the `theme-dark` class to <body> and the second
  * block below restores the dark palette inside the canvas. */
 body.canvas-mode {
-  --color-surface: #f0f0f5;
-  --color-surface-hover: #e0e0ea;
-  --color-surface-active: #d0d0e0;
-  --color-surface-dark: #e8e8f0;
-  --color-surface-card: #ffffff;
-  --color-text-primary: #1a1a2e;
-  --color-text-secondary: #2a2a40;
-  --color-text-muted: #525266;
-  --color-text-dim: #6a6a80;
-  --color-border: #d0d0dd;
-  --color-border-light: #c0c0d0;
+  /* Issue #38 follow-up: dropped the strict black-on-white pairing for
+   * something softer. Surfaces are warm off-white tints (paper-like
+   * instead of sterile #fff), and text moves from near-black to a
+   * relaxed dark slate. Still clears AA contrast, just less harsh. */
+  --color-surface: #f7f6f2;
+  --color-surface-hover: #ebe9e2;
+  --color-surface-active: #ddd9cd;
+  --color-surface-dark: #f0eee5;
+  --color-surface-card: #fdfcf8;
+  --color-text-primary: #33334d;
+  --color-text-secondary: #444460;
+  --color-text-muted: #5e5e72;
+  --color-text-dim: #7a7a8a;
+  --color-border: #d8d6cc;
+  --color-border-light: #c9c7be;
   --color-border-accent: #8080c0;
-  /* Frame.js + SVGCanvas read these for grid strokes (see issue #38
-   * follow-up). Light theme uses dark-on-light. */
-  --lixsketch-grid-fine: rgba(40, 40, 60, 0.10);
-  --lixsketch-grid-major: rgba(40, 40, 60, 0.18);
+  /* Frame.js + SVGCanvas read these for grid strokes. Light theme
+   * uses dark-on-light. */
+  --lixsketch-grid-fine: rgba(60, 60, 80, 0.08);
+  --lixsketch-grid-major: rgba(60, 60, 80, 0.16);
 }
 
 body.canvas-mode.theme-dark {
