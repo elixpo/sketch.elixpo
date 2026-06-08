@@ -12,8 +12,14 @@
   --color-accent-blue-hover: #6c67f3;
   --color-text-primary: #fff;
   --color-text-secondary: #e8e8ee;
-  --color-text-muted: #a0a0b0;
-  --color-text-dim: #787888;
+  /* Issue #38 bug #3: bumped both muted tokens for readable contrast on
+   * the dark surface. Old dim (#787888) sat at ~4.0:1 vs the menu bg —
+   * below AA for tiny 10–11px labels. New values:
+   *   muted: 6.7:1 → 8.3:1
+   *   dim:   4.0:1 → 6.7:1  (effectively promoted to the old muted slot)
+   */
+  --color-text-muted: #b8b8c8;
+  --color-text-dim: #a0a0b0;
   --color-border: #333;
   --color-border-light: #3a3a50;
   --color-border-accent: #5555a0;
