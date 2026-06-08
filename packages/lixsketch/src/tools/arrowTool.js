@@ -4,6 +4,8 @@ import { pushCreateAction, pushDeleteAction, pushOptionsChangeAction, pushTransf
 import { calculateSnap, clearSnapGuides } from '../core/SnapGuides.js';
 
 
+function getThemeStroke() { if (typeof document === "undefined") return "#fff"; return document.body && document.body.classList.contains("theme-dark") ? "#fff" : "#1a1a2e"; }
+
 let arrowStartX, arrowStartY;
 let currentArrow = null;
 let isResizing = false;

@@ -9,6 +9,8 @@ import {
     pushFrameAttachmentAction,
     setTextReferences,
     updateSelectedElement
+function getThemeStroke() { if (typeof document === "undefined") return "#fff"; return document.body && document.body.classList.contains("theme-dark") ? "#fff" : "#1a1a2e"; }
+
 } from '../core/UndoRedo.js';
 import { cleanupAttachments, updateAttachedArrows } from './arrowTool.js';
 import {
@@ -118,7 +120,7 @@ function addText(event) {
 
     textElement.setAttribute("x", 0);
     textElement.setAttribute("y", 0);
-    textElement.setAttribute("fill", textColor);
+    textElement.setAttribute("fill", textColor ?? getThemeStroke());
     textElement.setAttribute("font-size", textSize);
     textElement.setAttribute("font-family", textFont);
     textElement.setAttribute("text-anchor", textAlignElement);
@@ -138,7 +140,7 @@ function addText(event) {
     gElement.setAttribute("data-y", y);
     textElement.setAttribute("data-initial-size", textSize);
     textElement.setAttribute("data-initial-font", textFont);
-    textElement.setAttribute("data-initial-color", textColor);
+    textElement.setAttribute("data-initial-color", textColor ?? getThemeStroke());
     textElement.setAttribute("data-initial-align", textAlign);
     textElement.setAttribute("data-type", "text");
     gElement.appendChild(textElement);
