@@ -16,11 +16,11 @@
     "theme": "Тема",
     "canvasBackground": "Фон на платното",
     "canvasBg": {
-      "black": "Черно",
-      "darkGray": "Тъмно сиво",
-      "blueBlack": "Синьо-черно",
-      "darkYellow": "Тъмно жълто",
-      "darkBrown": "Тъмно кафяво"
+      "white": "Бяло",
+      "cream": "Кремаво",
+      "paper": "Хартия",
+      "skyTint": "Небесен оттенък",
+      "sageTint": "Градински чай"
     }
   },
   "links": {
