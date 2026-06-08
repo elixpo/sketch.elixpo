@@ -7,11 +7,6 @@ import useAuthStore from '@/store/useAuthStore'
 import { triggerCloudSync, writeLocalScene } from '@/hooks/useAutoSave'
 import { triggerDocCloudSync, persistLayoutMode } from '@/hooks/useDocAutoSave'
 import { useTranslation } from '@/hooks/useTranslation'
-
-// Issue #38 bug #1: light-themed canvas background palette to pair with
-// the new light default theme. All values are off-white tints chosen to
-// keep stroke contrast (the new default stroke colour is #1a1a20-ish on
-// shapes the user draws) — pure white risks washing the strokes out.
 const CANVAS_BACKGROUNDS = [
   { color: '#ffffff', label: 'menu.canvasBg.white' },
   { color: '#faf9f5', label: 'menu.canvasBg.cream' },
