@@ -359,19 +359,21 @@ export function renderFlowchartPreviewSVG(diagram) {
 }
 
 /**
- * Render a flowchart diagram onto the canvas as a group of real engine
- * shapes — Rectangle nodes (with embedded labels) joined by Arrow edges —
- * sharing a single `groupId`. No wrapper frame, no stub container.
+ * Render a flowchart diagram onto the canvas as a real engine `Frame`
+ * containing independent shapes — Rectangle nodes (with embedded labels)
+ * joined by Arrow edges. Each child is fully independent for click /
+ * drag / resize / colour-change, exactly like a user-drawn shape; the
+ * Frame's `_diagramType` marker means deleting it pulls every child with
+ * it (so the diagram behaves as one logical unit when you're done with
+ * it) — see Frame.destroy().
  *
- * Phase 5 of issue #22: rendered content is loose so each node behaves
- * like any user-drawn shape (selectable, draggable, attachable from
- * arrows across the boundary, picked up by the rect-drag, etc.). The
- * shared groupId means Ctrl-click on any node selects the whole diagram
- * via the existing group-expansion path in Selection.js.
+ * Issue #34 bug #3 (follow-up to #22 phase 5): drops the shared `groupId`
+ * glue that made selecting one shape select the whole diagram; the Frame
+ * is the explicit container instead.
  */
 export function renderFlowchartOnCanvas(diagram) {
     if (!diagram || !diagram.nodes || diagram.nodes.length === 0) return false;
-    if (!window.svg || !window.Rectangle) {
+    if (!window.svg || !window.Rectangle || !window.Frame) {
         console.error('[FlowchartRenderer] Engine not initialized');
         return false;
     }
@@ -399,9 +401,28 @@ export function renderFlowchartOnCanvas(diagram) {
     const ox = vcx - dw / 2 - minX;
     const oy = vcy - dh / 2 - minY;
 
-    // Shared groupId so the whole diagram behaves as one group under
-    // Ctrl+click / Ctrl+G — same mechanism EngineShortcuts uses.
-    const groupId = `mermaid-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    // ── Wrapper frame ──────────────────────────────────────────────────
+    // Created up-front so we can call addShapeToFrame as each child is
+    // built. _diagramType marks it so Frame.destroy() takes the children
+    // along on delete (issue #34 bug #3).
+    const PADDING = 40;
+    const frameTitle = diagram.title || 'Mermaid diagram';
+    const frame = new window.Frame(
+        vcx - dw / 2 - PADDING,
+        vcy - dh / 2 - PADDING,
+        dw + PADDING * 2,
+        dh + PADDING * 2,
+        {
+            stroke: '#888',
+            strokeWidth: 1,
+            fill: 'transparent',
+            opacity: 0.7,
+            frameName: frameTitle,
+        }
+    );
+    frame._diagramType = 'mermaid-flowchart';
+    window.shapes.push(frame);
+    if (window.pushCreateAction) window.pushCreateAction(frame);
 
     const nodeMap = new Map(); // id → shape
 
@@ -415,7 +436,7 @@ export function renderFlowchartOnCanvas(diagram) {
         const cy = ny + nh / 2;
 
         const opts = {
-            stroke: n.stroke || '#1a1a20',
+            stroke: n.stroke || '#fff',
             strokeWidth: n.strokeWidth ?? 1.5,
             fill: n.fill || 'transparent',
             fillStyle: n.fill && n.fill !== 'transparent' ? 'solid' : 'none',
@@ -443,9 +464,9 @@ export function renderFlowchartOnCanvas(diagram) {
         }
         if (!shape) continue;
 
-        shape.groupId = groupId;
         window.shapes.push(shape);
         if (window.pushCreateAction) window.pushCreateAction(shape);
+        frame.addShapeToFrame(shape);
 
         nodeMap.set(n.id, { shape, x: nx, y: ny, width: nw, height: nh, centerX: cx, centerY: cy });
     }
@@ -467,7 +488,7 @@ export function renderFlowchartOnCanvas(diagram) {
         const isDotted = style === 'dotted';
 
         const opts = {
-            stroke: e.stroke || '#1a1a20',
+            stroke: e.stroke || '#fff',
             strokeWidth: isThick ? 3 : 1.5,
             roughness: 1,
             strokeDasharray: isDotted ? '5 3' : '',
@@ -489,9 +510,9 @@ export function renderFlowchartOnCanvas(diagram) {
         }
         if (!connector) continue;
 
-        connector.groupId = groupId;
         window.shapes.push(connector);
         if (window.pushCreateAction) window.pushCreateAction(connector);
+        frame.addShapeToFrame(connector);
 
         // Wire arrow endpoints into the source/target shapes so moving a
         // node drags its connections along. window.__autoAttach is set up
@@ -506,7 +527,9 @@ export function renderFlowchartOnCanvas(diagram) {
         }
     }
 
-    // Select the first node so the user has feedback that something landed.
+    // Select the first node so the user has feedback that something
+    // landed. Selecting a child (not the frame) reinforces the
+    // "independent shapes inside a frame" model.
     const first = nodeMap.values().next().value;
     if (first) {
         window.currentShape = first.shape;

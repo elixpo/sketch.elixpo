@@ -16,7 +16,7 @@ const rc = rough.svg(svg);
 let startX, startY;
 
 
-let circleStrokecolor = "#1a1a20";
+let circleStrokecolor = "#fff";
 let circleBackgroundColor = "transparent";
 let circleFillStyleValue = "none";
 let circleStrokeThicknes = 2;
