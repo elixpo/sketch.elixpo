@@ -1,6 +1,7 @@
 'use client'
 
 import useSketchStore from '@/store/useSketchStore'
+import useUIStore from '@/store/useUIStore'
 import useDocAutoSave, { triggerDocSync } from '@/hooks/useDocAutoSave'
 import '@blocknote/core/fonts/inter.css'
 import '@blocknote/mantine/style.css'
@@ -23,6 +24,10 @@ function DocsLoading() {
 export default function DocsPanel() {
   const layoutMode = useSketchStore((s) => s.layoutMode)
   const visible = layoutMode === 'split' || layoutMode === 'docs'
+  // Issue #38 follow-up: keep the docs editor in sync with the canvas
+  // theme — light by default, follows the user's toggle from then on.
+  const canvasTheme = useUIStore((s) => s.theme)
+  const docTheme = canvasTheme === 'dark' ? 'dark' : 'light'
 
   const { initialContent, ready } = useDocAutoSave(visible)
 
@@ -32,7 +37,7 @@ export default function DocsPanel() {
     <div className="w-full h-full bg-surface-dark overflow-hidden flex flex-col lix-sketch-theme">
       <div className="flex-1 min-h-0 overflow-y-auto lix-editor-host">
         {ready ? (
-          <LixThemeProvider defaultTheme="dark" storageKey="lixsketch_doc_theme">
+          <LixThemeProvider defaultTheme={docTheme} storageKey="lixsketch_doc_theme">
             <LixEditor
               initialContent={initialContent}
               onChange={(editor) => {

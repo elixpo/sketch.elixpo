@@ -229,6 +229,10 @@ const [docOpen, setDocOpen] = useState(false)
         <hr className="border-border-light my-1" />
 
         <div className="relative">
+          {/* Issue #38 follow-up: side-flyout swapped back to inline
+              expansion — the popped panel visually detached from the
+              parent menu (the user described it as "overflowing the
+              menu"). Inline keeps everything in one column. */}
           <button
             onClick={() => { setDocOpen((d) => !d); setPrefsOpen(false) }}
             className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[12.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200 ${docOpen ? 'bg-surface-hover' : ''}`}
@@ -237,40 +241,28 @@ const [docOpen, setDocOpen] = useState(false)
               <i className="bx bx-file-blank text-sm" />
               Document
             </span>
-            <i className="bx bx-chevron-left text-sm text-text-dim" />
+            <i className={`bx bx-chevron-down text-sm text-text-dim transition-transform duration-150 ${docOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {docOpen && (
-            <div
-              className="absolute right-full top-0 mr-2 w-[240px] bg-surface/95 backdrop-blur-lg rounded-2xl border border-border-light p-1.5 shadow-2xl shadow-black/40"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <p className="text-text-dim text-[10px] uppercase tracking-wider px-2 pb-1.5 pt-0.5 flex items-center gap-1.5">
-                <i className="bx bx-file-blank text-[11px]" />
-                Document layout
-              </p>
+            <div className="ml-2 border-l border-border-light pl-1 mt-0.5 mb-0.5">
               {[
-                { key: 'canvas', icon: 'bx-pen',     label: 'Canvas', subtext: 'Drawing only' },
-                { key: 'split',  icon: 'bx-layout',  label: 'Split',  subtext: 'Canvas + docs side-by-side' },
-                { key: 'docs',   icon: 'bxs-notepad', label: 'Docs',   subtext: 'Document editor only' },
+                { key: 'canvas', icon: 'bx-pen',     label: 'Canvas' },
+                { key: 'split',  icon: 'bx-layout',  label: 'Split' },
+                { key: 'docs',   icon: 'bxs-notepad', label: 'Docs' },
               ].map((m) => {
                 const active = layoutMode === m.key
                 return (
                   <button
                     key={m.key}
                     onClick={() => { handleSetLayout(m.key); setDocOpen(false) }}
-                    className={`w-full flex items-start gap-2.5 px-3 py-2 rounded-lg text-left transition-all duration-150 ${
-                      active ? 'bg-accent-blue/15 text-text-primary' : 'text-text-secondary hover:bg-surface-hover'
-                    }`}
+                    className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[11px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
                   >
-                    <i className={`bx ${m.icon} text-base mt-0.5 ${active ? 'text-accent-blue' : 'text-text-muted'}`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[12px] flex items-center gap-1.5">
-                        {m.label}
-                        {active && <i className="bx bx-check text-sm text-accent-blue" />}
-                      </div>
-                      <div className="text-text-dim text-[10px]">{m.subtext}</div>
-                    </div>
+                    <span className="flex items-center gap-2">
+                      {active && <i className="bx bx-check text-sm text-accent-blue" />}
+                      <i className={`bx ${m.icon} text-xs ${active ? 'text-accent-blue' : 'text-text-muted'}`} />
+                      {m.label}
+                    </span>
                   </button>
                 )
               })}
@@ -305,18 +297,11 @@ const [docOpen, setDocOpen] = useState(false)
               <i className="bx bx-cog text-sm" />
               {t('menu.preferences')}
             </span>
-            <i className="bx bx-chevron-left text-sm text-text-dim" />
+            <i className={`bx bx-chevron-down text-sm text-text-dim transition-transform duration-150 ${prefsOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {prefsOpen && (
-            <div
-              className="absolute right-full top-0 mr-2 w-[240px] bg-surface/95 backdrop-blur-lg rounded-2xl border border-border-light p-1.5 shadow-2xl shadow-black/40 max-h-[60vh] overflow-y-auto no-scrollbar"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <p className="text-text-dim text-[10px] uppercase tracking-wider px-2 pb-1.5 pt-0.5 flex items-center gap-1.5">
-                <i className="bx bx-cog text-[11px]" />
-                {t('menu.preferences')}
-              </p>
+            <div className="ml-2 border-l border-border-light pl-1 mt-0.5 mb-0.5">
               <div className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[11px]">
                 <span>{t('prefs.language')}</span>
                 <select
