@@ -22,46 +22,35 @@
   --color-border-light: #3a3a50;
   --color-border-accent: #5555a0;
 }
-
-/* Issue #38 bug #1: canvas-only light theme. The canvas page adds the
- * `canvas-mode` class to <body> on mount (see src/app/c/[sessionId]/
- * page.jsx). Inside this scope all theme tokens swap to the light
- * palette so the canvas opens bright by default — but landing / blog
- * / pricing stay on the original dark theme because they never enter
- * this selector. When the user explicitly toggles dark from the menu,
- * `applyTheme` adds the `theme-dark` class to <body> and the second
- * block below restores the dark palette inside the canvas. */
 body.canvas-mode {
-  --color-surface: #f0f0f5;
-  --color-surface-hover: #e0e0ea;
-  --color-surface-active: #d0d0e0;
-  --color-surface-dark: #e8e8f0;
-  --color-surface-card: #ffffff;
-  --color-text-primary: #1a1a2e;
-  --color-text-secondary: #2a2a40;
-  --color-text-muted: #525266;
-  --color-text-dim: #6a6a80;
-  --color-border: #d0d0dd;
-  --color-border-light: #c0c0d0;
+  --color-surface: #f4f3ee;
+  --color-surface-hover: #eceae3;
+  --color-surface-active: #dcd9cd;
+  --color-surface-dark: #f4f3ee;
+  --color-surface-card: #fbfaf6;
+  --color-text-primary: #38384e;
+  --color-text-secondary: #4a4a60;
+  --color-text-muted: #62627a;
+  --color-text-dim: #80808f;
+  --color-border: #d6d4ca;
+  --color-border-light: #c5c3ba;
   --color-border-accent: #8080c0;
-  /* Frame.js + SVGCanvas read these for grid strokes (see issue #38
-   * follow-up). Light theme uses dark-on-light. */
-  --lixsketch-grid-fine: rgba(40, 40, 60, 0.10);
-  --lixsketch-grid-major: rgba(40, 40, 60, 0.18);
+  --lixsketch-grid-fine: rgba(60, 60, 80, 0.07);
+  --lixsketch-grid-major: rgba(60, 60, 80, 0.14);
 }
 
 body.canvas-mode.theme-dark {
-  --color-surface: #232329;
-  --color-surface-hover: #343448;
+  --color-surface: #25252f;
+  --color-surface-hover: #35354a;
   --color-surface-active: #444480;
-  --color-surface-dark: #1a1a20;
-  --color-surface-card: #1e1e28;
-  --color-text-primary: #fff;
-  --color-text-secondary: #e8e8ee;
-  --color-text-muted: #b8b8c8;
-  --color-text-dim: #a0a0b0;
-  --color-border: #333;
-  --color-border-light: #3a3a50;
+  --color-surface-dark: #20202a;
+  --color-surface-card: #292932;
+  --color-text-primary: #f0f0f5;
+  --color-text-secondary: #d8d8e0;
+  --color-text-muted: #b0b0c0;
+  --color-text-dim: #92929e;
+  --color-border: #383848;
+  --color-border-light: #3e3e52;
   --color-border-accent: #5555a0;
   --lixsketch-grid-fine: rgba(255, 255, 255, 0.06);
   --lixsketch-grid-major: rgba(255, 255, 255, 0.12);

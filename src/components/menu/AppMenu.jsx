@@ -245,7 +245,11 @@ const [docOpen, setDocOpen] = useState(false)
           </button>
 
           {docOpen && (
-            <div className="ml-2 border-l border-border-light pl-1 mt-0.5 mb-0.5">
+            // Absolute dropdown: floats below the trigger, overlays the
+            // items further down instead of pushing them. The menu's
+            // outer overflow toggles to `visible` while a flyout is open
+            // (see the panel className) so the dropdown isn't clipped.
+            <div className="absolute top-full left-0 right-0 mt-1 bg-surface-card border border-border-light rounded-lg p-1 shadow-xl shadow-black/30 z-10">
               {[
                 { key: 'canvas', icon: 'bx-pen',     label: 'Canvas' },
                 { key: 'split',  icon: 'bx-layout',  label: 'Split' },
@@ -301,7 +305,7 @@ const [docOpen, setDocOpen] = useState(false)
           </button>
 
           {prefsOpen && (
-            <div className="ml-2 border-l border-border-light pl-1 mt-0.5 mb-0.5">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-surface-card border border-border-light rounded-lg p-1 shadow-xl shadow-black/30 z-10 max-h-[55vh] overflow-y-auto no-scrollbar">
               <div className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[11px]">
                 <span>{t('prefs.language')}</span>
                 <select
