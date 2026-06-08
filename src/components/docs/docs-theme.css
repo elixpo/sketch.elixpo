@@ -204,29 +204,44 @@ body.canvas-mode:not(.theme-dark) .lix-sketch-theme .bn-container {
   width: 100%;
 }
 
-/* Block hover background */
-.lix-sketch-theme .bn-block-outer:hover > .bn-block {
-  background: rgba(52, 52, 72, 0.35);
+/* Block hover background — light by default, dark variant pinned to
+ * the dark theme. Old rule used a hardcoded `rgba(52,52,72,0.35)` which
+ * read as a black smudge on the light canvas. */
+body.canvas-mode:not(.theme-dark) .lix-sketch-theme .bn-block-outer:hover > .bn-block {
+  background: rgba(60, 60, 80, 0.06);
+  border-radius: 6px;
+}
+body.canvas-mode.theme-dark .lix-sketch-theme .bn-block-outer:hover > .bn-block {
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 6px;
 }
 
-/* Slash / formatting menus */
-.lix-sketch-theme .mantine-Menu-dropdown,
-.lix-sketch-theme .mantine-Popover-dropdown,
-.lix-sketch-theme .bn-suggestion-menu {
-  background: #1e1e28 !important;
-  color: #ffffff !important;
-  border: 1px solid #3a3a50 !important;
+/* Slash / formatting menus — same theme split. */
+body.canvas-mode.theme-dark .lix-sketch-theme .mantine-Menu-dropdown,
+body.canvas-mode.theme-dark .lix-sketch-theme .mantine-Popover-dropdown,
+body.canvas-mode.theme-dark .lix-sketch-theme .bn-suggestion-menu {
+  background: #292932 !important;
+  color: #f0f0f5 !important;
+  border: 1px solid #3e3e52 !important;
+}
+body.canvas-mode:not(.theme-dark) .lix-sketch-theme .mantine-Menu-dropdown,
+body.canvas-mode:not(.theme-dark) .lix-sketch-theme .mantine-Popover-dropdown,
+body.canvas-mode:not(.theme-dark) .lix-sketch-theme .bn-suggestion-menu {
+  background: #fbfaf6 !important;
+  color: #38384e !important;
+  border: 1px solid #d6d4ca !important;
 }
 
 /* Mantine dropdowns render in a portal at <body> level — they ignore the
-   editor wrapper's width. Cap the formatting/link toolbars (which are
-   horizontal) tightly, but give the slash suggestion menu room to lay
-   out its multi-line items (icon + title + subtitle + shortcut hint). */
+   editor wrapper's width. Give the formatting/link toolbars room: the
+   old 360px cap was clipping the rightmost buttons (color, link, etc.)
+   to ~95% of their natural width. The suggestion menu gets even more
+   room to lay out its multi-line items (icon + title + subtitle +
+   shortcut hint). */
 .mantine-Popover-dropdown,
 .bn-link-toolbar,
 .bn-formatting-toolbar {
-  max-width: min(360px, 90vw) !important;
+  max-width: min(560px, 96vw) !important;
 }
 
 .bn-suggestion-menu,
@@ -248,14 +263,24 @@ body.canvas-mode:not(.theme-dark) .lix-sketch-theme .bn-container {
   max-width: 100%;
 }
 
-/* Floating toolbar buttons */
-.lix-sketch-theme .mantine-ActionIcon-root,
-.lix-sketch-theme .mantine-Button-root {
-  color: #e8e8ee;
+/* Floating toolbar buttons — light by default, dark variant under
+ * the dark theme so the buttons stay readable on the right surface. */
+body.canvas-mode:not(.theme-dark) .lix-sketch-theme .mantine-ActionIcon-root,
+body.canvas-mode:not(.theme-dark) .lix-sketch-theme .mantine-Button-root {
+  color: #38384e;
 }
-.lix-sketch-theme .mantine-ActionIcon-root:hover,
-.lix-sketch-theme .mantine-Button-root:hover {
-  background: #343448;
+body.canvas-mode:not(.theme-dark) .lix-sketch-theme .mantine-ActionIcon-root:hover,
+body.canvas-mode:not(.theme-dark) .lix-sketch-theme .mantine-Button-root:hover {
+  background: #eceae3;
+  color: #1a1a2e;
+}
+body.canvas-mode.theme-dark .lix-sketch-theme .mantine-ActionIcon-root,
+body.canvas-mode.theme-dark .lix-sketch-theme .mantine-Button-root {
+  color: #d8d8e0;
+}
+body.canvas-mode.theme-dark .lix-sketch-theme .mantine-ActionIcon-root:hover,
+body.canvas-mode.theme-dark .lix-sketch-theme .mantine-Button-root:hover {
+  background: #35354a;
   color: #ffffff;
 }
 
