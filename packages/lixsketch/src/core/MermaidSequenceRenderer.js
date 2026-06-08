@@ -361,20 +361,20 @@ export function parseAndRenderSequence(src) {
 }
 
 /**
- * Render a sequence diagram onto the canvas as LOOSE engine shapes
- * (issue #24 follow-up to bug #1 — per-actor / per-message split).
+ * Render a sequence diagram onto the canvas as a real engine `Frame`
+ * containing independent shapes — top + bottom participant boxes,
+ * dashed lifelines, and a real Arrow (or Line for `--x`/`-x`) per
+ * message. Each child is fully independent for click / drag / resize;
+ * the Frame's `_diagramType` marker makes Frame.destroy() pull the
+ * children along on delete, so the diagram still behaves as one
+ * logical unit when discarded.
  *
- * Each participant becomes a real Rectangle (top box) + a Line (lifeline)
- * the user can edit, restyle, or delete individually. Each message becomes
- * a real Arrow (or Line for `--x`/`-x`). All shapes share a `groupId` so
- * the diagram still behaves as one Ctrl+G group under Selection.js's
- * group-expansion path — click any node, the whole diagram selects.
+ * Issue #34 bug #3 (follow-up to #24 per-actor split): drops the shared
+ * `groupId` glue so clicking one shape selects only that shape.
  *
  * Notes and block-frames (alt/opt/loop) are skipped for now — they'd
  * either need their own shape types or a richer label model. Self-
- * messages are also skipped (would need a curved arrow). The parsed
- * data is still retrievable via the underlying parser if a future
- * iteration wants to surface them.
+ * messages are also skipped (would need a curved arrow).
  */
 export function renderSequenceOnCanvas(diagram) {
     if (!diagram || diagram.type !== 'sequenceDiagram') return false;
@@ -411,7 +411,34 @@ export function renderSequenceOnCanvas(diagram) {
     const ox = vb.x + vb.width / 2 - totalWidth / 2;
     const oy = vb.y + vb.height / 2 - totalHeight / 2;
 
-    const groupId = `mermaid-seq-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    // ── Wrapper frame ──────────────────────────────────────────────────
+    // Issue #34 bug #3: drop the shared groupId glue. Each child is
+    // independent for click / drag / resize. The Frame's `_diagramType`
+    // marker makes Frame.destroy() pull the children along on delete,
+    // so the diagram still behaves as one logical unit when discarded.
+    if (!window.Frame) {
+        console.error('[SequenceRenderer] window.Frame missing — cannot wrap diagram');
+        return false;
+    }
+    const PADDING = 24;
+    const frameTitle = diagram.title || 'Sequence diagram';
+    const frame = new window.Frame(
+        ox - PADDING,
+        oy - PADDING,
+        totalWidth + PADDING * 2,
+        totalHeight + PADDING * 2,
+        {
+            stroke: '#888',
+            strokeWidth: 1,
+            fill: 'transparent',
+            opacity: 0.7,
+            frameName: frameTitle,
+        }
+    );
+    frame._diagramType = 'mermaid-sequence';
+    window.shapes.push(frame);
+    if (window.pushCreateAction) window.pushCreateAction(frame);
+
     const created = [];
 
     // ── Participants: top box + lifeline (and bottom box) ─────────────
@@ -432,9 +459,9 @@ export function renderSequenceOnCanvas(diagram) {
                 roughness: 1,
                 label: p.name,
             });
-            topBox.groupId = groupId;
             window.shapes.push(topBox);
             if (window.pushCreateAction) window.pushCreateAction(topBox);
+            frame.addShapeToFrame(topBox);
             created.push(topBox);
 
             // Lifeline (dashed vertical line spanning the diagram height)
@@ -448,9 +475,9 @@ export function renderSequenceOnCanvas(diagram) {
                     roughness: 0,
                 }
             );
-            lifeline.groupId = groupId;
             window.shapes.push(lifeline);
             if (window.pushCreateAction) window.pushCreateAction(lifeline);
+            frame.addShapeToFrame(lifeline);
             created.push(lifeline);
 
             // Bottom participant box (mirrors top — Mermaid convention)
@@ -462,9 +489,9 @@ export function renderSequenceOnCanvas(diagram) {
                 roughness: 1,
                 label: p.name,
             });
-            bottomBox.groupId = groupId;
             window.shapes.push(bottomBox);
             if (window.pushCreateAction) window.pushCreateAction(bottomBox);
+            frame.addShapeToFrame(bottomBox);
             created.push(bottomBox);
         } catch (err) {
             console.warn('[SequenceRenderer] Participant creation failed:', p.name, err);
@@ -503,24 +530,25 @@ export function renderSequenceOnCanvas(diagram) {
             const connector = isCross
                 ? new window.Line(sp, ep, opts)
                 : new window.Arrow(sp, ep, opts);
-            connector.groupId = groupId;
             window.shapes.push(connector);
             if (window.pushCreateAction) window.pushCreateAction(connector);
+            frame.addShapeToFrame(connector);
             created.push(connector);
         } catch (err) {
             console.warn('[SequenceRenderer] Message creation failed:', m, err);
         }
     }
 
-    // Auto-select the first node so the user sees something landed.
-    // Selection.js's group-expansion will pick up the rest via groupId.
+    // Auto-select the first node so the user has feedback that the
+    // diagram landed. Selecting a child (not the frame) reinforces the
+    // "independent shapes inside a frame" model from issue #34 bug #3.
     const first = created[0];
     if (first) {
         window.currentShape = first;
         if (typeof first.selectShape === 'function') first.selectShape();
     }
 
-    console.log(`[SequenceRenderer] Done: ${pCount} participants, ${messages.length} messages (groupId=${groupId})`);
+    console.log(`[SequenceRenderer] Done: ${pCount} participants, ${messages.length} messages`);
     return true;
 }
 
