@@ -62,7 +62,7 @@ function applyTheme(theme) {
   if (resolved === 'dark') body.classList.add('theme-dark')
 
   const svgEl = window.svg
-  if (svgEl) svgEl.style.background = resolved === 'light' ? '#faf9f5' : ''
+  if (svgEl) svgEl.style.background = resolved === 'light' ? '#f4f3ee' : ''
 }
 
 const useUIStore = create((set, get) => ({

@@ -17,38 +17,67 @@
  *   --color-border-light    #3a3a50
  */
 
-.lix-sketch-theme [data-color-scheme="dark"],
-.lix-sketch-theme.bn-container,
-.lix-sketch-theme .bn-container,
-.lix-sketch-theme [data-color-scheme] {
-  /* Editor surfaces */
-  --bn-colors-editor-background: #1a1a20;
-  --bn-colors-editor-text: #ffffff;
-  --bn-colors-menu-background: #232329;
-  --bn-colors-menu-text: #e8e8ee;
-  --bn-colors-tooltip-background: #1e1e28;
-  --bn-colors-tooltip-text: #ffffff;
+/* DARK theme overrides — pinned to `body.canvas-mode.theme-dark` so the
+ * dark BlockNote skin only applies when the canvas itself is dark. */
+body.canvas-mode.theme-dark .lix-sketch-theme [data-color-scheme="dark"],
+body.canvas-mode.theme-dark .lix-sketch-theme.bn-container,
+body.canvas-mode.theme-dark .lix-sketch-theme .bn-container,
+body.canvas-mode.theme-dark .lix-sketch-theme [data-color-scheme] {
+  /* Editor surfaces — mapped to the softened dark tokens. */
+  --bn-colors-editor-background: #20202a;
+  --bn-colors-editor-text: #f0f0f5;
+  --bn-colors-menu-background: #25252f;
+  --bn-colors-menu-text: #d8d8e0;
+  --bn-colors-tooltip-background: #292932;
+  --bn-colors-tooltip-text: #f0f0f5;
 
-  /* Hover / selected */
-  --bn-colors-hovered-background: #343448;
-  --bn-colors-hovered-text: #ffffff;
+  --bn-colors-hovered-background: #35354a;
+  --bn-colors-hovered-text: #f0f0f5;
   --bn-colors-selected-background: #5B57D1;
   --bn-colors-selected-text: #ffffff;
 
-  /* Disabled / placeholder text */
-  --bn-colors-disabled-background: #1a1a20;
-  --bn-colors-disabled-text: #6b6b80;
+  --bn-colors-disabled-background: #20202a;
+  --bn-colors-disabled-text: #92929e;
 
-  /* Side menu / chevron / drag handle */
-  --bn-colors-side-menu: #6b6b80;
+  --bn-colors-side-menu: #92929e;
 
-  /* Borders + shadows */
-  --bn-colors-border: #3a3a50;
+  --bn-colors-border: #3e3e52;
   --bn-colors-shadow: rgba(0, 0, 0, 0.4);
 
-  /* Highlight palette tweaks (optional — keep BlockNote defaults if these break) */
   --bn-colors-highlights-blue-background: rgba(91, 87, 209, 0.18);
   --bn-colors-highlights-blue-text: #aeacff;
+}
+
+/* LIGHT theme overrides — kick in whenever the canvas is in (default)
+ * light mode. Without these, BlockNote keeps its hardcoded dark surfaces
+ * regardless of the LixThemeProvider value, leaving a black docs panel
+ * next to a cream canvas. Tokens map to the same warm off-white the
+ * canvas + chrome use. */
+body.canvas-mode:not(.theme-dark) .lix-sketch-theme [data-color-scheme],
+body.canvas-mode:not(.theme-dark) .lix-sketch-theme.bn-container,
+body.canvas-mode:not(.theme-dark) .lix-sketch-theme .bn-container {
+  --bn-colors-editor-background: #f4f3ee;
+  --bn-colors-editor-text: #38384e;
+  --bn-colors-menu-background: #fbfaf6;
+  --bn-colors-menu-text: #38384e;
+  --bn-colors-tooltip-background: #fbfaf6;
+  --bn-colors-tooltip-text: #38384e;
+
+  --bn-colors-hovered-background: #eceae3;
+  --bn-colors-hovered-text: #38384e;
+  --bn-colors-selected-background: #5B57D1;
+  --bn-colors-selected-text: #ffffff;
+
+  --bn-colors-disabled-background: #f4f3ee;
+  --bn-colors-disabled-text: #80808f;
+
+  --bn-colors-side-menu: #80808f;
+
+  --bn-colors-border: #d6d4ca;
+  --bn-colors-shadow: rgba(60, 60, 80, 0.12);
+
+  --bn-colors-highlights-blue-background: rgba(91, 87, 209, 0.14);
+  --bn-colors-highlights-blue-text: #5B57D1;
 }
 
 /* The wrapper that BlockNote renders inside our flex column.

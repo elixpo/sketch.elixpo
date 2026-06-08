@@ -70,7 +70,7 @@ function applyTheme(theme) {
   // `canvasBackground` store value (which the user picks from the menu)
   // takes over again.
   const svgEl = window.svg
-  if (svgEl) svgEl.style.background = resolved === 'light' ? '#faf9f5' : ''
+  if (svgEl) svgEl.style.background = resolved === 'light' ? '#f4f3ee' : ''
 }
 
 const useUIStore = create((set, get) => ({
