@@ -449,7 +449,10 @@ export function renderSequenceOnCanvas(diagram) {
         console.error('[SequenceRenderer] window.Frame missing — cannot wrap diagram');
         return false;
     }
-    const PADDING = 24;
+    // Padding bumped 24 → 60 so participant labels + message text near
+    // the frame's edges stay inside on the new wider light canvas.
+    const PADDING = 60;
+    const TK = themeColors();
     const frameTitle = diagram.title || 'Sequence diagram';
     const frame = new window.Frame(
         ox - PADDING,
@@ -457,7 +460,7 @@ export function renderSequenceOnCanvas(diagram) {
         totalWidth + PADDING * 2,
         totalHeight + PADDING * 2,
         {
-            stroke: '#888',
+            stroke: TK.blockBorder,
             strokeWidth: 1,
             fill: 'transparent',
             opacity: 0.7,
@@ -481,12 +484,13 @@ export function renderSequenceOnCanvas(diagram) {
         try {
             // Top participant box
             const topBox = new window.Rectangle(bx, TOP_MARGIN + oy, PARTICIPANT_W, PARTICIPANT_H, {
-                stroke: THEME.participantBorder,
+                stroke: TK.participantBorder,
                 strokeWidth: 1.5,
-                fill: THEME.participantBg,
+                fill: TK.participantBg,
                 fillStyle: 'solid',
                 roughness: 1,
                 label: p.name,
+                labelColor: TK.participantText,
             });
             window.shapes.push(topBox);
             if (window.pushCreateAction) window.pushCreateAction(topBox);
@@ -498,7 +502,7 @@ export function renderSequenceOnCanvas(diagram) {
                 { x: cx, y: topBoxBottom + oy },
                 { x: cx, y: bottomBoxTop + oy },
                 {
-                    stroke: THEME.lifeline,
+                    stroke: TK.lifeline,
                     strokeWidth: 1,
                     strokeDasharray: '6 4',
                     roughness: 0,
@@ -511,12 +515,13 @@ export function renderSequenceOnCanvas(diagram) {
 
             // Bottom participant box (mirrors top — Mermaid convention)
             const bottomBox = new window.Rectangle(bx, bottomBoxTop + oy, PARTICIPANT_W, PARTICIPANT_H, {
-                stroke: THEME.participantBorder,
+                stroke: TK.participantBorder,
                 strokeWidth: 1.5,
-                fill: THEME.participantBg,
+                fill: TK.participantBg,
                 fillStyle: 'solid',
                 roughness: 1,
                 label: p.name,
+                labelColor: TK.participantText,
             });
             window.shapes.push(bottomBox);
             if (window.pushCreateAction) window.pushCreateAction(bottomBox);
@@ -546,11 +551,12 @@ export function renderSequenceOnCanvas(diagram) {
         // line for that, arrow otherwise.
         const isCross = !!m.cross && m.arrowHead === 'cross';
         const opts = {
-            stroke: THEME.messageLine,
+            stroke: TK.messageLine,
             strokeWidth: 1.5,
             roughness: 0,
             strokeDasharray: m.solid ? '' : '6 4',
             label: labelText || '',
+            labelColor: TK.messageText,
         };
 
         try {
