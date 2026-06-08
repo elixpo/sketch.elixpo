@@ -8,8 +8,6 @@ import {
     pushFrameAttachmentAction,
     setTextReferences,
     updateSelectedElement
-function getThemeStroke() { if (typeof document === "undefined") return "#fff"; return document.body && document.body.classList.contains("theme-dark") ? "#fff" : "#1a1a2e"; }
-
 } from '../core/UndoRedo.js';
 import { cleanupAttachments, updateAttachedArrows } from './arrowTool.js';
 
