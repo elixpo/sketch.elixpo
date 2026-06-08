@@ -26,7 +26,36 @@ const SIDE_MARGIN = 40;
 const FONT_FAMILY = 'lixFont, sans-serif';
 const CODE_FONT = 'lixCode, monospace';
 
-// Theme colors (dark theme matching the app)
+// Issue #38 follow-up: theme-aware palette. The on-canvas renderer reads
+// `themeColors()` at draw time so a single render call gets whichever
+// palette is active. The dark THEME object below is kept for the SVG-
+// string preview path (`renderSequenceSVG`), which is rendered inside
+// the modal's preview pane.
+function themeColors() {
+    const isDark = typeof document !== 'undefined'
+        && document.body
+        && document.body.classList.contains('theme-dark');
+    if (isDark) return THEME;
+    return {
+        bg: '#fbfaf6',
+        participantBg: '#ffffff',
+        participantBorder: '#9c9c9c',
+        participantText: '#38384e',
+        lifeline: '#b0b0b8',
+        messageLine: '#62627a',
+        messageDash: '#888',
+        messageText: '#38384e',
+        noteBg: '#fffce0',
+        noteBorder: '#c0b870',
+        noteText: '#5e5230',
+        blockBg: 'rgba(80,80,120,0.08)',
+        blockBorder: '#9c9c9c',
+        blockLabel: '#62627a',
+        crossColor: '#c2483a',
+    };
+}
+
+// Theme colors (dark theme — preview/SVG-string path).
 const THEME = {
     bg: '#1e1e28',
     participantBg: '#232329',
