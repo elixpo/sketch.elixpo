@@ -340,10 +340,13 @@ if (isDrawingArrow && currentArrow) {
 }
 
 if (isDragging && dragOldPosArrow && currentShape) {
+    // Issue #34 bug #2: containment transfer happens later in this block,
+    // so currentShape.parentFrame is still the OLD frame here. hoveredFrameArrow
+    // tracks the actual destination during mousemove — use that as the truth.
     const newPos = {
         startPoint: { x: currentShape.startPoint.x, y: currentShape.startPoint.y },
         endPoint: { x: currentShape.endPoint.x, y: currentShape.endPoint.y },
-        parentFrame: currentShape.parentFrame  // Add this line
+        parentFrame: hoveredFrameArrow || null,
     };
     const oldPos = {
         ...dragOldPosArrow,

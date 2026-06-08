@@ -411,9 +411,15 @@ function handleMouseUp(e) {
             ...dragOldPosStroke,
             parentFrame: draggedShapeInitialFrameStroke
         };
+        // Issue #34 bug #2: for drag, hoveredFrameStroke is the actual
+        // destination — currentShape.parentFrame at this point is still
+        // the OLD frame. Resize / rotate don't track hover, fall back to
+        // the shape's own parent.
         const newPosForUndo = {
             ...newPos,
-            parentFrame: currentShape.parentFrame
+            parentFrame: isDraggingStroke
+                ? (hoveredFrameStroke || null)
+                : currentShape.parentFrame,
         };
         
         const frameChanged = oldPos.parentFrame !== newPosForUndo.parentFrame;
