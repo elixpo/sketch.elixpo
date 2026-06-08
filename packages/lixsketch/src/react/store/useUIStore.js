@@ -65,8 +65,8 @@ function applyTheme(theme) {
     html.style.setProperty('--color-surface-card', '#ffffff')
     html.style.setProperty('--color-text-primary', '#1a1a2e')
     html.style.setProperty('--color-text-secondary', '#2a2a40')
-    html.style.setProperty('--color-text-muted', '#6a6a80')
-    html.style.setProperty('--color-text-dim', '#9090a0')
+    html.style.setProperty('--color-text-muted', '#525266')
+    html.style.setProperty('--color-text-dim', '#6a6a80')
     html.style.setProperty('--color-border', '#d0d0dd')
     html.style.setProperty('--color-border-light', '#c0c0d0')
     html.style.setProperty('--color-border-accent', '#8080c0')
@@ -185,7 +185,8 @@ const useUIStore = create((set, get) => ({
   setCanvasLoading: (loading, message) => set({ canvasLoading: loading, canvasLoadingMessage: message || 'Loading canvas...' }),
 
   // --- Theme ---
-  theme: 'dark',
+  // Issue #38 bug #1: light by default. Dark stays available via toggle.
+  theme: 'light',
   setTheme: (newTheme) => {
     const prev = get().theme
     const resolve = (t) => t === 'system'

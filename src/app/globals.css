@@ -1,22 +1,29 @@
 @import "tailwindcss";
 
 @theme {
-  --color-surface: #232329;
-  --color-surface-hover: #343448;
-  --color-surface-active: #444480;
-  --color-surface-dark: #1a1a20;
-  --color-surface-card: #1e1e28;
+  /* Issue #38 bug #1: light theme is the default. Tokens match the
+   * `applyTheme('light')` branch in src/store/useUIStore.js so the
+   * initial paint and the post-hydration paint stay identical (no flash).
+   * The `applyTheme('dark')` branch overrides these inline on the <html>
+   * element when the user toggles dark mode. */
+  --color-surface: #f0f0f5;
+  --color-surface-hover: #e0e0ea;
+  --color-surface-active: #d0d0e0;
+  --color-surface-dark: #e8e8f0;
+  --color-surface-card: #ffffff;
   --color-accent: #c873e4;
   --color-accent-dim: #444480;
   --color-accent-blue: #5B57D1;
   --color-accent-blue-hover: #6c67f3;
-  --color-text-primary: #fff;
-  --color-text-secondary: #e8e8ee;
-  --color-text-muted: #a0a0b0;
-  --color-text-dim: #787888;
-  --color-border: #333;
-  --color-border-light: #3a3a50;
-  --color-border-accent: #5555a0;
+  --color-text-primary: #1a1a2e;
+  --color-text-secondary: #2a2a40;
+  /* Tokens raised vs the previous light branch to keep small labels
+   * legible on the brighter surface (4.5:1 AA minimum for 11px text). */
+  --color-text-muted: #525266;
+  --color-text-dim: #6a6a80;
+  --color-border: #d0d0dd;
+  --color-border-light: #c0c0d0;
+  --color-border-accent: #8080c0;
 }
 
 /* Font faces — served from /public/fonts/ */
