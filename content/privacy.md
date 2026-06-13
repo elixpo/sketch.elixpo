@@ -2,33 +2,38 @@
 
 _Last updated: June 2026_
 
-LixSketch is a blogging platform operated by **Elixpo** (Ayushman Bhattacharya). This policy explains what we collect, how we use it, and how we keep it safe. Questions? Email **hello@elixpo.com**.
+LixSketch is an open-source infinite canvas + WYSIWYG docs editor operated by **Elixpo** (Ayushman Bhattacharya). This policy explains what we collect, how we use it, and how we keep it safe. Questions? Email **hello@elixpo.com**.
 
 ## Who we are
 
-LixSketch lets you read, write, and publish posts. Sign-in is handled by **Elixpo Accounts** via OAuth 2.0 — we never see or store your password.
+LixSketch lets you sketch, diagram, and document — solo or alongside the canvas's split docs pane. Sign-in is handled by **Elixpo Accounts** via OAuth 2.0 — we never see or store your password. You can also use LixSketch without an account; everything stays local in your browser's storage.
 
 ## What we collect
 
-- **Account details** from Elixpo Accounts: your username, display name, email, and avatar.
-- **Content you create**: posts, drafts, titles, tags, comments, and organizations.
-- **Activity signals**: views, reads, likes, claps, bookmarks, follows, and reposts — used to power your feed and author stats.
+- **Account details** (only if you sign in via Elixpo Accounts): username, display name, email, and avatar.
+- **Workspaces and content**: your canvas scenes (shapes, frames, text, images) and the paired docs editor blocks. Saved to your own workspace under your account.
+- **Activity signals**: session ID, last-accessed timestamps on a workspace, save status — used to drive autosave and conflict resolution. We do **not** track view counts, clicks, or analytics across pages.
 
 ## How we use it
 
-- Authenticate you and render your profile and posts.
-- Personalize your "For you" feed and compute author analytics.
-- Send transactional email only: login alerts, account actions, and an optional weekly digest. We do **not** send marketing spam.
+- Authenticate you and render your workspaces.
+- Sync canvas + docs between local storage and the cloud so a refresh / device-switch picks up where you left off.
+- Send transactional email only: login alerts and account actions. We do **not** send marketing or product-update emails by default.
+
+## End-to-end encryption
+
+Workspaces are **encrypted in your browser** before they touch our database. We hold ciphertext; the decryption key lives in your session storage. The "E2E" badge in the editor links to a longer explanation. We cannot read your canvas or docs even if we wanted to.
 
 ## Images & media
 
-Cover images, avatars, organization logos, and in-post images you upload are **compressed to WebP** in your browser and stored on **Cloudinary**, served over **HTTPS**. We store only the media you upload to power your posts and profile, and we do **not** embed third-party advertising or tracking pixels in your content. Deleting a post removes its associated media.
+Images you drop into a canvas or a docs block are stored on **Cloudinary** (WebP, HTTPS) when the workspace is signed-in; for anonymous use they stay as `data:` URLs embedded in the scene. Deleting a workspace removes its associated media.
 
 ## Where your data lives
 
-- **Text & metadata**: Cloudflare **D1** (database) and **KV** (cache).
+- **Workspace scenes & docs**: Cloudflare **D1** (database, ciphertext-only) and **KV** (cache, ciphertext-only).
 - **Media**: **Cloudinary** (WebP, HTTPS).
 - **Session**: an `httpOnly`, `Secure`, `SameSite=Lax` cookie — not readable by JavaScript.
+- **Local-only mode**: when you use LixSketch without signing in, everything stays in your browser's `localStorage` under a session-scoped key. Nothing leaves your device.
 
 ## Open source & transparency
 
@@ -36,10 +41,9 @@ LixSketch is open source. You can read exactly how your data is handled in the c
 
 ## Your choices
 
-You can edit or delete your content anytime. **Account deletion and app revocation** are handled at [Connected Apps](https://accounts.elixpo.com/dashboard/services)
-
+You can edit or delete any workspace anytime. **Account deletion and app revocation** are handled at [Connected Apps](https://accounts.elixpo.com/dashboard/services).
 
 ## Contact
 
 - Questions about your data? Email **hello@elixpo.com**.
-- Or leave us an issue at [Sketch Issues](https://github.com/elixpo/sketch.elixpo/issues/new)
+- Or open an issue at [Sketch Issues](https://github.com/elixpo/sketch.elixpo/issues/new).
