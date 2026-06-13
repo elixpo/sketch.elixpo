@@ -182,7 +182,9 @@ const useUIStore = create((set, get) => ({
   setCanvasLoading: (loading, message) => set({ canvasLoading: loading, canvasLoadingMessage: message || 'Loading canvas...' }),
 
   // --- Theme ---
-  theme: 'dark',
+  theme: (typeof window !== 'undefined' && localStorage.getItem('lix_ui_prefs'))
+    ? (JSON.parse(localStorage.getItem('lix_ui_prefs')).theme || 'dark')
+    : 'dark',
   setTheme: (newTheme) => {
     const prev = get().theme
     const resolve = (t) => t === 'system'
@@ -191,6 +193,7 @@ const useUIStore = create((set, get) => ({
     invertShapeColors(resolve(prev), resolve(newTheme))
     applyTheme(newTheme)
     set({ theme: newTheme })
+    get().persistUIPrefs({ theme: newTheme })  // ← add this line
   },
 
   // --- Language / i18n ---
