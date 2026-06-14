@@ -4,12 +4,14 @@ import { pushCreateAction, pushDeleteAction, pushOptionsChangeAction, pushTransf
 import { updateAttachedArrows as updateArrowsForShape, cleanupAttachments } from './arrowTool.js';
 import { calculateSnap, clearSnapGuides } from '../core/SnapGuides.js';
 
+function getThemeStroke() { if (typeof document === "undefined") return "#fff"; return document.body && document.body.classList.contains("theme-dark") ? "#fff" : "#1a1a2e"; }
+
 let isDrawingLine = false;
 let currentLine = null;
 let lineStartX = 0;      
 let lineStartY = 0;      
 let currentLineGroup = null;    
-let lineColor = "#fff";
+let lineColor = null;
 let lineStrokeWidth = 3;
 let lineStrokeStyle = "solid";
 let lineEdgeType = 1;
@@ -71,7 +73,7 @@ const handleMouseDown = (e) => {
             { x, y },
             { x, y },
             {
-                stroke: lineColor,
+                stroke: lineColor ?? getThemeStroke(),
                 strokeWidth: lineStrokeWidth,
                 roughness: lineSktetchRate,
                 bowing: lineEdgeType,
@@ -238,6 +240,26 @@ const handleMouseMove = (e) => {
         startX = x;
         startY = y;
 
+        // Issue #24 bug #4: track containing frame during existing-line
+        // drag so mouseUp re-parents from current geometry, not from a
+        // stale hoveredFrameLine.
+        let newHover = null;
+        for (const f of shapes) {
+            if (f.shapeName !== 'frame') continue;
+            if (f === currentShape) continue;
+            if (typeof f.isShapeInFrame === 'function' && f.isShapeInFrame(currentShape)) {
+                newHover = f;
+                break;
+            }
+        }
+        if (hoveredFrameLine && hoveredFrameLine !== newHover && typeof hoveredFrameLine.removeHighlight === 'function') {
+            hoveredFrameLine.removeHighlight();
+        }
+        if (newHover && newHover !== hoveredFrameLine && typeof newHover.highlightFrame === 'function') {
+            newHover.highlightFrame();
+        }
+        hoveredFrameLine = newHover;
+
         // Snap guides
         if (window.__sketchStoreApi && window.__sketchStoreApi.getState().snapToObjects) {
             const snap = calculateSnap(currentShape, e.shiftKey, e.clientX, e.clientY);
@@ -299,11 +321,13 @@ const handleMouseUp = (e) => {
     }
     
     if (isDraggingLine && dragOldPosLine && currentShape) {
+        // Issue #34 bug #2: use hoveredFrameLine (actual destination) instead
+        // of the stale parentFrame — containment transfer hasn't happened yet.
         const newPos = {
             startPoint: { x: currentShape.startPoint.x, y: currentShape.startPoint.y },
             endPoint: { x: currentShape.endPoint.x, y: currentShape.endPoint.y },
             controlPoint: currentShape.controlPoint ? { x: currentShape.controlPoint.x, y: currentShape.controlPoint.y } : null,
-            parentFrame: currentShape.parentFrame
+            parentFrame: hoveredFrameLine || null,
         };
         const oldPos = {
             ...dragOldPosLine,

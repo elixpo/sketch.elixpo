@@ -239,7 +239,7 @@ export default function Header() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-12 bg-surface-dark border-b border-[#2c2c35] z-[1001] flex items-center justify-between px-3 font-[lixFont]">
+    <header className="fixed top-0 left-0 right-0 h-12 bg-surface-dark border-b border-border-light z-[1001] flex items-center justify-between px-3 font-[lixFont]">
       {/* Centered layout-mode toggle (canvas / split / docs) */}
       <LayoutModeToggle />
       {/* Left side */}
@@ -274,14 +274,17 @@ export default function Header() {
       <div className="flex items-center gap-2">
         {/* Save status dot */}
         <SaveStatusDot />
-        {/* E2E Shield badge */}
-        <div
-          className="flex items-center gap-1 px-2 py-1 rounded-md bg-green-500/10 text-green-400/80 cursor-default select-none"
-          title="End-to-end encrypted — your data never leaves your device unencrypted"
+        {/* E2E Shield badge — links out to the blog post (issue #24, bug #13). */}
+        <a
+          href="/docs/blog/e2e-encryption"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 px-2 py-1 rounded-md bg-green-500/10 text-green-400/80 hover:bg-green-500/15 hover:text-green-400 transition-colors select-none"
+          title="End-to-end encrypted — click to read how it works"
         >
           <i className="bx bxs-shield text-sm" />
           <span className="text-[10px] font-medium">E2E</span>
-        </div>
+        </a>
 
         {/* Help icon */}
         <button

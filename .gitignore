@@ -6,9 +6,13 @@ out/
 wrangler.toml
 plans/
 .wrangler
+dist/
 .vscode 
 .next.vercel
 *.vsix
 *.lixsketch
 # SOPS: unencrypted local env
 .env.local
+dist/
+build
+*.tgz

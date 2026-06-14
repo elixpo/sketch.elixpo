@@ -23,9 +23,10 @@ const TOOL_ITEMS = [
   { tool: TOOLS.FRAME, icon: 'bx-crop', title: 'Frame (F)', key: 'F' },
   { tool: TOOLS.LASER, icon: 'bxs-magic-wand', title: 'Laser (K)', key: 'K' },
   { tool: TOOLS.ERASER, icon: 'bxs-eraser', title: 'Eraser (E)', key: 'E' },
-  // AI tool entry removed while the assistant is coming-soon.
-  // Restore `{ tool: 'ai', icon: null, title: 'AI', isAI: true }` here
-  // when the modal becomes a real feature again.
+  'spacer',
+  // Violet star → opens the DSL Studio modal (LixScript / Mermaid / Graph).
+  // No AI inference; each tab dispatches to the engine's direct parser.
+  { tool: 'dsl', icon: null, title: 'DSL Studio (LixScript / Mermaid / Graph)', isAI: true },
 ]
 
 export default function Toolbar() {
@@ -40,7 +41,7 @@ export default function Toolbar() {
 
   return (
     <>
-    <div className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-[46px] rounded-xl bg-surface z-[1000] flex flex-col items-center py-1.5 gap-0.5 font-[lixFont] max-h-[calc(100vh-120px)] overflow-y-auto no-scrollbar`}>
+    <div className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-[46px] rounded-xl bg-surface border border-border-light shadow-sm z-[1000] flex flex-col items-center py-1.5 gap-0.5 font-[lixFont] max-h-[calc(100vh-120px)] overflow-y-auto no-scrollbar`}>
       {/* Tool lock button at the top */}
       {!viewMode && (
         <>
@@ -78,7 +79,8 @@ export default function Toolbar() {
               key="ai"
               title={item.title}
               onClick={toggleAIModal}
-              className="w-[33px] h-[31px] flex items-center justify-center rounded-lg text-text-muted hover:text-accent hover:bg-surface-hover transition-all duration-200"
+              className="w-[33px] h-[31px] flex items-center justify-center rounded-lg text-accent hover:bg-accent/15 transition-all duration-200"
+              style={{ color: '#9b7bf7' }}
             >
               <svg
                 width="20"

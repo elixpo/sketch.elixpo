@@ -61,9 +61,21 @@ const handleMouseDown = (e) => {
                         }
                     }
                 }
-                // If a contained shape was clicked, don't select the frame — let the
-                // EventDispatcher fall through to shape-specific handlers
-                if (clickedContainedShape) return;
+                // If a contained shape was clicked, don't select the frame —
+                // and crucially, clear `currentShape` so the EventDispatcher's
+                // `if (handled && prevShape && !currentShape) handled=false` gate
+                // triggers and the dispatcher falls through to shape-specific
+                // handlers. Without this clear, the dispatcher returns with
+                // `handled=true` and the child shape is never selected (Issue
+                // #22, bug #2).
+                if (clickedContainedShape) {
+                    if (currentShape && currentShape.shapeName === 'frame'
+                        && typeof currentShape.removeSelection === 'function') {
+                        currentShape.removeSelection();
+                    }
+                    currentShape = null;
+                    return;
+                }
 
                 if (currentShape && currentShape !== clickedFrame) {
                     currentShape.removeSelection();
@@ -216,12 +228,40 @@ Frame.prototype.isNearAnchor = function(x, y) {
 // Delete functionality
 function deleteCurrentFrame() {
     if (currentShape && currentShape.shapeName === 'frame') {
-        const idx = shapes.indexOf(currentShape);
-        if (idx !== -1) shapes.splice(idx, 1);
-        if (currentShape.group.parentNode) {
-            currentShape.group.parentNode.removeChild(currentShape.group);
+        const frame = currentShape;
+        const isDiagramFrame = !!frame._diagramType;
+
+        // Issue #24 bug #7: regular frame → orphan children + snapshot
+        // (mirrors deleteSelectedShapes / EngineShortcuts).
+        let childSnapshot = null;
+        if (!isDiagramFrame) {
+            childSnapshot = [...(frame.containedShapes || [])];
+            for (const child of childSnapshot) {
+                if (!child || child === frame) continue;
+                const el = child.group || child.element;
+                if (el) {
+                    if (frame.clipGroup && el.parentNode === frame.clipGroup) frame.clipGroup.removeChild(el);
+                    if (window.svg && el.parentNode !== window.svg) window.svg.appendChild(el);
+                }
+                child.parentFrame = null;
+                delete child.isBeingMovedByFrame;
+            }
+            frame.containedShapes = [];
         }
-        pushDeleteAction(currentShape);
+
+        const idx = shapes.indexOf(frame);
+        if (idx !== -1) shapes.splice(idx, 1);
+
+        if (!isDiagramFrame) {
+            if (frame.group && frame.group.parentNode) frame.group.parentNode.removeChild(frame.group);
+            if (frame.clipGroup && frame.clipGroup.parentNode) frame.clipGroup.parentNode.removeChild(frame.clipGroup);
+            if (frame.clipPath && frame.clipPath.parentNode) frame.clipPath.parentNode.removeChild(frame.clipPath);
+        } else if (frame.group && frame.group.parentNode) {
+            frame.group.parentNode.removeChild(frame.group);
+        }
+
+        if (childSnapshot) pushDeleteAction(frame, { childSnapshot });
+        else pushDeleteAction(frame);
         currentShape = null;
     }
 }

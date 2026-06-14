@@ -4,6 +4,8 @@ import { pushCreateAction, pushDeleteAction, pushOptionsChangeAction, pushTransf
 import { cleanupAttachments } from './arrowTool.js';
 import { calculateSnap, clearSnapGuides } from '../core/SnapGuides.js';
 
+function getThemeStroke() { if (typeof document === "undefined") return "#fff"; return document.body && document.body.classList.contains("theme-dark") ? "#fff" : "#1a1a2e"; }
+
 let isDrawingCircle = false;
 let isDraggingShapeCircle = false;
 let isResizingShapeCircle = false;
@@ -16,7 +18,7 @@ const rc = rough.svg(svg);
 let startX, startY;
 
 
-let circleStrokecolor = "#fff";
+let circleStrokecolor = null;
 let circleBackgroundColor = "transparent";
 let circleFillStyleValue = "none";
 let circleStrokeThicknes = 2;
@@ -83,7 +85,7 @@ const handleMouseDown = (e) => {
             disableAllSideBars();
         }
         let initialOptions = {
-            stroke: circleStrokecolor,
+            stroke: circleStrokecolor ?? getThemeStroke(),
             fill: circleBackgroundColor,
             fillStyle: circleFillStyleValue,
             strokeWidth: circleStrokeThicknes,
@@ -261,6 +263,25 @@ const handleMouseMove = (e) => {
         } else {
             clearSnapGuides();
         }
+
+        // Issue #24 bug #4: track containing frame during drag (see same
+        // block in rectangleTool for the rationale).
+        let newHover = null;
+        for (const f of shapes) {
+            if (f.shapeName !== 'frame') continue;
+            if (f === currentShape) continue;
+            if (typeof f.isShapeInFrame === 'function' && f.isShapeInFrame(currentShape)) {
+                newHover = f;
+                break;
+            }
+        }
+        if (hoveredFrameCircle && hoveredFrameCircle !== newHover && typeof hoveredFrameCircle.removeHighlight === 'function') {
+            hoveredFrameCircle.removeHighlight();
+        }
+        if (newHover && newHover !== hoveredFrameCircle && typeof newHover.highlightFrame === 'function') {
+            newHover.highlightFrame();
+        }
+        hoveredFrameCircle = newHover;
     }
        
     else if(isResizingShapeCircle && currentShape && currentShape.isSelected)
@@ -374,13 +395,16 @@ const handleMouseUp = (e) => {
     }
     
     if((isDraggingShapeCircle || isResizingShapeCircle || isRotatingShapeCircle) && dragOldPosCircle && currentShape) {
-        const newPos = { 
-            x: currentShape.x, 
-            y: currentShape.y, 
-            rx: currentShape.rx, 
-            ry: currentShape.ry, 
+        // Issue #34 bug #2: see rectangleTool — record the hovered frame
+        // as the destination, not the stale `parentFrame` (containment
+        // transfer happens later in this handler).
+        const newPos = {
+            x: currentShape.x,
+            y: currentShape.y,
+            rx: currentShape.rx,
+            ry: currentShape.ry,
             rotation: currentShape.rotation,
-            parentFrame: currentShape.parentFrame 
+            parentFrame: isDraggingShapeCircle ? (hoveredFrameCircle || null) : currentShape.parentFrame,
         };
         const oldPos = {
             ...dragOldPosCircle,

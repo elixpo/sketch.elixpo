@@ -18,31 +18,55 @@
  * specific contexts (e.g. when the host's overlay is focused).
  */
 
-import { TOOLS } from './index.js';
-
-// Single-key tool shortcuts. Mirrors what the standalone product ships.
+// NB: tool names are inlined as string literals below (rather than imported
+// from `./index.js`) to avoid a module-init cycle. EngineShortcuts.js and
+// index.js import each other; if SHORTCUT_MAP read TOOLS.PAN at the top
+// level, it would evaluate before index.js had populated TOOLS, throwing
+// "TOOLS is undefined" once esbuild splits this into a chunk.
+//
+// The values still match TOOLS.* exactly. If you change one, change both.
 export const SHORTCUT_MAP = {
-    h: TOOLS.PAN,
-    v: TOOLS.SELECT,
-    1: TOOLS.SELECT,
-    r: TOOLS.RECTANGLE,
-    2: TOOLS.RECTANGLE,
-    o: TOOLS.CIRCLE,
-    4: TOOLS.CIRCLE,
-    a: TOOLS.ARROW,
-    5: TOOLS.ARROW,
-    l: TOOLS.LINE,
-    6: TOOLS.LINE,
-    p: TOOLS.FREEHAND,
-    7: TOOLS.FREEHAND,
-    t: TOOLS.TEXT,
-    8: TOOLS.TEXT,
-    9: TOOLS.IMAGE,
-    e: TOOLS.ERASER,
-    0: TOOLS.ERASER,
-    i: TOOLS.ICON,
-    f: TOOLS.FRAME,
-    k: TOOLS.LASER,
+    h: 'pan',
+    v: 'select',
+    1: 'select',
+    r: 'rectangle',
+    2: 'rectangle',
+    o: 'circle',
+    4: 'circle',
+    a: 'arrow',
+    5: 'arrow',
+    l: 'line',
+    6: 'line',
+    p: 'freehand',
+    7: 'freehand',
+    t: 'text',
+    8: 'text',
+    9: 'image',
+    e: 'eraser',
+    0: 'eraser',
+    i: 'icon',
+    f: 'frame',
+    k: 'laser',
+};
+
+// Mirror of TOOLS used inside this module's function bodies. Local copy
+// avoids the same module-init cycle while still letting callers compare
+// engine state against named constants instead of magic strings.
+const TOOLS = {
+    SELECT: 'select',
+    PAN: 'pan',
+    RECTANGLE: 'rectangle',
+    CIRCLE: 'circle',
+    LINE: 'line',
+    ARROW: 'arrow',
+    FREEHAND: 'freehand',
+    TEXT: 'text',
+    CODE: 'code',
+    ERASER: 'eraser',
+    LASER: 'laser',
+    IMAGE: 'image',
+    FRAME: 'frame',
+    ICON: 'icon',
 };
 
 function isTypingTarget(target) {
@@ -165,6 +189,28 @@ export function installEngineShortcuts(engine, options = {}) {
             if (window.currentShape) {
                 const shape = window.currentShape;
                 const shapes = window.shapes;
+                const isFrame = shape.shapeName === 'frame';
+                const isDiagramFrame = isFrame && !!shape._diagramType;
+
+                // Issue #24 bug #7: regular frame → orphan children +
+                // snapshot for undo (mirrors deleteSelectedShapes).
+                let childSnapshot = null;
+                if (isFrame && !isDiagramFrame) {
+                    childSnapshot = [...(shape.containedShapes || [])];
+                    for (const child of childSnapshot) {
+                        if (!child || child === shape) continue;
+                        const el = child.group || child.element;
+                        if (el) {
+                            if (shape.clipGroup && el.parentNode === shape.clipGroup) {
+                                shape.clipGroup.removeChild(el);
+                            }
+                            if (window.svg && el.parentNode !== window.svg) window.svg.appendChild(el);
+                        }
+                        child.parentFrame = null;
+                        delete child.isBeingMovedByFrame;
+                    }
+                }
+
                 if (shapes) {
                     const idx = shapes.indexOf(shape);
                     if (idx !== -1) shapes.splice(idx, 1);
@@ -175,10 +221,20 @@ export function installEngineShortcuts(engine, options = {}) {
                 if (shape.parentFrame && typeof shape.parentFrame.removeShapeFromFrame === 'function') {
                     shape.parentFrame.removeShapeFromFrame(shape);
                 }
-                const el = shape.group || shape.element;
-                if (el && el.parentNode) el.parentNode.removeChild(el);
+
+                if (isFrame && !isDiagramFrame) {
+                    shape.containedShapes = [];
+                    if (shape.group && shape.group.parentNode) shape.group.parentNode.removeChild(shape.group);
+                    if (shape.clipGroup && shape.clipGroup.parentNode) shape.clipGroup.parentNode.removeChild(shape.clipGroup);
+                    if (shape.clipPath && shape.clipPath.parentNode) shape.clipPath.parentNode.removeChild(shape.clipPath);
+                } else {
+                    const el = shape.group || shape.element;
+                    if (el && el.parentNode) el.parentNode.removeChild(el);
+                }
+
                 if (typeof window.pushDeleteAction === 'function') {
-                    window.pushDeleteAction(shape);
+                    if (childSnapshot) window.pushDeleteAction(shape, { childSnapshot });
+                    else window.pushDeleteAction(shape);
                 }
                 window.currentShape = null;
                 if (typeof window.disableAllSideBars === 'function') {

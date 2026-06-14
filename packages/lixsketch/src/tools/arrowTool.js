@@ -4,13 +4,15 @@ import { pushCreateAction, pushDeleteAction, pushOptionsChangeAction, pushTransf
 import { calculateSnap, clearSnapGuides } from '../core/SnapGuides.js';
 
 
+function getThemeStroke() { if (typeof document === "undefined") return "#fff"; return document.body && document.body.classList.contains("theme-dark") ? "#fff" : "#1a1a2e"; }
+
 let arrowStartX, arrowStartY;
 let currentArrow = null;
 let isResizing = false;
 let isDragging = false;
 let activeAnchor = null;
 let isDrawingArrow = false;
-let arrowStrokeColor = "#fff";
+let arrowStrokeColor = null;
 let arrowStrokeThickness = 2;
 let arrowOutlineStyle = "solid";
 let arrowCurved = "straight";
@@ -68,7 +70,7 @@ const handleMouseDown = (e) => {
     if (isArrowToolActive) {
         isDrawingArrow = true;
         currentArrow = new Arrow({ x, y }, { x, y }, {
-            stroke: arrowStrokeColor,
+            stroke: arrowStrokeColor ?? getThemeStroke(),
             strokeWidth: arrowStrokeThickness,
             arrowOutlineStyle: arrowOutlineStyle,
             arrowHeadStyle: arrowHeadStyle,
@@ -226,6 +228,27 @@ const handleMouseMove = (e) => {
         startX = x;
         startY = y;
 
+        // Issue #24 bug #4: track containing frame during drag of an
+        // existing arrow so mouseUp re-parents correctly. Without this
+        // hoveredFrameArrow stays null and the arrow is detached the
+        // moment the user nudges it inside its own parent frame.
+        let newHover = null;
+        for (const f of shapes) {
+            if (f.shapeName !== 'frame') continue;
+            if (f === currentShape) continue;
+            if (typeof f.isShapeInFrame === 'function' && f.isShapeInFrame(currentShape)) {
+                newHover = f;
+                break;
+            }
+        }
+        if (hoveredFrameArrow && hoveredFrameArrow !== newHover && typeof hoveredFrameArrow.removeHighlight === 'function') {
+            hoveredFrameArrow.removeHighlight();
+        }
+        if (newHover && newHover !== hoveredFrameArrow && typeof newHover.highlightFrame === 'function') {
+            newHover.highlightFrame();
+        }
+        hoveredFrameArrow = newHover;
+
         // Snap guides
         if (window.__sketchStoreApi && window.__sketchStoreApi.getState().snapToObjects) {
             const snap = calculateSnap(currentShape, e.shiftKey, e.clientX, e.clientY);
@@ -319,10 +342,13 @@ if (isDrawingArrow && currentArrow) {
 }
 
 if (isDragging && dragOldPosArrow && currentShape) {
+    // Issue #34 bug #2: containment transfer happens later in this block,
+    // so currentShape.parentFrame is still the OLD frame here. hoveredFrameArrow
+    // tracks the actual destination during mousemove — use that as the truth.
     const newPos = {
         startPoint: { x: currentShape.startPoint.x, y: currentShape.startPoint.y },
         endPoint: { x: currentShape.endPoint.x, y: currentShape.endPoint.y },
-        parentFrame: currentShape.parentFrame  // Add this line
+        parentFrame: hoveredFrameArrow || null,
     };
     const oldPos = {
         ...dragOldPosArrow,

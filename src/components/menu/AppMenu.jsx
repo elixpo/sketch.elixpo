@@ -4,12 +4,22 @@ import { useState } from 'react'
 import useUIStore from '@/store/useUIStore'
 import useSketchStore from '@/store/useSketchStore'
 import useAuthStore from '@/store/useAuthStore'
-import { triggerCloudSync } from '@/hooks/useAutoSave'
+import { triggerCloudSync, writeLocalScene } from '@/hooks/useAutoSave'
 import { triggerDocCloudSync, persistLayoutMode } from '@/hooks/useDocAutoSave'
 import { useTranslation } from '@/hooks/useTranslation'
-
-const CANVAS_BACKGROUNDS = [
-  { color: '#000', label: 'menu.canvasBg.black' },
+// Issue #38 follow-up: swatches are paired per theme. The light set
+// pairs with the soothing warm-off-white canvas; the dark set restores
+// the original night palette. The menu picks the matching list at render
+// time based on the active theme.
+const CANVAS_BACKGROUNDS_LIGHT = [
+  { color: '#ffffff', label: 'menu.canvasBg.white' },
+  { color: '#faf9f5', label: 'menu.canvasBg.cream' },
+  { color: '#f5f3ed', label: 'menu.canvasBg.paper' },
+  { color: '#f0f5fb', label: 'menu.canvasBg.skyTint' },
+  { color: '#f0f5ef', label: 'menu.canvasBg.sageTint' },
+]
+const CANVAS_BACKGROUNDS_DARK = [
+  { color: '#000000', label: 'menu.canvasBg.black' },
   { color: '#161718', label: 'menu.canvasBg.darkGray' },
   { color: '#13171C', label: 'menu.canvasBg.blueBlack' },
   { color: '#181605', label: 'menu.canvasBg.darkYellow' },
@@ -75,6 +85,10 @@ export default function AppMenu() {
   const logout = useAuthStore((s) => s.logout)
 
   const [prefsOpen, setPrefsOpen] = useState(false)
+// Side-flyout for sub-menus (issue #24 bug #11). Mutually exclusive — only
+// one flyout open at a time. Both panels float to the LEFT of the main
+// menu since the menu itself is pinned to the top-right of the viewport.
+const [docOpen, setDocOpen] = useState(false)
 
   // Menu is always accessible (via floating button in view/zen mode)
 
@@ -95,12 +109,20 @@ export default function AppMenu() {
     <>
       {menuOpen && (
         <div
-          className="fixed inset-0 z-[999]"
-          onClick={() => { closeMenu(); setPrefsOpen(false) }}
+          className="fixed inset-0 z-999"
+          onClick={() => { closeMenu(); setPrefsOpen(false); setDocOpen(false) }}
         />
       )}
       <div
-        className={`absolute top-14 right-4 w-[230px] max-h-[calc(100vh-140px)] overflow-y-auto no-scrollbar bg-surface/75 backdrop-blur-lg rounded-2xl z-[1000] border border-border-light p-1.5 font-[lixFont] text-[13px] transition-all duration-200 ${
+        className={`absolute top-14 right-4 w-[230px] max-h-[calc(100vh-140px)] no-scrollbar bg-surface/75 backdrop-blur-lg rounded-2xl z-[1000] border border-border-light p-1.5 font-[lixFont] text-[13px] transition-all duration-200 ${
+          // Issue #38 bug #2: per CSS spec, `overflow-y: auto` forces
+          // `overflow-x` to `auto` as well, which clipped the side-
+          // flyouts (`absolute right-full ...`) so the user saw nothing
+          // when they clicked Preferences or Document. Toggle the y-scroll
+          // off while a flyout is open so the flyout can escape the panel;
+          // restore it the moment the flyout closes.
+          (prefsOpen || docOpen) ? 'overflow-visible' : 'overflow-y-auto'
+        } ${
           menuOpen
             ? 'opacity-100 blur-0 pointer-events-auto'
             : 'opacity-0 blur-[20px] pointer-events-none'
@@ -126,8 +148,9 @@ export default function AppMenu() {
               const workspaceName = useUIStore.getState().workspaceName || 'Untitled'
               const sceneData = serializer.save(workspaceName)
               const sessionId = window.__sessionID
-              const key = sessionId ? `lixsketch-autosave-${sessionId}` : 'lixsketch-autosave'
-              localStorage.setItem(key, JSON.stringify(sceneData))
+              if (sessionId) {
+                writeLocalScene(`lixsketch-autosave-${sessionId}`, sceneData)
+              }
               useUIStore.getState().setSaveStatus('local')
               triggerCloudSync()
             }
@@ -216,36 +239,50 @@ export default function AppMenu() {
 
         <hr className="border-border-light my-1" />
 
-        {/* Document layout */}
-        <div className="px-3 py-1.5">
-          <p className="text-text-dim text-[10px] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <i className="bx bx-file-blank text-[11px]" />
-            Document
-          </p>
-          <div className="flex items-center gap-1 bg-surface/60 border border-border-light rounded-lg p-0.5">
-            {[
-              { key: 'canvas', icon: 'bx-pen', label: 'Canvas' },
-              { key: 'split', icon: 'bx-layout', label: 'Split' },
-              { key: 'docs', icon: 'bxs-notepad', label: 'Docs' },
-            ].map((m) => {
-              const active = layoutMode === m.key
-              return (
-                <button
-                  key={m.key}
-                  onClick={() => handleSetLayout(m.key)}
-                  title={m.label}
-                  className={`flex-1 flex items-center justify-center gap-1 h-6 rounded-md text-[10.5px] transition-all duration-150 ${
-                    active
-                      ? 'bg-accent-blue text-text-primary'
-                      : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
-                  }`}
-                >
-                  <i className={`bx ${m.icon} text-[11px]`} />
-                  {m.label}
-                </button>
-              )
-            })}
-          </div>
+        <div className="relative">
+          {/* Side flyout — floats to the LEFT of the menu (which is pinned
+              to the top-right of the viewport) so the panel never grows
+              the menu's vertical bounds. The outer panel's overflow
+              toggles to `visible` while a flyout is open so the flyout
+              isn't clipped. */}
+          <button
+            onClick={() => { setDocOpen((d) => !d); setPrefsOpen(false) }}
+            className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[12.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200 ${docOpen ? 'bg-surface-hover' : ''}`}
+          >
+            <span className="flex items-center gap-2">
+              <i className="bx bx-file-blank text-sm" />
+              Document
+            </span>
+            <i className="bx bx-chevron-left text-sm text-text-dim" />
+          </button>
+
+          {docOpen && (
+            <div
+              className="absolute right-full top-0 mr-2 w-[220px] bg-surface-card border border-border-light rounded-2xl p-1.5 shadow-2xl shadow-black/40 z-20"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {[
+                { key: 'canvas', icon: 'bx-pen',     label: 'Canvas' },
+                { key: 'split',  icon: 'bx-layout',  label: 'Split' },
+                { key: 'docs',   icon: 'bxs-notepad', label: 'Docs' },
+              ].map((m) => {
+                const active = layoutMode === m.key
+                return (
+                  <button
+                    key={m.key}
+                    onClick={() => { handleSetLayout(m.key); setDocOpen(false) }}
+                    className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[11px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
+                  >
+                    <span className="flex items-center gap-2">
+                      {active && <i className="bx bx-check text-sm text-accent-blue" />}
+                      <i className={`bx ${m.icon} text-xs ${active ? 'text-accent-blue' : 'text-text-muted'}`} />
+                      {m.label}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Sync doc now (Ctrl+S triggers both, but explicit action is useful from menu) */}
@@ -266,73 +303,72 @@ export default function AppMenu() {
 
         <hr className="border-border-light my-1" />
 
-        {/* Preferences - inline expandable */}
-        <button
-          onClick={() => setPrefsOpen((p) => !p)}
-          className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[12.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200 ${prefsOpen ? 'bg-surface-hover' : ''}`}
-        >
-          <span className="flex items-center gap-2">
-            <i className="bx bx-cog text-sm" />
-            {t('menu.preferences')}
-          </span>
-          <i className={`bx bx-chevron-down text-sm text-text-dim transition-transform duration-150 ${prefsOpen ? 'rotate-180' : ''}`} />
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => { setPrefsOpen((p) => !p); setDocOpen(false) }}
+            className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[12.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200 ${prefsOpen ? 'bg-surface-hover' : ''}`}
+          >
+            <span className="flex items-center gap-2">
+              <i className="bx bx-cog text-sm" />
+              {t('menu.preferences')}
+            </span>
+            <i className="bx bx-chevron-left text-sm text-text-dim" />
+          </button>
 
-        {prefsOpen && (
-          <div className="ml-2 border-l border-border-light pl-1">
-            {/* Language Switcher */}
-            <div className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[11px] transition-all duration-200">
-              <span className="flex items-center gap-2">
-                {t('prefs.language')}
-              </span>
-              <select 
-                className="bg-surface-hover text-text-primary text-[10px] rounded px-1 outline-none border border-border-light"
-                value={language}
-                onChange={(e) => persistUIPrefs({ language: e.target.value })}
-              >
-                <option value="en">English</option>
-                <option value="bg">Български</option>
-                <option value="de">Deutsch</option>
-              </select>
-            </div>
-            
-            {PREFERENCE_ITEMS.map((item) => {
-              const isActive =
-                (item.id === 'toolLock' && toolLock) ||
-                (item.id === 'snapObjects' && snapToObjects) ||
-                (item.id === 'toggleGrid' && gridEnabled) ||
-                (item.id === 'zenMode' && zenMode) ||
-                (item.id === 'viewMode' && viewMode) ||
-                (item.toggle) // arrow binding, snap midpoints default on
-
-              const handleClick = () => {
-                if (item.id === 'toolLock') toggleToolLock()
-                else if (item.id === 'snapObjects') toggleSnapToObjects()
-                else if (item.id === 'toggleGrid') toggleGrid()
-                else if (item.id === 'zenMode') { toggleZenMode(); closeMenu() }
-                else if (item.id === 'viewMode') { toggleViewMode(); closeMenu() }
-              }
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={handleClick}
-                  className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[11px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
+          {prefsOpen && (
+            <div
+              className="absolute right-full top-0 mr-2 w-[240px] bg-surface-card border border-border-light rounded-2xl p-1.5 shadow-2xl shadow-black/40 max-h-[60vh] overflow-y-auto no-scrollbar z-20"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[11px]">
+                <span>{t('prefs.language')}</span>
+                <select
+                  className="bg-surface-hover text-text-primary text-[10px] rounded px-1 outline-none border border-border-light"
+                  value={language}
+                  onChange={(e) => persistUIPrefs({ language: e.target.value })}
                 >
-                  <span className="flex items-center gap-2">
-                    {isActive && (
-                      <i className="bx bx-check text-sm text-accent-blue" />
+                  <option value="en">English</option>
+                  <option value="bg">Български</option>
+                  <option value="de">Deutsch</option>
+                </select>
+              </div>
+
+              {PREFERENCE_ITEMS.map((item) => {
+                const isActive =
+                  (item.id === 'toolLock' && toolLock) ||
+                  (item.id === 'snapObjects' && snapToObjects) ||
+                  (item.id === 'toggleGrid' && gridEnabled) ||
+                  (item.id === 'zenMode' && zenMode) ||
+                  (item.id === 'viewMode' && viewMode) ||
+                  (item.toggle)
+
+                const handleClick = () => {
+                  if (item.id === 'toolLock') toggleToolLock()
+                  else if (item.id === 'snapObjects') toggleSnapToObjects()
+                  else if (item.id === 'toggleGrid') toggleGrid()
+                  else if (item.id === 'zenMode') { toggleZenMode(); closeMenu() }
+                  else if (item.id === 'viewMode') { toggleViewMode(); closeMenu() }
+                }
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={handleClick}
+                    className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[11px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
+                  >
+                    <span className="flex items-center gap-2">
+                      {isActive && <i className="bx bx-check text-sm text-accent-blue" />}
+                      {item.label}
+                    </span>
+                    {item.shortcut && (
+                      <span className="text-text-dim text-[10px]">{item.shortcut}</span>
                     )}
-                    {item.label}
-                  </span>
-                  {item.shortcut && (
-                    <span className="text-text-dim text-[10px]">{item.shortcut}</span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Grid toggle */}
         <button
@@ -452,7 +488,7 @@ export default function AppMenu() {
             {t('menu.canvasBackground')}
           </p>
           <div className="flex items-center gap-1.5">
-            {CANVAS_BACKGROUNDS.map((bg) => (
+            {(theme === 'dark' ? CANVAS_BACKGROUNDS_DARK : CANVAS_BACKGROUNDS_LIGHT).map((bg) => (
               <button
                 key={bg.color}
                 onClick={() => setCanvasBackground(bg.color)}

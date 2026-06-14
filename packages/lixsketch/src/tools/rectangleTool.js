@@ -16,7 +16,16 @@ let startRotationMouseAngleSquare = 0;
 let startShapeRotationSquare = 0;
 const rc = rough.svg(svg); 
 let startX, startY;
-let squareStrokecolor = "#fff";
+// Issue #38 follow-up: null sentinel means "use theme default at draw
+// time". The legacy `"#fff"` literal was invisible on the light canvas;
+// reading the body's `theme-dark` class lets the same code produce a
+// readable stroke in either mode. As soon as the user picks a colour
+// from the sidebar this var holds that value verbatim.
+function getThemeStroke() {
+    if (typeof document === 'undefined') return '#fff';
+    return document.body && document.body.classList.contains('theme-dark') ? '#fff' : '#1a1a2e';
+}
+let squareStrokecolor = null;
 let squareBackgroundColor = "transparent";
 let squareFillStyleValue = "none";
 let squareStrokeThicknes = 2;
@@ -76,7 +85,7 @@ const handleMouseDownRect = (e) => {
         }
 
         let initialOptions = {
-            stroke: squareStrokecolor,
+            stroke: squareStrokecolor ?? getThemeStroke(),
             fill: squareBackgroundColor,
             fillStyle: squareFillStyleValue,
             strokeWidth: squareStrokeThicknes,
@@ -241,6 +250,28 @@ const handleMouseMoveRect = (e) => {
         } else {
             clearSnapGuides();
         }
+
+        // Issue #24 bug #4: track the actual containing frame at every
+        // move so the mouseUp logic re-parents correctly. Without this
+        // hoveredFrame stays at null for existing-shape drags and the
+        // shape is detached the moment the user nudges it by 1 px inside
+        // its own parent frame.
+        let newHover = null;
+        for (const f of shapes) {
+            if (f.shapeName !== 'frame') continue;
+            if (f === currentShape) continue;
+            if (typeof f.isShapeInFrame === 'function' && f.isShapeInFrame(currentShape)) {
+                newHover = f;
+                break;
+            }
+        }
+        if (hoveredFrame && hoveredFrame !== newHover && typeof hoveredFrame.removeHighlight === 'function') {
+            hoveredFrame.removeHighlight();
+        }
+        if (newHover && newHover !== hoveredFrame && typeof newHover.highlightFrame === 'function') {
+            newHover.highlightFrame();
+        }
+        hoveredFrame = newHover;
     } else if (isResizingShapeSquare && currentShape && currentShape.isSelected && resizingAnchorIndexSquare !== null) {
         currentShape.updatePosition(resizingAnchorIndexSquare, mouseX, mouseY);
         currentShape._skipAnchors = true;
@@ -341,13 +372,19 @@ const handleMouseUpRect = (e) => {
     }
 
     if ((isDraggingShapeSquare || isResizingShapeSquare || isRotatingShapeSquare) && dragOldPosSquare && currentShape) {
-        const newPos = { 
-            x: currentShape.x, 
-            y: currentShape.y, 
-            width: currentShape.width, 
-            height: currentShape.height, 
+        // Issue #34 bug #2: for drag operations the actual frame transfer
+        // happens AFTER this mouseUp block — so `currentShape.parentFrame`
+        // at this point still points at the OLD frame. Use the hovered
+        // frame (tracked during mousemove) as the authoritative new
+        // destination instead, so the undo action records a real
+        // attachment delta and Ctrl+Z re-attaches the shape correctly.
+        const newPos = {
+            x: currentShape.x,
+            y: currentShape.y,
+            width: currentShape.width,
+            height: currentShape.height,
             rotation: currentShape.rotation,
-            parentFrame: currentShape.parentFrame
+            parentFrame: isDraggingShapeSquare ? (hoveredFrame || null) : currentShape.parentFrame,
         };
         const oldPos = {
             ...dragOldPosSquare,

@@ -177,6 +177,9 @@ const useSketchStore = create((set, get) => ({
   setPanStart: (p) => set({ panStart: p }),
 
   // --- Canvas background ---
+  // Issue #38 bug #1: cream is the default — pairs with the light theme
+  // and gives shape strokes (default near-black) clear contrast without
+  // pure-white glare.
   canvasBackground: '#13171C',
   setCanvasBackground: (color) => set({ canvasBackground: color }),
 

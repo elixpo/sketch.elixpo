@@ -5,7 +5,7 @@ import ShapeSidebar, { ToolbarButton, Divider, LayerControls } from './ShapeSide
 import { useState, useCallback } from 'react'
 import { useTranslation } from '@/hooks/useTranslation'
 
-const STROKE_COLORS = ['#fff', '#FF8383', '#3A994C', '#56A2E8', '#FFD700', '#FF69B4', '#A855F7']
+const STROKE_COLORS = ['#1a1a20', '#ffffff', '#FF8383', '#3A994C', '#56A2E8', '#FFD700', '#FF69B4', '#A855F7']
 
 // Map taper UI values to perfect-freehand thinning values
 const TAPER_MAP = { uniform: 0, pen: 0.5, brush: 0.8 }
@@ -15,7 +15,7 @@ function ColorGrid({ colors, selected, onSelect }) {
     <div className="grid grid-cols-4 gap-1.5">
       {colors.map((c) => (
         <button key={c} onClick={() => onSelect(c)}
-          className={`w-7 h-7 rounded-md border-[1.5px] transition-all duration-100 ${selected === c ? 'border-[#5B57D1] scale-110' : 'border-white/[0.08] hover:border-white/20'}`}
+          className={`w-7 h-7 rounded-md border-[1.5px] transition-all duration-100 ${selected === c ? 'border-[#5B57D1] scale-110' : 'border-border-light hover:border-text-dim'}`}
           style={{ backgroundColor: c }}
         />
       ))}
@@ -43,7 +43,7 @@ export default function PaintbrushSidebar() {
   return (
     <ShapeSidebar visible={activeTool === TOOLS.FREEHAND || selectedShapeSidebar === 'paintbrush'}>
       <ToolbarButton tooltip={t('sidebar.strokeColor')}
-        preview={<span className="w-4 h-4 rounded-md border border-white/20" style={{ backgroundColor: strokeColor }} />}
+        preview={<span className="w-4 h-4 rounded-md border border-border-light" style={{ backgroundColor: strokeColor }} />}
       >
         <p className="text-xs text-text-muted uppercase tracking-wider mb-2">{t('sidebar.sectionHeader.stroke')}</p>
         <ColorGrid colors={STROKE_COLORS} selected={strokeColor} onSelect={updateStroke} />

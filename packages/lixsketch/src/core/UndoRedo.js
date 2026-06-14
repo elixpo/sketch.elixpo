@@ -38,12 +38,15 @@ export function pushCreateAction(shape) {
     redoStack.length = 0;
 }
 
-export function pushDeleteAction(shape) {
-    undoStack.push({
-        type: 'delete',
-        shape: shape
-    });
-    
+export function pushDeleteAction(shape, meta = null) {
+    // Issue #24 bug #7: when the deleted shape is a frame, the caller may
+    // pass `meta.childSnapshot` — the contained shape REFERENCES at the
+    // time of delete. The undo branch uses this to re-attach the children
+    // when the frame is restored, instead of leaving an empty box.
+    const action = { type: 'delete', shape };
+    if (meta && meta.childSnapshot) action.childSnapshot = meta.childSnapshot;
+    undoStack.push(action);
+
     // Clear redo stack when new action is performed
     redoStack.length = 0;
 }
@@ -419,10 +422,22 @@ export function pushOptionsChangeAction(shape, oldOptions) {
     redoStack.length = 0;
 }
 
+// Issue #34 bug #4: refresh the multi-selection outline + handles so it
+// follows the reverted geometry. Without this the selection rect stays
+// pinned to the pre-undo coordinates and the user sees a ghost rect
+// floating away from the shapes it claims to wrap.
+function refreshSelectionAfterAction() {
+    const ms = (typeof window !== 'undefined') ? window.multiSelection : null;
+    if (!ms) return;
+    if (typeof ms.updateControls !== 'function') return;
+    if (!ms.selectedShapes || ms.selectedShapes.size === 0) return;
+    try { ms.updateControls(); } catch (err) { console.warn('[UndoRedo] selection refresh failed:', err); }
+}
+
 export function undo() {
     if (undoStack.length === 0) return;
     const action = undoStack.pop();
-    
+    try {
     if (action.type === 'frameTransform') {
         // Handle frame transformation undo
         action.shape.x = action.oldPos.x;
@@ -603,6 +618,33 @@ export function undo() {
             shapes.push(action.shape);
             if (svg) {
                 svg.appendChild(action.shape.group);
+            }
+
+            // Issue #24 bug #7: rehydrate frame state. The delete path
+            // orphaned the frame (removed <g>, clipGroup, clipPath from
+            // DOM) but kept the JS object intact. Re-attach clipGroup +
+            // clipPath, then re-parent every child from the snapshot via
+            // addShapeToFrame. Skip children that were subsequently
+            // deleted (they'll get re-added when their own delete action
+            // is undone in turn).
+            if (action.shape.shapeName === 'frame' && svg) {
+                if (action.shape.clipGroup && !action.shape.clipGroup.parentNode) {
+                    svg.appendChild(action.shape.clipGroup);
+                }
+                if (action.shape.clipPath && !action.shape.clipPath.parentNode) {
+                    const defs = svg.querySelector('defs');
+                    if (defs) defs.appendChild(action.shape.clipPath);
+                    else svg.insertBefore(action.shape.clipPath, svg.firstChild);
+                }
+                if (action.childSnapshot && Array.isArray(action.childSnapshot)) {
+                    for (const child of action.childSnapshot) {
+                        if (!child) continue;
+                        if (shapes.indexOf(child) === -1) continue;
+                        if (typeof action.shape.addShapeToFrame === 'function') {
+                            action.shape.addShapeToFrame(child);
+                        }
+                    }
+                }
             }
         }
         redoStack.push(action);
@@ -875,12 +917,13 @@ export function undo() {
         redoStack.push(action);
         return;
     }
+    } finally { refreshSelectionAfterAction(); }
 }
 
 export function redo() {
     if (redoStack.length === 0) return;
     const action = redoStack.pop();
-    
+    try {
     if (action.type === 'frameTransform') {
         // Handle frame transformation redo
         action.shape.x = action.newPos.x;
@@ -1053,13 +1096,36 @@ export function redo() {
             // Handle other shape deletion redo
             const idx = shapes.indexOf(action.shape);
             if (idx !== -1) shapes.splice(idx, 1);
-            if (action.shape.group && action.shape.group.parentNode) {
-                action.shape.group.parentNode.removeChild(action.shape.group);
-            }
-            
-            // Handle frame cleanup
-            if (action.shape.shapeName === 'frame') {
-                action.shape.destroy();
+
+            // Issue #24 bug #7: for a regular frame, re-orphan instead of
+            // destroy() — releases children visually, detaches the frame's
+            // own DOM bits, but keeps the JS object and child references
+            // intact so a subsequent undo can rehydrate again.
+            if (action.shape.shapeName === 'frame' && !action.shape._diagramType && action.childSnapshot) {
+                for (const child of action.childSnapshot) {
+                    if (!child) continue;
+                    const el = child.group || child.element;
+                    if (el && svg) {
+                        if (action.shape.clipGroup && el.parentNode === action.shape.clipGroup) {
+                            action.shape.clipGroup.removeChild(el);
+                        }
+                        if (el.parentNode !== svg) svg.appendChild(el);
+                    }
+                    child.parentFrame = null;
+                    delete child.isBeingMovedByFrame;
+                }
+                action.shape.containedShapes = [];
+                if (action.shape.group && action.shape.group.parentNode) action.shape.group.parentNode.removeChild(action.shape.group);
+                if (action.shape.clipGroup && action.shape.clipGroup.parentNode) action.shape.clipGroup.parentNode.removeChild(action.shape.clipGroup);
+                if (action.shape.clipPath && action.shape.clipPath.parentNode) action.shape.clipPath.parentNode.removeChild(action.shape.clipPath);
+            } else {
+                if (action.shape.group && action.shape.group.parentNode) {
+                    action.shape.group.parentNode.removeChild(action.shape.group);
+                }
+                // Diagram frame OR no snapshot → fall back to destroy().
+                if (action.shape.shapeName === 'frame' && typeof action.shape.destroy === 'function') {
+                    action.shape.destroy();
+                }
             }
         }
         undoStack.push(action);
@@ -1329,6 +1395,7 @@ export function redo() {
         undoStack.push(action);
         return;
     }
+    } finally { refreshSelectionAfterAction(); }
 }
 
 // Optional: Keyboard shortcuts
