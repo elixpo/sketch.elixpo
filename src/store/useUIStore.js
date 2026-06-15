@@ -152,7 +152,7 @@ const useUIStore = create((set, get) => ({
   clearEncryptionKeyForSession: (sessionId) => {
     if (typeof window !== 'undefined' && sessionId) {
       localStorage.removeItem(`lixsketch-enc-key-${sessionId}`)
-    }
+    +}
     set({ sessionEncryptionKey: null })
   },
 
@@ -162,9 +162,15 @@ const useUIStore = create((set, get) => ({
   setCanvasLoading: (loading, message) => set({ canvasLoading: loading, canvasLoadingMessage: message || 'Loading canvas...' }),
 
   // --- Theme ---
-  theme: (typeof window !== 'undefined' && localStorage.getItem('lix_ui_prefs'))
-    ? (JSON.parse(localStorage.getItem('lix_ui_prefs')).theme || 'dark')
-    : 'dark',
+  theme: (() => {
+    if (typeof window === 'undefined') return 'dark'
+    try {
+      const prefs = localStorage.getItem('lix_ui_prefs')
+      return prefs ? (JSON.parse(prefs).theme || 'dark') : 'dark'
+    } catch (e) {
+      return 'dark'
+    }
+  })(),
   setTheme: (newTheme) => {
     const prev = get().theme
     const resolve = (t) => t === 'system'
