@@ -152,7 +152,7 @@ const useUIStore = create((set, get) => ({
   clearEncryptionKeyForSession: (sessionId) => {
     if (typeof window !== 'undefined' && sessionId) {
       localStorage.removeItem(`lixsketch-enc-key-${sessionId}`)
-    }
+    +}
     set({ sessionEncryptionKey: null })
   },
 
@@ -162,9 +162,15 @@ const useUIStore = create((set, get) => ({
   setCanvasLoading: (loading, message) => set({ canvasLoading: loading, canvasLoadingMessage: message || 'Loading canvas...' }),
 
   // --- Theme ---
-  // Issue #38 bug #1: light is the default. `applyTheme('dark')` is
-  // still wired below for the toggle path.
-  theme: 'dark',
+  theme: (() => {
+    if (typeof window === 'undefined') return 'dark'
+    try {
+      const prefs = localStorage.getItem('lix_ui_prefs')
+      return prefs ? (JSON.parse(prefs).theme || 'dark') : 'dark'
+    } catch (e) {
+      return 'dark'
+    }
+  })(),
   setTheme: (newTheme) => {
     const prev = get().theme
     const resolve = (t) => t === 'system'
@@ -173,14 +179,7 @@ const useUIStore = create((set, get) => ({
     invertShapeColors(resolve(prev), resolve(newTheme))
     applyTheme(newTheme)
     set({ theme: newTheme })
-
-    // Issue #38 follow-up: when the user toggles themes, swap the canvas
-    // background to a matching swatch from the NEW theme's palette if it
-    // currently matches one from the OLD theme's. This keeps a swatch
-    // highlighted as "selected" in the menu and prevents the canvas from
-    // looking light in dark mode (or vice versa). User-customised colours
-    // (not in either list) stay untouched. Lazy-load the sketch store to
-    // avoid the cross-store import cycle.
+    get().persistUIPrefs({ theme: newTheme }) 
     const LIGHT_BGS = ['#ffffff', '#faf9f5', '#f5f3ed', '#f0f5fb', '#f0f5ef', '#f4f3ee']
     const DARK_BGS  = ['#000000', '#161718', '#13171C', '#181605', '#1B1615']
     const resolved = resolve(newTheme)
