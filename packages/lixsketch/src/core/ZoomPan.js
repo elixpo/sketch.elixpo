@@ -99,6 +99,84 @@ window.zoomReset = function() {
   }
 };
 
+window.zoomFit = function() {
+  if (!window.shapes || window.shapes.length === 0) {
+    if (window.zoomReset) window.zoomReset();
+    return;
+  }
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  window.shapes.forEach(shape => {
+    const bounds = shape.boundingBox || { x: shape.x, y: shape.y, width: shape.width, height: shape.height };
+    if (!bounds || typeof bounds.width !== 'number' || typeof bounds.height !== 'number') return;
+    
+    // Normalize coordinates just in case width/height is negative
+    const x1 = Math.min(bounds.x, bounds.x + bounds.width);
+    const x2 = Math.max(bounds.x, bounds.x + bounds.width);
+    const y1 = Math.min(bounds.y, bounds.y + bounds.height);
+    const y2 = Math.max(bounds.y, bounds.y + bounds.height);
+
+    minX = Math.min(minX, x1);
+    minY = Math.min(minY, y1);
+    maxX = Math.max(maxX, x2);
+    maxY = Math.max(maxY, y2);
+  });
+
+  if (minX === Infinity) {
+    if (window.zoomReset) window.zoomReset();
+    return;
+  }
+
+  const rect = freehandCanvas.getBoundingClientRect();
+  const screenW = rect.width || window.innerWidth;
+  const screenH = rect.height || window.innerHeight;
+
+  const contentW = maxX - minX;
+  const contentH = maxY - minY;
+  
+  // Add 10% padding
+  const paddingX = Math.max(50, contentW * 0.1);
+  const paddingY = Math.max(50, contentH * 0.1);
+
+  const paddedW = contentW + paddingX * 2;
+  const paddedH = contentH + paddingY * 2;
+
+  // Calculate required zoom to fit the padded content in the screen
+  const zoomX = screenW / paddedW;
+  const zoomY = screenH / paddedH;
+  
+  let newZoom = Math.min(zoomX, zoomY);
+  newZoom = Math.max(minScale, Math.min(newZoom, maxScale));
+
+  // Center coordinate of the content
+  const cx = minX + contentW / 2;
+  const cy = minY + contentH / 2;
+
+  // Set the new viewBox and zoom
+  currentZoom = newZoom;
+  const vbW = screenW / currentZoom;
+  const vbH = screenH / currentZoom;
+
+  currentViewBox.x = cx - vbW / 2;
+  currentViewBox.y = cy - vbH / 2;
+  currentViewBox.width = vbW;
+  currentViewBox.height = vbH;
+
+  freehandCanvas.setAttribute(
+    "viewBox",
+    `${currentViewBox.x} ${currentViewBox.y} ${vbW} ${vbH}`
+  );
+  
+  updateZoomDisplay();
+  if (window.__sketchStoreApi && window.__sketchStoreApi.setZoom) {
+    window.__sketchStoreApi.setZoom(currentZoom);
+  }
+};
+
 freehandCanvas.addEventListener("wheel", function(e) {
   if (!e.ctrlKey) return;
   e.preventDefault();
