@@ -180,6 +180,8 @@ npm run dev
 This runs the Next.js app and the Cloudflare Worker together. Then open
 [http://localhost:3000](http://localhost:3000).
 
+> **Note on local dev:** The local dev server automatically bridges the `ROOM` Durable Object to a locally running wrangler instance on port 8787 (started by the `dev:rooms` script). This ensures multiplayer collaboration functions locally without needing to configure a `wrangler.toml` for Next-on-Pages.
+
 ## Built by the community
 
 Elixpo is made by people, in the open. **45+ contributors** have shaped these
