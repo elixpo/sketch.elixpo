@@ -100,14 +100,6 @@ function NavItem({ href, label, icon, active }) {
 
 export default function DocsPage() {
   const [activeSection, setActiveSection] = useState('overview')
-  const [llmCopied, setLlmCopied] = useState(false)
-
-  const handleCopyForLLM = useCallback(() => {
-    navigator.clipboard.writeText(LIXSCRIPT_LLM_SPEC).then(() => {
-      setLlmCopied(true)
-      setTimeout(() => setLlmCopied(false), 3000)
-    })
-  }, [])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -543,44 +535,34 @@ const result = window.__lixscriptRender(parsed)`} />
 
           {/* LLM Spec */}
           <div id="llm" className="mb-10">
-            <Section id="llm-inner" title="LLM-Optimized Spec" icon="bx-bot" defaultOpen={true}>
+            <Section id="llm-inner" title="LixScript MCP Spec — Coming Soon" icon="bx-plug" defaultOpen={true}>
               <div className="mt-4 mb-4">
                 <p className="text-text-muted text-sm leading-relaxed mb-4">
-                  A compact, token-efficient version of the LixScript specification optimized for LLM system prompts.
-                  Paste this into any LLM's system prompt to enable it to generate LixScript diagrams from natural language descriptions.
+                  Preview of the compact LixScript specification planned for the platform MCP integration.
+                  Execution and the supported MCP contract are not available yet.
                 </p>
                 <div className="flex items-center gap-3 mb-4">
                   <button
-                    onClick={handleCopyForLLM}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                      llmCopied
-                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                        : 'bg-accent-blue text-white hover:bg-accent-blue/80'
-                    }`}
+                    disabled
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-surface-hover text-text-dim border border-border cursor-not-allowed"
                   >
-                    <i className={`bx ${llmCopied ? 'bx-check' : 'bx-copy'} text-base`} />
-                    {llmCopied ? 'Copied to clipboard!' : 'Copy Full LLM Spec'}
+                    <i className="bx bx-time-five text-base" />
+                    MCP access coming soon
                   </button>
                   <span className="text-text-dim text-xs">~2.5k tokens</span>
                 </div>
               </div>
 
               <div className="relative group">
-                <div className="absolute top-3 right-3 z-10">
-                  <CopyButton text={LIXSCRIPT_LLM_SPEC} label="Copy" />
-                </div>
                 <pre className="bg-[#0d0d14] border border-white/[0.06] rounded-xl p-4 overflow-x-auto text-xs leading-relaxed max-h-[500px] overflow-y-auto">
                   <code className="text-text-dim font-[lixCode] whitespace-pre-wrap">{LIXSCRIPT_LLM_SPEC}</code>
                 </pre>
               </div>
 
               <div className="mt-6 p-4 rounded-xl bg-purple-500/5 border border-purple-500/10">
-                <h4 className="text-purple-400 text-sm font-medium mb-2">Usage with any LLM</h4>
+                <h4 className="text-purple-400 text-sm font-medium mb-2">Planned MCP workflow</h4>
                 <p className="text-text-muted text-sm leading-relaxed">
-                  1. Copy the spec above into your LLM system prompt<br/>
-                  2. Ask: "Generate a LixScript diagram for [description]"<br/>
-                  3. Paste the output into LixSketch AI modal {'>'} Code tab<br/>
-                  4. Preview and place on canvas
+                  The production flow will expose LixScript through the platform MCP, then place generated components onto the editable canvas. Connection details will be published when the integration is ready.
                 </p>
               </div>
             </Section>
