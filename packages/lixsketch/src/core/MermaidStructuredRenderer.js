@@ -87,7 +87,7 @@ export function parseERDiagram(src) {
         }
 
         // CUSTOMER ||--o{ ORDER : places
-        const relation = line.match(/^([\w-]+)\s+([|o}{.]+)--([|o}{.]+)\s+([\w-]+)\s*:\s*(.+)$/);
+        const relation = line.match(/^([\w-]+)\s+([|o}{.]+)(?:--|\.\.)([|o}{.]+)\s+([\w-]+)\s*:\s*(.+)$/);
         if (relation) {
             ensureEntity(relation[1]);
             ensureEntity(relation[4]);
@@ -313,7 +313,7 @@ export function renderEROnCanvas(diagram) {
 }
 
 export function renderChartOnCanvas(chart) {
-    if (!chart?.series?.length || !window.Rectangle || !window.Line || !window.Frame) return false;
+    if (!chart?.series?.length || !window.Rectangle || !window.Circle || !window.Line || !window.Frame) return false;
     const TK = theme();
     const width = 720;
     const height = 450;
@@ -361,4 +361,3 @@ export function renderChartOnCanvas(chart) {
     if (first?.selectShape) { window.currentShape = first; first.selectShape(); }
     return true;
 }
-

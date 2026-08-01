@@ -38,7 +38,6 @@ body.canvas-mode.theme-light {
   --lixsketch-grid-major: rgba(60, 60, 80, 0.14);
 }
 
-body.canvas-mode,
 body.canvas-mode.theme-dark {
   --color-surface: #25252f;
   --color-surface-hover: #35354a;

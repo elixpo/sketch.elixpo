@@ -302,7 +302,7 @@ export function parseMermaid(src) {
                 fill: nd.fill || palette[paletteIndex % palette.length].fill,
                 stroke: nd.stroke || palette[paletteIndex % palette.length].stroke,
                 strokeWidth: nd.strokeWidth,
-                labelColor: nd.labelColor || '#343832',
+                labelColor: nd.labelColor,
             });
             paletteIndex += 1;
         });
@@ -1392,13 +1392,17 @@ export function initAIRenderer() {
         _structured = await import('./MermaidStructuredRenderer.js');
     }
 
+    function mermaidHeader(src) {
+        return src.split('\n').map(line => line.trim()).find(line => line && !line.startsWith('%%'))?.toLowerCase() || '';
+    }
+
     // Detect if source is a sequence diagram
     function isSequenceDiagram(src) {
-        return src.trim().split('\n')[0].trim().toLowerCase() === 'sequencediagram';
+        return mermaidHeader(src) === 'sequencediagram';
     }
 
     function structuredType(src) {
-        const header = src.trim().split('\n')[0].trim().toLowerCase();
+        const header = mermaidHeader(src);
         if (header === 'erdiagram') return 'er';
         if (/^pie(?:\s|$)/.test(header) || /^xychart(?:-beta)?(?:\s|$)/.test(header)) return 'chart';
         return null;

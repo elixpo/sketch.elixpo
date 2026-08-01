@@ -470,7 +470,7 @@ export function renderFlowchartOnCanvas(diagram) {
             fillStyle: n.fill && n.fill !== 'transparent' ? 'solid' : 'none',
             roughness: 1,
             label: n.label || '',
-            labelColor: n.labelColor || nodeStrokeColor(),
+            labelColor: n.labelColor || (n.fill && n.fill !== 'transparent' ? getContrastColor(n.fill) : nodeStrokeColor()),
         };
 
         let shape = null;
