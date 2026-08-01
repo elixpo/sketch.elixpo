@@ -965,10 +965,9 @@ export default function AIModal() {
               <div className="flex gap-1 mb-4 bg-surface-dark rounded-xl p-1">
                 {[
                   // 'Research Paper' tab was AI-inference-only and is hidden
-                  // while the assistant is offline. The remaining three tabs
-                  // (LixScript / Mermaid / Graph) parse and render entirely
-                  // client-side, no worker round-trip required.
-                  { value: 'code', label: 'LixScript', beta: true },
+                  // while the assistant is offline. LixScript remains visible
+                  // as a preview of the upcoming MCP integration.
+                  { value: 'code', label: 'LixScript', comingSoon: true },
                   { value: 'mermaid', label: 'Mermaid' },
                   { value: 'graph', label: 'Graph' },
                 ].map((t) => (
@@ -978,7 +977,10 @@ export default function AIModal() {
                     className={`flex-1 px-4 py-2 rounded-lg text-sm transition-all duration-200 ${
                       mode === t.value ? 'bg-surface-active text-text-primary' : 'text-text-muted hover:text-text-primary'
                     }`}
-                  >{t.label}{t.beta && <span className="ml-1.5 px-1.5 py-0.5 text-[9px] rounded-md bg-orange-500/20 text-orange-400 font-medium uppercase leading-none">Beta</span>}</button>
+                  >
+                    {t.label}
+                    {t.comingSoon && <span className="ml-1.5 px-1.5 py-0.5 text-[9px] rounded-md bg-[#a97852]/15 text-[#8f6244] font-medium uppercase leading-none">Coming soon</span>}
+                  </button>
                 ))}
               </div>
             )}
@@ -1224,7 +1226,22 @@ export default function AIModal() {
                 </div>
               </div>
 
-            ) : /* ============ CODE MODE (LixScript) ============ */
+            ) : /* ============ LIXSCRIPT / MCP COMING SOON ============ */
+            isCodeMode && !previewDiagram && !isFrameEdit ? (
+              <div className="h-[calc(100%-100px)] flex items-center justify-center">
+                <div className="w-full max-w-xl rounded-2xl border border-border bg-surface-card px-8 py-10 text-center">
+                  <div className="mx-auto mb-5 w-12 h-12 rounded-xl bg-[#6f846f]/12 border border-[#6f846f]/25 flex items-center justify-center">
+                    <i className="bx bx-plug text-2xl text-[#6f846f]" />
+                  </div>
+                  <span className="inline-flex px-2.5 py-1 rounded-full bg-[#a97852]/12 text-[#8f6244] text-[10px] font-semibold uppercase tracking-wider">Coming soon</span>
+                  <h3 className="mt-4 text-xl text-text-primary">LixScript MCP</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-text-muted">
+                    LixScript is being prepared as the programmable MCP interface for LixSketch. The editor will return when scripts can run through the supported platform workflow.
+                  </p>
+                </div>
+              </div>
+
+            ) : /* ============ LEGACY CODE MODE (kept until MCP ships) ============ */
             isCodeMode && !previewDiagram && !isFrameEdit ? (
               <div className="flex gap-4 h-[calc(100%-100px)]">
                 {/* Left panel - AI prompt + Code editor */}
