@@ -199,11 +199,11 @@ function DiagramPreview({ svgMarkup, className }) {
         style={{ zIndex: 1 }}
         onMouseDown={handleMouseDown}
       />
-      <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/50 rounded-lg px-1.5 py-0.5" style={{ zIndex: 2 }}>
-        <button onClick={() => setZoom(z => Math.max(0.3, z * 0.8))} className="text-text-dim hover:text-white text-xs px-1">-</button>
+      <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-surface/90 border border-border rounded-lg px-1.5 py-0.5" style={{ zIndex: 2 }}>
+        <button onClick={() => setZoom(z => Math.max(0.3, z * 0.8))} className="text-text-dim hover:text-text-primary text-xs px-1">-</button>
         <span className="text-text-dim text-[10px] w-8 text-center">{Math.round(zoom * 100)}%</span>
-        <button onClick={() => setZoom(z => Math.min(3, z * 1.2))} className="text-text-dim hover:text-white text-xs px-1">+</button>
-        <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }) }} className="text-text-dim hover:text-white text-[10px] px-1 border-l border-white/10 ml-0.5 pl-1.5">Reset</button>
+        <button onClick={() => setZoom(z => Math.min(3, z * 1.2))} className="text-text-dim hover:text-text-primary text-xs px-1">+</button>
+        <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }) }} className="text-text-dim hover:text-text-primary text-[10px] px-1 border-l border-border ml-0.5 pl-1.5">Reset</button>
       </div>
     </div>
   )
@@ -919,7 +919,7 @@ export default function AIModal() {
                     </>
                   ) : (
                     <h2 className="text-text-primary text-lg font-medium flex items-center gap-2.5">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isGraphMode ? 'text-[#4A90D9]' : isResearchMode ? 'text-[#9B59B6]' : isCodeMode ? 'text-[#F39C12]' : mode === 'mermaid' ? 'text-[#2ECC71]' : 'text-accent'}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-blue">
                         {isGraphMode ? (
                           <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                         ) : isResearchMode ? (
@@ -975,11 +975,11 @@ export default function AIModal() {
                     key={t.value}
                     onClick={() => setMode(t.value)}
                     className={`flex-1 px-4 py-2 rounded-lg text-sm transition-all duration-200 ${
-                      mode === t.value ? 'bg-surface-active text-text-primary' : 'text-text-muted hover:text-text-primary'
+                      mode === t.value ? 'bg-accent-blue/15 text-accent-blue' : 'text-text-muted hover:text-text-primary hover:bg-accent-blue/5'
                     }`}
                   >
                     {t.label}
-                    {t.comingSoon && <span className="ml-1.5 px-1.5 py-0.5 text-[9px] rounded-md bg-[#a97852]/15 text-[#8f6244] font-medium uppercase leading-none">Coming soon</span>}
+                    {t.comingSoon && <span className="ml-1.5 px-1.5 py-0.5 text-[9px] rounded-md bg-accent-blue/10 text-accent-blue font-medium uppercase leading-none">Coming soon</span>}
                   </button>
                 ))}
               </div>
@@ -1184,7 +1184,7 @@ export default function AIModal() {
                         <button
                           key={preset.label}
                           onClick={() => setMermaidCode(preset.code)}
-                          className="px-2 py-1 rounded-lg text-[10px] text-text-dim border border-white/[0.06] hover:border-white/[0.15] hover:text-text-secondary transition-all"
+                          className="px-2 py-1 rounded-lg text-[10px] text-text-dim border border-border hover:border-accent-blue/40 hover:text-accent-blue transition-all"
                         >{preset.label}</button>
                       ))}
                     </div>
@@ -1233,7 +1233,7 @@ export default function AIModal() {
                   <div className="mx-auto mb-5 w-12 h-12 rounded-xl bg-[#7667a8]/12 border border-[#7667a8]/25 flex items-center justify-center">
                     <i className="bx bx-plug text-2xl text-[#7667a8]" />
                   </div>
-                  <span className="inline-flex px-2.5 py-1 rounded-full bg-[#a97852]/12 text-[#8f6244] text-[10px] font-semibold uppercase tracking-wider">Coming soon</span>
+                  <span className="inline-flex px-2.5 py-1 rounded-full bg-accent-blue/10 text-accent-blue text-[10px] font-semibold uppercase tracking-wider">Coming soon</span>
                   <h3 className="mt-4 text-xl text-text-primary">LixScript MCP</h3>
                   <p className="mt-2 text-sm leading-relaxed text-text-muted">
                     LixScript is being prepared as the programmable MCP interface for LixSketch. The editor will return when scripts can run through the supported platform workflow.

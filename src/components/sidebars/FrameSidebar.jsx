@@ -125,7 +125,7 @@ export default function FrameSidebar() {
               title={s.label}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-all duration-100 ${
                 fillStyle === s.id
-                  ? 'bg-surface-active text-text-primary'
+                  ? 'bg-accent-blue/20 text-accent-blue'
                   : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
               }`}
             >
@@ -240,7 +240,7 @@ export default function FrameSidebar() {
                     }}
                     className={`px-2 py-1 rounded-md text-[10px] transition-all ${
                       shape._frameImageFit === f.id
-                        ? 'bg-surface-active text-text-primary'
+                        ? 'bg-accent-blue/20 text-accent-blue'
                         : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
                     }`}
                   >{f.label}</button>

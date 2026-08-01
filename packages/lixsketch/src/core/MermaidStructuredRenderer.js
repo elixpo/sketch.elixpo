@@ -9,12 +9,12 @@
 
 const NS = 'http://www.w3.org/2000/svg';
 const PALETTE = [
-    { fill: '#dfeee4', stroke: '#5f836c' },
-    { fill: '#f4e3d4', stroke: '#a97852' },
-    { fill: '#e9e1ef', stroke: '#7e6b91' },
-    { fill: '#f3edc9', stroke: '#9a8745' },
-    { fill: '#dcebed', stroke: '#5d7f82' },
-    { fill: '#f1dedc', stroke: '#9a6863' },
+    { fill: '#8b7abb', stroke: '#665793' },
+    { fill: '#a992cf', stroke: '#7762a6' },
+    { fill: '#c2addc', stroke: '#8974aa' },
+    { fill: '#7765a6', stroke: '#584883' },
+    { fill: '#9d83c1', stroke: '#725b9a' },
+    { fill: '#d1c3e7', stroke: '#927daf' },
 ];
 
 function escapeXml(value) {
@@ -23,6 +23,17 @@ function escapeXml(value) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+}
+
+function contrastText(fill) {
+    const raw = String(fill || '').replace('#', '');
+    const hex = raw.length === 3 ? raw.split('').map(char => char + char).join('') : raw;
+    if (!/^[0-9a-f]{6}$/i.test(hex)) return theme().text;
+    const red = parseInt(hex.slice(0, 2), 16);
+    const green = parseInt(hex.slice(2, 4), 16);
+    const blue = parseInt(hex.slice(4, 6), 16);
+    const luminance = .299 * red + .587 * green + .114 * blue;
+    return luminance > 145 ? '#34304a' : '#ffffff';
 }
 
 function isDark() {
@@ -149,7 +160,7 @@ export function renderERPreviewSVG(diagram) {
     for (const entity of entities) {
         content += `<g><rect x="${entity.x}" y="${entity.y}" width="${entity.width}" height="${entity.height}" rx="8" fill="${TK.panel}" stroke="${entity.color.stroke}" stroke-width="1.5"/>`;
         content += `<rect x="${entity.x}" y="${entity.y}" width="${entity.width}" height="${entity.headerHeight}" rx="8" fill="${entity.color.fill}" stroke="${entity.color.stroke}" stroke-width="1.5"/>`;
-        content += `<text x="${entity.x + entity.width / 2}" y="${entity.y + 27}" text-anchor="middle" fill="#343832" font-size="14" font-weight="600" font-family="lixFont">${escapeXml(entity.name)}</text>`;
+        content += `<text x="${entity.x + entity.width / 2}" y="${entity.y + 27}" text-anchor="middle" fill="${contrastText(entity.color.fill)}" font-size="14" font-weight="600" font-family="lixFont">${escapeXml(entity.name)}</text>`;
         const attributes = entity.attributes.length ? entity.attributes : [{ type: '', name: 'No attributes', key: '' }];
         attributes.forEach((attribute, row) => {
             const y = entity.y + entity.headerHeight + row * entity.rowHeight;
@@ -205,6 +216,34 @@ export function renderChartPreviewSVG(chart) {
     const TK = theme();
     const width = 720;
     const height = 450;
+
+    if (chart.kind === 'pie') {
+        const values = chart.series[0].values.map(value => Math.max(0, value));
+        const total = values.reduce((sum, value) => sum + value, 0);
+        if (total <= 0) return '';
+        const cx = 255;
+        const cy = 235;
+        const radius = 145;
+        let startAngle = -Math.PI / 2;
+        let content = `<rect width="${width}" height="${height}" rx="10" fill="${TK.bg}"/><text x="${width / 2}" y="32" text-anchor="middle" fill="${TK.text}" font-size="18" font-family="lixFont">${escapeXml(chart.title)}</text>`;
+
+        values.forEach((value, index) => {
+            const endAngle = startAngle + value / total * Math.PI * 2;
+            const x1 = cx + Math.cos(startAngle) * radius;
+            const y1 = cy + Math.sin(startAngle) * radius;
+            const x2 = cx + Math.cos(endAngle) * radius;
+            const y2 = cy + Math.sin(endAngle) * radius;
+            const largeArc = endAngle - startAngle > Math.PI ? 1 : 0;
+            const color = PALETTE[index % PALETTE.length];
+            content += `<path d="M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z" fill="${color.fill}" stroke="${TK.bg}" stroke-width="3"/>`;
+            const percent = Math.round(value / total * 100);
+            const legendY = 125 + index * 42;
+            content += `<rect x="460" y="${legendY - 14}" width="18" height="18" rx="4" fill="${color.fill}" stroke="${color.stroke}"/><text x="488" y="${legendY}" fill="${TK.text}" font-size="12" font-family="lixFont">${escapeXml(chart.categories[index] || index + 1)} — ${value} (${percent}%)</text>`;
+            startAngle = endAngle;
+        });
+        return `<svg xmlns="${NS}" width="600" height="450" viewBox="0 0 ${width} ${height}">${content}</svg>`;
+    }
+
     const left = 70;
     const top = 60;
     const plotWidth = 580;
@@ -265,6 +304,17 @@ function createFrame(x, y, width, height, name, type) {
     return frame;
 }
 
+function selectOnlyFrame(frame) {
+    if (!frame) return;
+    if (window.multiSelection?.clearSelection) window.multiSelection.clearSelection();
+    if (window.currentShape && window.currentShape !== frame && typeof window.currentShape.removeSelection === 'function') {
+        window.currentShape.removeSelection();
+    }
+    if (window.__deselectTextElement) window.__deselectTextElement();
+    window.currentShape = frame;
+    if (typeof frame.selectFrame === 'function') frame.selectFrame();
+}
+
 export function renderEROnCanvas(diagram) {
     if (!diagram?.entities?.length || !window.Rectangle || !window.Arrow || !window.Frame) return false;
     const TK = theme();
@@ -281,7 +331,7 @@ export function renderEROnCanvas(diagram) {
         const y = origin.y + entity.y;
         const header = push(new window.Rectangle(x, y, entity.width, entity.headerHeight, {
             stroke: entity.color.stroke, strokeWidth: 1.5, fill: entity.color.fill, fillStyle: 'solid', roughness: 1,
-            label: entity.name, labelColor: '#343832', labelFontSize: 15,
+            label: entity.name, labelColor: contrastText(entity.color.fill), labelFontSize: 15,
         }), frame);
         if (!first) first = header;
         entityShapes.set(entity.name, { shape: header, x, y, width: entity.width, height: entity.headerHeight });
@@ -314,6 +364,7 @@ export function renderEROnCanvas(diagram) {
 
 export function renderChartOnCanvas(chart) {
     if (!chart?.series?.length || !window.Rectangle || !window.Circle || !window.Line || !window.Frame) return false;
+    if (chart.kind === 'pie') return renderPieOnCanvas(chart);
     const TK = theme();
     const width = 720;
     const height = 450;
@@ -326,8 +377,6 @@ export function renderChartOnCanvas(chart) {
     const values = chart.series.flatMap(series => series.values);
     const maximum = Math.max(1, ...values.map(Math.abs));
     const slot = plotWidth / Math.max(1, chart.categories.length);
-    let first = null;
-
     push(new window.Line({ x: left, y: top }, { x: left, y: top + plotHeight }, { stroke: TK.line, strokeWidth: 1.5, roughness: 0 }), frame);
     push(new window.Line({ x: left, y: top + plotHeight }, { x: left + plotWidth, y: top + plotHeight }, { stroke: TK.line, strokeWidth: 1.5, roughness: 0 }), frame);
 
@@ -337,12 +386,14 @@ export function renderChartOnCanvas(chart) {
             let previous = null;
             series.values.forEach((value, index) => {
                 const point = { x: left + slot * (index + .5), y: top + plotHeight - Math.abs(value) / maximum * plotHeight };
-                const dot = push(new window.Circle(point.x, point.y, 8, 8, {
+                push(new window.Circle(point.x, point.y, 8, 8, {
                     stroke: color.stroke, strokeWidth: 2, fill: color.fill, fillStyle: 'solid', roughness: .5,
-                    label: String(value), labelColor: TK.text, labelFontSize: 9,
+                    label: String(value), labelColor: contrastText(color.fill), labelFontSize: 9,
                 }), frame);
-                if (!first) first = dot;
-                if (previous) push(new window.Line(previous, point, { stroke: color.stroke, strokeWidth: 3, roughness: .5 }), frame);
+                // Each segment owns its endpoint objects. Sharing `point`
+                // references made adjacent lines translate a joint twice
+                // when their parent frame moved, visibly distorting the plot.
+                if (previous) push(new window.Line({ ...previous }, { ...point }, { stroke: color.stroke, strokeWidth: 3, roughness: .5 }), frame);
                 previous = point;
             });
         } else {
@@ -350,14 +401,68 @@ export function renderChartOnCanvas(chart) {
             series.values.forEach((value, index) => {
                 const barHeight = Math.max(8, Math.abs(value) / maximum * plotHeight);
                 const x = left + slot * index + slot * .15 + seriesIndex * barWidth;
-                const bar = push(new window.Rectangle(x, top + plotHeight - barHeight, barWidth, barHeight, {
+                push(new window.Rectangle(x, top + plotHeight - barHeight, barWidth, barHeight, {
                     stroke: color.stroke, strokeWidth: 1.5, fill: color.fill, fillStyle: 'solid', roughness: .7,
-                    label: `${chart.categories[index] || index + 1}\n${value}`, labelColor: '#343832', labelFontSize: 11,
+                    label: `${chart.categories[index] || index + 1}\n${value}`, labelColor: contrastText(color.fill), labelFontSize: 11,
                 }), frame);
-                if (!first) first = bar;
             });
         }
     });
-    if (first?.selectShape) { window.currentShape = first; first.selectShape(); }
+    selectOnlyFrame(frame);
+    return true;
+}
+
+function renderPieOnCanvas(chart) {
+    if (!window.FreehandStroke) return false;
+    const width = 720;
+    const height = 450;
+    const origin = canvasOrigin(width, height);
+    const frame = createFrame(origin.x, origin.y, width, height, chart.title, 'mermaid-pie');
+    const values = chart.series[0].values.map(value => Math.max(0, value));
+    const total = values.reduce((sum, value) => sum + value, 0);
+    if (total <= 0) return false;
+
+    const cx = origin.x + 245;
+    const cy = origin.y + 225;
+    const arcRadius = 92;
+    const sliceWidth = 105;
+    let startAngle = -Math.PI / 2;
+
+    values.forEach((value, index) => {
+        const sweep = value / total * Math.PI * 2;
+        const endAngle = startAngle + sweep;
+        const steps = Math.max(4, Math.ceil(sweep / (Math.PI / 28)));
+        const points = [];
+        for (let step = 0; step <= steps; step++) {
+            const angle = startAngle + sweep * (step / steps);
+            points.push([
+                cx + Math.cos(angle) * arcRadius,
+                cy + Math.sin(angle) * arcRadius,
+                .5,
+            ]);
+        }
+        const color = PALETTE[index % PALETTE.length];
+        push(new window.FreehandStroke(points, {
+            stroke: color.fill,
+            strokeWidth: sliceWidth,
+            thinning: 0,
+            roughness: 0,
+            strokeStyle: 'solid',
+        }), frame);
+        const percent = Math.round(value / total * 100);
+        push(new window.Rectangle(origin.x + 445, origin.y + 105 + index * 48, 220, 36, {
+            stroke: color.stroke,
+            strokeWidth: 1.5,
+            fill: color.fill,
+            fillStyle: 'solid',
+            roughness: .5,
+            label: `${chart.categories[index] || index + 1} — ${value} (${percent}%)`,
+            labelColor: contrastText(color.fill),
+            labelFontSize: 11,
+        }), frame);
+        startAngle = endAngle;
+    });
+
+    selectOnlyFrame(frame);
     return true;
 }

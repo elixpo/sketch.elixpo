@@ -45,12 +45,12 @@ export function parseMermaid(src) {
     const classAssigns = [];        // { nodeIds: [...], className }
     const nodeStyles = new Map();   // Mermaid `style A fill:...,stroke:...`
     const palette = [
-        { fill: '#e8f3ec', stroke: '#5f836c' },
-        { fill: '#f6eadf', stroke: '#a97852' },
-        { fill: '#eee9f4', stroke: '#7e6b91' },
-        { fill: '#f5efcf', stroke: '#9a8745' },
-        { fill: '#e5f0f1', stroke: '#5d7f82' },
-        { fill: '#f4e5e3', stroke: '#9a6863' },
+        { fill: '#eee9f7', stroke: '#7667a8' },
+        { fill: '#e6def2', stroke: '#8875b5' },
+        { fill: '#ddd2eb', stroke: '#6f5f9c' },
+        { fill: '#f2edf8', stroke: '#9a88bf' },
+        { fill: '#e2daf0', stroke: '#806cab' },
+        { fill: '#ebe4f5', stroke: '#705d9c' },
     ];
 
     function parseStyleProps(value) {

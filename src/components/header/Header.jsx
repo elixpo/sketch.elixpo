@@ -279,7 +279,7 @@ export default function Header() {
           href="/docs/blog/e2e-encryption"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 px-2 py-1 rounded-md bg-green-500/10 text-green-400/80 hover:bg-green-500/15 hover:text-green-400 transition-colors select-none"
+          className="e2e-badge flex items-center gap-1 px-2 py-1 rounded-md border transition-colors select-none"
           title="End-to-end encrypted — click to read how it works"
         >
           <i className="bx bxs-shield text-sm" />
