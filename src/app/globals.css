@@ -99,6 +99,13 @@ body.canvas-mode {
   overflow: hidden;
 }
 
+/* Canvas labels are draggable content, never browser-selectable text. */
+body.canvas-mode #freehand-canvas text,
+body.canvas-mode #freehand-canvas tspan {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 /* Solid primary controls keep consistent contrast in the light canvas.
  * Fractional accent backgrounds (for badges and selected tool states) use
  * escaped class names and are intentionally unaffected by this rule. */
