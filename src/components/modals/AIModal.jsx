@@ -1161,7 +1161,7 @@ export default function AIModal() {
                     value={mermaidCode}
                     onChange={(e) => setMermaidCode(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder={'graph TD\n  A[Start] --> B{Decision}\n  B -->|Yes| C[Action]\n  B -->|No| D[End]\n\nsequenceDiagram\n  Alice ->> Bob: Hello\n  Bob -->> Alice: Hi!'}
+                    placeholder={'flowchart TD\n  A[Start] --> B{Decision}\n  B -->|Yes| C[Action]\n  B -->|No| D[End]\n\nerDiagram\n  USER ||--o{ ORDER : places'}
                     className="flex-1 bg-surface-dark border border-border rounded-xl px-4 py-3 text-text-primary text-sm leading-relaxed resize-none focus:outline-none focus:border-accent-blue placeholder:text-text-dim font-mono"
                     autoFocus
                     spellCheck={false}
@@ -1175,6 +1175,9 @@ export default function AIModal() {
                         { label: 'Flowchart', code: 'graph TD\n  A[Start] --> B{Decision}\n  B -->|Yes| C[Process]\n  B -->|No| D[End]\n  C --> D' },
                         { label: 'LR Flow', code: 'graph LR\n  A[Input] --> B(Process)\n  B --> C((Output))\n  B --> D{Check}\n  D --> A' },
                         { label: 'Sequence', code: 'sequenceDiagram\n  Alice ->> Bob: Hello Bob\n  Bob -->> Alice: Hi Alice\n  Alice ->> Bob: How are you?\n  Bob -->> Alice: Great!' },
+                        { label: 'ER Diagram', code: 'erDiagram\n  CUSTOMER ||--o{ ORDER : places\n  CUSTOMER {\n    string name\n    string email\n  }\n  ORDER {\n    int id PK\n    float total\n  }' },
+                        { label: 'Bar Chart', code: 'xychart-beta\n  title "Weekly Focus"\n  x-axis [Mon, Tue, Wed, Thu, Fri]\n  bar [4, 7, 5, 8, 6]\n  line [3, 5, 6, 7, 8]' },
+                        { label: 'Pie Chart', code: 'pie title Project Time\n  "Design" : 35\n  "Build" : 45\n  "Review" : 20' },
                       ].map((preset) => (
                         <button
                           key={preset.label}
@@ -1207,13 +1210,13 @@ export default function AIModal() {
                 <div className="flex-1 flex flex-col min-w-0">
                   <p className="text-text-muted text-xs uppercase tracking-wider mb-2">Preview</p>
                   {mermaidError ? (
-                    <div className="flex-1 flex items-center justify-center rounded-xl bg-[#111] border border-white/[0.06]">
+                    <div className="flex-1 flex items-center justify-center rounded-xl bg-surface-card border border-border">
                       <p className="text-red-400/70 text-sm">{mermaidError}</p>
                     </div>
                   ) : mermaidPreviewSVG ? (
                     <DiagramPreview svgMarkup={mermaidPreviewSVG} className="flex-1 min-h-[300px]" />
                   ) : (
-                    <div className="flex-1 flex items-center justify-center rounded-xl bg-[#111] border border-white/[0.06]">
+                    <div className="flex-1 flex items-center justify-center rounded-xl bg-surface-card border border-border">
                       <p className="text-text-dim text-sm">Type Mermaid code to see a live preview</p>
                     </div>
                   )}

@@ -8,7 +8,7 @@ export const THEME_CANVAS_BACKGROUNDS = {
 
 export function resolveTheme(theme) {
   if (theme !== 'system') return theme === 'light' ? 'light' : 'dark'
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'dark'
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'light'
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
@@ -125,12 +125,12 @@ export function applyTheme(theme) {
 }
 
 function readStoredTheme() {
-  if (typeof window === 'undefined') return 'dark'
+  if (typeof window === 'undefined') return 'light'
   try {
     const prefs = JSON.parse(localStorage.getItem('lix_ui_prefs') || '{}')
-    return ['dark', 'light', 'system'].includes(prefs.theme) ? prefs.theme : 'dark'
+    return ['dark', 'light', 'system'].includes(prefs.theme) ? prefs.theme : 'light'
   } catch {
-    return 'dark'
+    return 'light'
   }
 }
 
@@ -237,8 +237,8 @@ const useUIStore = create((set, get) => ({
   setCanvasLoading: (loading, message) => set({ canvasLoading: loading, canvasLoadingMessage: message || 'Loading canvas...' }),
 
   // --- Theme ---
-  theme: 'dark',
-  resolvedTheme: 'dark',
+  theme: 'light',
+  resolvedTheme: 'light',
   hydrateTheme: () => {
     const theme = readStoredTheme()
     const resolvedTheme = applyTheme(theme)
