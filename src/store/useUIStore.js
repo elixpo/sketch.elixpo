@@ -107,13 +107,8 @@ function invertShapeColors(prevResolved, nextResolved) {
 }
 
 export function applyTheme(theme) {
-  // Issue #38 bug #1: theme is scoped to the CANVAS page only — landing /
-  // blog / pricing stay on the dark @theme palette. We use body classes
-  // rather than html inline styles so the override:
-  //   • only kicks in when body.canvas-mode is present (canvas page),
-  //   • doesn't leak across SPA navigations (no persistent inline styles).
-  // The actual token values live in src/app/globals.css under explicit
-  // light/dark canvas selectors; the unclassified first paint is dark.
+  // Apply one resolved theme class to the complete canvas shell. Global
+  // tokens already default to light, so hydration no longer flashes dark.
   const body = document.body
   if (!body) return
   const resolved = resolveTheme(theme)
