@@ -180,7 +180,7 @@ function DiagramPreview({ svgMarkup, className }) {
   return (
     <div
       ref={containerRef}
-      className={`rounded-xl bg-surface-card border border-border-light overflow-hidden relative select-none ${className || 'w-full h-[clamp(200px,40vh,400px)]'}`}
+      className={`rounded-xl bg-surface-dark border border-border-light overflow-hidden relative select-none ${className || 'w-full h-[clamp(200px,40vh,400px)]'}`}
     >
       <div
         style={{
@@ -199,11 +199,11 @@ function DiagramPreview({ svgMarkup, className }) {
         style={{ zIndex: 1 }}
         onMouseDown={handleMouseDown}
       />
-      <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-surface/90 border border-border rounded-lg px-1.5 py-0.5" style={{ zIndex: 2 }}>
-        <button onClick={() => setZoom(z => Math.max(0.3, z * 0.8))} className="text-text-dim hover:text-text-primary text-xs px-1">-</button>
-        <span className="text-text-dim text-[10px] w-8 text-center">{Math.round(zoom * 100)}%</span>
-        <button onClick={() => setZoom(z => Math.min(3, z * 1.2))} className="text-text-dim hover:text-text-primary text-xs px-1">+</button>
-        <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }) }} className="text-text-dim hover:text-text-primary text-[10px] px-1 border-l border-border ml-0.5 pl-1.5">Reset</button>
+      <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-surface-card border border-border-light shadow-md rounded-lg px-1.5 py-0.5" style={{ zIndex: 2 }}>
+        <button onClick={() => setZoom(z => Math.max(0.3, z * 0.8))} className="text-text-secondary hover:text-text-primary text-xs px-1">-</button>
+        <span className="text-text-secondary text-[10px] w-8 text-center">{Math.round(zoom * 100)}%</span>
+        <button onClick={() => setZoom(z => Math.min(3, z * 1.2))} className="text-text-secondary hover:text-text-primary text-xs px-1">+</button>
+        <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }) }} className="text-text-secondary hover:text-text-primary text-[10px] px-1 border-l border-border-light ml-0.5 pl-1.5">Reset</button>
       </div>
     </div>
   )
@@ -212,6 +212,7 @@ function DiagramPreview({ svgMarkup, className }) {
 export default function AIModal() {
   const aiModalOpen = useUIStore((s) => s.aiModalOpen)
   const toggleAIModal = useUIStore((s) => s.toggleAIModal)
+  const resolvedTheme = useUIStore((s) => s.resolvedTheme)
 
   // Hides every "Describe with AI" prompt block. The visual scaffolding
   // (modal shell, tabs, code editors, preview panes, render buttons) stays
@@ -339,7 +340,7 @@ export default function AIModal() {
       }
     }, 200)
     return () => { if (graphDebounceRef.current) clearTimeout(graphDebounceRef.current) }
-  }, [equations, graphSettings, mode])
+  }, [equations, graphSettings, mode, resolvedTheme])
 
   // Live mermaid preview (debounced)
   useEffect(() => {
@@ -368,7 +369,7 @@ export default function AIModal() {
       }
     }, 300)
     return () => { if (mermaidDebounceRef.current) clearTimeout(mermaidDebounceRef.current) }
-  }, [mermaidCode, mode])
+  }, [mermaidCode, mode, resolvedTheme])
 
   // Live research paper LixScript preview (debounced)
   useEffect(() => {
@@ -1469,8 +1470,8 @@ export default function AIModal() {
                       onClick={() => updateGraphSetting('showGrid', !graphSettings.showGrid)}
                       className="flex items-center gap-2 mt-2.5 px-2 py-1.5 rounded-lg text-text-dim text-xs hover:text-text-secondary transition-all"
                     >
-                      <div className={`w-7 h-4 rounded-full transition-all duration-150 relative ${graphSettings.showGrid ? 'bg-accent-blue' : 'bg-white/10'}`}>
-                        <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all duration-150 ${graphSettings.showGrid ? 'left-3.5' : 'left-0.5'}`} />
+                      <div className={`w-7 h-4 rounded-full border transition-all duration-150 relative ${graphSettings.showGrid ? 'bg-accent-blue border-accent-blue' : 'bg-surface-active border-border-light'}`}>
+                        <div className={`absolute top-0.5 w-3 h-3 rounded-full transition-all duration-150 ${graphSettings.showGrid ? 'left-3.5 bg-white' : 'left-0.5 bg-text-secondary'}`} />
                       </div>
                       Show Grid
                     </button>

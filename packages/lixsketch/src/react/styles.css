@@ -22,6 +22,7 @@
 @import './styles/writeText.css';
 
 .lixsketch-canvas-root {
+  --lix-icon-filter: brightness(0) invert(1);
   position: relative;
   width: 100%;
   height: 100%;
@@ -30,6 +31,14 @@
   font-family: var(--lixsketch-font, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
   overflow: hidden;
   isolation: isolate;
+}
+
+.theme-light .lixsketch-canvas-root {
+  --lix-icon-filter: none;
+}
+
+.theme-dark .lixsketch-canvas-root {
+  --lix-icon-filter: brightness(0) invert(1);
 }
 
 .lixsketch-canvas-svg {
