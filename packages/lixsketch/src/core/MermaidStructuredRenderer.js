@@ -289,6 +289,30 @@ function push(shape, frame) {
     return shape;
 }
 
+function pushText(text, x, y, fontSize, fill, frame) {
+    if (!window.TextShape || !window.svg) return null;
+    const group = document.createElementNS(NS, 'g');
+    group.setAttribute('data-type', 'text-group');
+    group.setAttribute('transform', `translate(${x}, ${y})`);
+    group.setAttribute('data-x', x);
+    group.setAttribute('data-y', y);
+
+    const element = document.createElementNS(NS, 'text');
+    element.setAttribute('x', 0);
+    element.setAttribute('y', 0);
+    element.setAttribute('dominant-baseline', 'central');
+    element.setAttribute('fill', fill);
+    element.setAttribute('font-size', fontSize);
+    element.setAttribute('font-family', 'lixFont, sans-serif');
+    element.setAttribute('data-initial-font', 'lixFont');
+    element.setAttribute('data-initial-color', fill);
+    element.setAttribute('data-initial-size', `${fontSize}px`);
+    element.textContent = text;
+    group.appendChild(element);
+    window.svg.appendChild(group);
+    return push(new window.TextShape(group), frame);
+}
+
 function canvasOrigin(width, height) {
     const vb = window.currentViewBox || { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight };
     return { x: vb.x + vb.width / 2 - width / 2, y: vb.y + vb.height / 2 - height / 2 };
@@ -417,7 +441,7 @@ export function renderChartOnCanvas(chart) {
 }
 
 function renderPieOnCanvas(chart) {
-    if (!window.FreehandStroke) return false;
+    if (!window.FreehandStroke || !window.TextShape) return false;
     const width = 720;
     const height = 450;
     const origin = canvasOrigin(width, height);
@@ -426,44 +450,51 @@ function renderPieOnCanvas(chart) {
     const total = values.reduce((sum, value) => sum + value, 0);
     if (total <= 0) return false;
 
-    const cx = origin.x + 245;
-    const cy = origin.y + 225;
-    const arcRadius = 92;
-    const sliceWidth = 105;
+    const cx = origin.x + 255;
+    const cy = origin.y + 235;
+    const radius = 145;
     let startAngle = -Math.PI / 2;
 
     values.forEach((value, index) => {
         const sweep = value / total * Math.PI * 2;
         const endAngle = startAngle + sweep;
-        const steps = Math.max(4, Math.ceil(sweep / (Math.PI / 28)));
-        const points = [];
+        const steps = Math.max(6, Math.ceil(sweep / (Math.PI / 60)));
+        const points = [[cx, cy, .5]];
         for (let step = 0; step <= steps; step++) {
             const angle = startAngle + sweep * (step / steps);
             points.push([
-                cx + Math.cos(angle) * arcRadius,
-                cy + Math.sin(angle) * arcRadius,
+                cx + Math.cos(angle) * radius,
+                cy + Math.sin(angle) * radius,
                 .5,
             ]);
         }
         const color = PALETTE[index % PALETTE.length];
         push(new window.FreehandStroke(points, {
             stroke: color.fill,
-            strokeWidth: sliceWidth,
-            thinning: 0,
+            strokeWidth: 3,
+            outlineStroke: theme().bg,
+            outlineWidth: 3,
+            closedFill: true,
             roughness: 0,
             strokeStyle: 'solid',
         }), frame);
         const percent = Math.round(value / total * 100);
-        push(new window.Rectangle(origin.x + 445, origin.y + 105 + index * 48, 220, 36, {
+        const legendY = origin.y + 125 + index * 42;
+        push(new window.Rectangle(origin.x + 460, legendY - 14, 18, 18, {
             stroke: color.stroke,
-            strokeWidth: 1.5,
+            strokeWidth: 1,
             fill: color.fill,
             fillStyle: 'solid',
             roughness: .5,
-            label: `${chart.categories[index] || index + 1} — ${value} (${percent}%)`,
-            labelColor: contrastText(color.fill),
-            labelFontSize: 11,
         }), frame);
+        pushText(
+            `${chart.categories[index] || index + 1} — ${value} (${percent}%)`,
+            origin.x + 488,
+            legendY,
+            12,
+            theme().text,
+            frame,
+        );
         startAngle = endAngle;
     });
 

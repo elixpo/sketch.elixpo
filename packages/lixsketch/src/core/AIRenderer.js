@@ -1421,6 +1421,12 @@ export function adaptCanvasContrast(background) {
         const fill = shape.options?.fill;
         const solidFill = fill && fill !== 'transparent' && fill !== 'none';
 
+        if (shape.options?.closedFill) {
+            shape.options.outlineStroke = background;
+            if (typeof shape.draw === 'function') shape.draw();
+            continue;
+        }
+
         if (shape.options?.stroke && (generated || ['#fff', '#ffffff', '#000', '#000000', '#1a1a2e'].includes(shape.options.stroke.toLowerCase()))) {
             shape.options.stroke = readableColor(shape.options.stroke, background, 3);
         }
