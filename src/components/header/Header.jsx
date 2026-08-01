@@ -253,8 +253,8 @@ export default function Header() {
               window.location.href = '/'
             }
           }}
-          className="w-[26px] h-[26px] bg-contain bg-no-repeat bg-center cursor-pointer"
-          style={{ backgroundImage: "url('/Images/logo.png')" }}
+          className="w-[26px] h-[26px] rounded-md bg-contain bg-no-repeat bg-center cursor-pointer"
+          style={{ backgroundImage: "url('/icon.png')" }}
         />
         {/* Divider */}
         <div className="w-px h-5 bg-[#2c2c35]" />

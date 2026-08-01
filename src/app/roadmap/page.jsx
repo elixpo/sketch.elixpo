@@ -649,7 +649,7 @@ export default function RoadmapPage() {
         <div className="max-w-[1400px] mx-auto flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <img src="/Images/logo.png" alt="LixSketch" className="w-7 h-7" />
+              <img src="/icon.png" alt="LixSketch" className="w-7 h-7 rounded-md" />
               <span className="text-white font-medium font-[lixFont]">LixSketch</span>
             </Link>
             <span className="text-[#444480]">/</span>

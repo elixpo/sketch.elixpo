@@ -124,7 +124,7 @@ export default function DocsPage() {
         <div className="max-w-[1400px] mx-auto flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
             <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <img src="/Images/logo.png" alt="LixSketch" className="w-7 h-7" />
+              <img src="/icon.png" alt="LixSketch" className="w-7 h-7 rounded-md" />
               <span className="text-text-primary font-medium">LixSketch</span>
             </a>
             <span className="text-text-dim">/</span>
