@@ -177,7 +177,7 @@ const useSketchStore = create((set, get) => ({
   setPanStart: (p) => set({ panStart: p }),
 
   // --- Canvas background ---
-  canvasBackground: 'var(--lixsketch-bg, #13171C)',
+  canvasBackground: 'var(--lixsketch-bg, #15111f)',
   setCanvasBackground: (color) => {
     set({ canvasBackground: color })
     if (typeof window !== 'undefined') {

@@ -2,8 +2,8 @@ import { create } from 'zustand'
 import useSketchStore from '@/store/useSketchStore'
 
 export const THEME_CANVAS_BACKGROUNDS = {
-  dark: '#13171C',
-  light: '#faf9f5',
+  dark: '#15111f',
+  light: '#fbf9fd',
 }
 
 export function resolveTheme(theme) {

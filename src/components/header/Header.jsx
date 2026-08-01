@@ -305,7 +305,7 @@ export default function Header() {
           style={{ backgroundImage: "url('/icon.png')" }}
         />
         {/* Divider */}
-        <div className="w-px h-5 bg-[#2c2c35]" />
+        <div className="w-px h-5 bg-border-light" />
 
         {/* Workspace name */}
         <input

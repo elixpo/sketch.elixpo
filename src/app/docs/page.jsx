@@ -35,7 +35,7 @@ function CodeBlock({ code, language = 'lixscript' }) {
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
         <CopyButton text={code} label="Copy" />
       </div>
-      <pre className="bg-[#0d0d14] border border-white/[0.06] rounded-xl p-4 overflow-x-auto text-sm leading-relaxed">
+      <pre className="bg-[#171120] border border-white/[0.08] rounded-xl p-4 overflow-x-auto text-sm leading-relaxed">
         <code className="text-text-secondary font-[lixCode]">{code}</code>
       </pre>
     </div>
@@ -554,7 +554,7 @@ const result = window.__lixscriptRender(parsed)`} />
               </div>
 
               <div className="relative group">
-                <pre className="bg-[#0d0d14] border border-white/[0.06] rounded-xl p-4 overflow-x-auto text-xs leading-relaxed max-h-[500px] overflow-y-auto">
+                <pre className="bg-[#171120] border border-white/[0.08] rounded-xl p-4 overflow-x-auto text-xs leading-relaxed max-h-[500px] overflow-y-auto">
                   <code className="text-text-dim font-[lixCode] whitespace-pre-wrap">{LIXSCRIPT_LLM_SPEC}</code>
                 </pre>
               </div>
