@@ -181,7 +181,12 @@ const useSketchStore = create((set, get) => ({
   // and gives shape strokes (default near-black) clear contrast without
   // pure-white glare.
   canvasBackground: '#faf9f5',
-  setCanvasBackground: (color) => set({ canvasBackground: color }),
+  setCanvasBackground: (color) => {
+    set({ canvasBackground: color })
+    if (typeof window !== 'undefined') {
+      requestAnimationFrame(() => window.__adaptCanvasContrast?.(color))
+    }
+  },
 
   // --- Grid ---
   gridEnabled: false,

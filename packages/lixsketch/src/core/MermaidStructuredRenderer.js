@@ -363,7 +363,7 @@ export function renderEROnCanvas(diagram) {
 }
 
 export function renderChartOnCanvas(chart) {
-    if (!chart?.series?.length || !window.Rectangle || !window.Circle || !window.Line || !window.Frame) return false;
+    if (!chart?.series?.length || !window.Rectangle || !window.Circle || !window.Line || !window.FreehandStroke || !window.Frame) return false;
     if (chart.kind === 'pie') return renderPieOnCanvas(chart);
     const TK = theme();
     const width = 720;
@@ -383,19 +383,23 @@ export function renderChartOnCanvas(chart) {
     chart.series.forEach((series, seriesIndex) => {
         const color = PALETTE[seriesIndex % PALETTE.length];
         if (series.kind === 'line') {
-            let previous = null;
-            series.values.forEach((value, index) => {
+            const linePoints = series.values.map((value, index) => {
                 const point = { x: left + slot * (index + .5), y: top + plotHeight - Math.abs(value) / maximum * plotHeight };
                 push(new window.Circle(point.x, point.y, 8, 8, {
                     stroke: color.stroke, strokeWidth: 2, fill: color.fill, fillStyle: 'solid', roughness: .5,
                     label: String(value), labelColor: contrastText(color.fill), labelFontSize: 9,
                 }), frame);
-                // Each segment owns its endpoint objects. Sharing `point`
-                // references made adjacent lines translate a joint twice
-                // when their parent frame moved, visibly distorting the plot.
-                if (previous) push(new window.Line({ ...previous }, { ...point }, { stroke: color.stroke, strokeWidth: 3, roughness: .5 }), frame);
-                previous = point;
+                return [point.x, point.y, .5];
             });
+            if (linePoints.length > 1) {
+                push(new window.FreehandStroke(linePoints, {
+                    stroke: color.stroke,
+                    strokeWidth: 3,
+                    thinning: 0,
+                    roughness: 0,
+                    strokeStyle: 'solid',
+                }), frame);
+            }
         } else {
             const barWidth = Math.max(18, slot * .7 / chart.series.length);
             series.values.forEach((value, index) => {
