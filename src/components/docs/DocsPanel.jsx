@@ -93,7 +93,14 @@ function DocumentBlockSideMenu() {
 
   if (!block) return null
 
-  const toggleMenu = () => setOpen((current) => !current)
+  const openContextMenu = (event) => {
+    event.preventDefault()
+    setOpen(true)
+  }
+  const openContextMenuFromKeyboard = (event) => {
+    if (event.key !== 'ContextMenu' && !(event.shiftKey && event.key === 'F10')) return
+    openContextMenu(event)
+  }
   const addBlock = () => {
     const isEmpty = Array.isArray(block.content) && block.content.length === 0
     const target = isEmpty
@@ -114,23 +121,26 @@ function DocumentBlockSideMenu() {
       <button
         type="button"
         className="lix-doc-block-handle"
-        title="Block actions"
+        title="Add block · right-click for block actions"
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={toggleMenu}
+        onClick={addBlock}
+        onContextMenu={openContextMenu}
+        onKeyDown={openContextMenuFromKeyboard}
       >
         <i className="bx bx-plus text-xl" />
       </button>
       <button
         type="button"
         className="lix-doc-block-handle"
-        title="Move or open block actions"
+        title="Drag to move · right-click for block actions"
         aria-haspopup="menu"
         aria-expanded={open}
         draggable
         onDragStart={(event) => sideMenu.blockDragStart(event, block)}
         onDragEnd={sideMenu.blockDragEnd}
-        onClick={toggleMenu}
+        onContextMenu={openContextMenu}
+        onKeyDown={openContextMenuFromKeyboard}
       >
         <i className="bx bx-grid-vertical text-lg" />
       </button>
