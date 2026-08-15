@@ -38,6 +38,14 @@ const DOC_FORMATTING_TOOLBAR_OPTIONS = {
   },
 }
 
+const DOC_SIDE_MENU_OPTIONS = {
+  useFloatingOptions: {
+    // The side menu uses `left-start`; a negative main-axis offset moves the
+    // controls inward so they do not sit flush against the docs-pane edge.
+    middleware: [offset(-12)],
+  },
+}
+
 function DocumentFormattingToolbar() {
   return (
     <div className="lix-doc-formatting-toolbar">
@@ -366,7 +374,10 @@ export default function DocsPanel() {
                 formattingToolbar={DocumentFormattingToolbar}
                 floatingUIOptions={DOC_FORMATTING_TOOLBAR_OPTIONS}
               />
-              <SideMenuController sideMenu={DocumentBlockSideMenu} />
+              <SideMenuController
+                sideMenu={DocumentBlockSideMenu}
+                floatingUIOptions={DOC_SIDE_MENU_OPTIONS}
+              />
             </LixEditor>
           </LixThemeProvider>
         ) : (

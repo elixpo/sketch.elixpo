@@ -40,3 +40,4 @@
 - [x] Close the hamburger menu popup when the profile dropdown opens.
 - [x] Refine the profile dropdown hierarchy and remove its E2E documentation action.
 - [x] Keep profile workspace cards in sync with workspace-name edits.
+- [x] Add left-edge breathing room around the document add and move controls.
