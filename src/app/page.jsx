@@ -360,6 +360,9 @@ export default function LandingPage() {
   const [newSessionId, setNewSessionId] = useState('')
   const [checkingSavedCanvas, setCheckingSavedCanvas] = useState(true)
   useEffect(() => {
+    // The auth callback owns navigation when sign-in started from a canvas.
+    if (window.__lixAuthRedirecting) return
+
     let cancelled = false
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 2000)
