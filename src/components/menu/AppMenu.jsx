@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import useUIStore from '@/store/useUIStore'
 import useSketchStore from '@/store/useSketchStore'
@@ -88,11 +88,21 @@ export default function AppMenu() {
   const [prefsOpen, setPrefsOpen] = useState(false)
   // Flyouts render through a portal so the vertically scrolling menu never
   // needs overflow-visible. This keeps its bottom edge inside the viewport.
+  const [actionsOpen, setActionsOpen] = useState(false)
   const [docOpen, setDocOpen] = useState(false)
+  const [actionsFlyoutPosition, setActionsFlyoutPosition] = useState({ top: 0, left: 0 })
   const [docFlyoutPosition, setDocFlyoutPosition] = useState({ top: 0, left: 0 })
   const [prefsFlyoutPosition, setPrefsFlyoutPosition] = useState({ top: 0, left: 0 })
+  const actionsButtonRef = useRef(null)
   const docButtonRef = useRef(null)
   const prefsButtonRef = useRef(null)
+
+  useEffect(() => {
+    if (menuOpen) return
+    setActionsOpen(false)
+    setDocOpen(false)
+    setPrefsOpen(false)
+  }, [menuOpen])
 
   const flyoutPosition = (button, width, estimatedHeight) => {
     const rect = button?.getBoundingClientRect()
@@ -103,8 +113,17 @@ export default function AppMenu() {
     }
   }
 
+  const toggleActionsFlyout = () => {
+    const opening = !actionsOpen
+    setDocOpen(false)
+    setPrefsOpen(false)
+    setActionsOpen(opening)
+    if (opening) setActionsFlyoutPosition(flyoutPosition(actionsButtonRef.current, 230, 190))
+  }
+
   const toggleDocumentFlyout = () => {
     const opening = !docOpen
+    setActionsOpen(false)
     setPrefsOpen(false)
     setDocOpen(opening)
     if (opening) setDocFlyoutPosition(flyoutPosition(docButtonRef.current, 220, 126))
@@ -112,6 +131,7 @@ export default function AppMenu() {
 
   const togglePreferencesFlyout = () => {
     const opening = !prefsOpen
+    setActionsOpen(false)
     setDocOpen(false)
     setPrefsOpen(opening)
     if (opening) setPrefsFlyoutPosition(flyoutPosition(prefsButtonRef.current, 240, Math.min(window.innerHeight * .6, 420)))
@@ -148,81 +168,56 @@ export default function AppMenu() {
     closeMenu()
   }
 
+  const handleQuickSave = () => {
+    const serializer = window.__sceneSerializer
+    if (serializer) {
+      const workspaceName = useUIStore.getState().workspaceName || 'Untitled'
+      const sceneData = serializer.save(workspaceName)
+      const sessionId = window.__sessionID
+      if (sessionId) {
+        writeLocalScene(`lixsketch-autosave-${sessionId}`, sceneData)
+      }
+      useUIStore.getState().setSaveStatus('local')
+      triggerCloudSync()
+    }
+    closeMenu()
+  }
+
+  const actionItems = [
+    { label: t('menu.quickSave'), icon: 'bx-check-circle', shortcut: 'Ctrl+S', onClick: handleQuickSave },
+    { label: t('menu.open'), icon: 'bx-folder-open', shortcut: 'Ctrl+O', onClick: handleOpen },
+    { label: t('menu.saveShare'), icon: 'bx-save', shortcut: 'Ctrl+Shift+S', onClick: () => { toggleSaveModal(); closeMenu() } },
+    { label: t('menu.exportImage'), icon: 'bx-image', shortcut: 'Ctrl+Shift+E', onClick: () => { toggleExportImageModal(); closeMenu() } },
+    { label: t('menu.findText'), icon: 'bx-search', shortcut: 'Ctrl+F', onClick: () => { useUIStore.getState().toggleFindBar(); closeMenu() } },
+  ]
+
   return (
     <>
       {menuOpen && (
         <div
           className="fixed inset-0 z-999"
-          onClick={() => { closeMenu(); setPrefsOpen(false); setDocOpen(false) }}
+          onClick={() => { closeMenu(); setActionsOpen(false); setPrefsOpen(false); setDocOpen(false) }}
         />
       )}
       <div
-        onScroll={() => { setPrefsOpen(false); setDocOpen(false) }}
+        onScroll={() => { setActionsOpen(false); setPrefsOpen(false); setDocOpen(false) }}
         className={`absolute top-14 right-4 w-[230px] max-h-[calc(100vh-72px)] overflow-y-auto overscroll-contain no-scrollbar bg-surface/75 backdrop-blur-lg rounded-2xl z-[1000] border border-border-light p-1.5 font-[lixFont] text-[13px] transition-all duration-200 ${
           menuOpen
             ? 'opacity-100 blur-0 pointer-events-auto'
             : 'opacity-0 blur-[20px] pointer-events-none'
         }`}
       >
-        {/* Open */}
+        {/* File/search actions */}
         <button
-          onClick={handleOpen}
-          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[12.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
+          ref={actionsButtonRef}
+          onClick={toggleActionsFlyout}
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-text-secondary text-[12.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200 ${actionsOpen ? 'bg-surface-hover' : ''}`}
         >
           <span className="flex items-center gap-2">
-            <i className="bx bx-folder-open text-sm" />
-            {t('menu.open')}
+            <i className="bx bx-bolt-circle text-sm" />
+            Actions
           </span>
-          <span className="text-text-dim text-xs">Ctrl+O</span>
-        </button>
-
-        {/* Quick Save */}
-        <button
-          onClick={() => {
-            const serializer = window.__sceneSerializer
-            if (serializer) {
-              const workspaceName = useUIStore.getState().workspaceName || 'Untitled'
-              const sceneData = serializer.save(workspaceName)
-              const sessionId = window.__sessionID
-              if (sessionId) {
-                writeLocalScene(`lixsketch-autosave-${sessionId}`, sceneData)
-              }
-              useUIStore.getState().setSaveStatus('local')
-              triggerCloudSync()
-            }
-            closeMenu()
-          }}
-          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[12.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
-        >
-          <span className="flex items-center gap-2">
-            <i className="bx bx-check-circle text-sm" />
-            {t('menu.quickSave')}
-          </span>
-          <span className="text-text-dim text-xs">Ctrl+S</span>
-        </button>
-
-        {/* Save & Share */}
-        <button
-          onClick={() => { toggleSaveModal(); closeMenu() }}
-          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[12.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
-        >
-          <span className="flex items-center gap-2">
-            <i className="bx bx-save text-sm" />
-            {t('menu.saveShare')}
-          </span>
-          <span className="text-text-dim text-xs">Ctrl+Shift+S</span>
-        </button>
-
-        {/* Export Image */}
-        <button
-          onClick={() => { toggleExportImageModal(); closeMenu() }}
-          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[12.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
-        >
-          <span className="flex items-center gap-2">
-            <i className="bx bx-image text-sm" />
-            {t('menu.exportImage')}
-          </span>
-          <span className="text-text-dim text-xs">Ctrl+Shift+E</span>
+          <i className="bx bx-chevron-left text-sm text-text-dim" />
         </button>
 
         <hr className="border-border-light my-1" />
@@ -237,18 +232,6 @@ export default function AppMenu() {
             {t('menu.commands')}
           </span>
           <span className="text-text-dim text-xs">Ctrl+/</span>
-        </button>
-
-        {/* Find Text */}
-        <button
-          onClick={() => { useUIStore.getState().toggleFindBar(); closeMenu() }}
-          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[12.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
-        >
-          <span className="flex items-center gap-2">
-            <i className="bx bx-search text-sm" />
-            {t('menu.findText')}
-          </span>
-          <span className="text-text-dim text-xs">Ctrl+F</span>
         </button>
 
         {/* Canvas Properties */}
@@ -450,6 +433,27 @@ export default function AppMenu() {
 
       {menuOpen && typeof document !== 'undefined' && createPortal(
         <>
+          {actionsOpen && (
+            <div
+              className="fixed w-[230px] bg-surface-card border border-border-light rounded-2xl p-1.5 shadow-2xl shadow-black/40 z-[1001] font-[lixFont]"
+              style={actionsFlyoutPosition}
+            >
+              {actionItems.map((item) => (
+                <button
+                  key={item.label}
+                  onClick={() => { setActionsOpen(false); item.onClick() }}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-text-secondary text-[11.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
+                >
+                  <span className="flex items-center gap-2">
+                    <i className={`bx ${item.icon} text-sm text-text-muted`} />
+                    {item.label}
+                  </span>
+                  <span className="text-text-dim text-[10px]">{item.shortcut}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
           {docOpen && (
             <div
               className="fixed w-[220px] bg-surface-card border border-border-light rounded-2xl p-1.5 shadow-2xl shadow-black/40 z-[1001] font-[lixFont]"
