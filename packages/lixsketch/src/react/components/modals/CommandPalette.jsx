@@ -55,7 +55,7 @@ const CANVAS_COMMANDS = [
 
   // --- Shortcut reference previously shown in the standalone help modal ---
   { label: 'Group selection', icon: 'bx-group', section: 'Selection shortcuts', shortcut: 'Ctrl+G' },
-  { label: 'Ungroup selection', icon: 'bx-ungroup', section: 'Selection shortcuts', shortcut: 'Ctrl+Shift+G' },
+  { label: 'Ungroup selection', icon: 'bx-unlink', section: 'Selection shortcuts', shortcut: 'Ctrl+Shift+G' },
   { label: 'Duplicate selection', icon: 'bx-copy', section: 'Selection shortcuts', shortcut: 'Ctrl+D' },
   { label: 'Copy selection', icon: 'bx-copy-alt', section: 'Selection shortcuts', shortcut: 'Ctrl+C' },
   { label: 'Paste selection', icon: 'bx-paste', section: 'Selection shortcuts', shortcut: 'Ctrl+V' },
@@ -82,8 +82,8 @@ const DOCUMENT_COMMANDS = [
   { label: 'Underline', icon: 'bx-underline', section: 'Formatting shortcuts', shortcut: 'Ctrl+U' },
   { label: 'Strikethrough', icon: 'bx-strikethrough', section: 'Formatting shortcuts', shortcut: 'Ctrl+Shift+S' },
   { label: 'Inline code', icon: 'bx-code', section: 'Formatting shortcuts', shortcut: 'Ctrl+E' },
-  { label: 'Indent block', icon: 'bx-indent-left', section: 'Formatting shortcuts', shortcut: 'Tab' },
-  { label: 'Outdent block', icon: 'bx-indent-right', section: 'Formatting shortcuts', shortcut: 'Shift+Tab' },
+  { label: 'Indent block', icon: 'bx-right-indent', section: 'Formatting shortcuts', shortcut: 'Tab' },
+  { label: 'Outdent block', icon: 'bx-left-indent', section: 'Formatting shortcuts', shortcut: 'Shift+Tab' },
   { label: 'Undo', icon: 'bx-undo', section: 'Formatting shortcuts', shortcut: 'Ctrl+Z' },
   { label: 'Redo', icon: 'bx-redo', section: 'Formatting shortcuts', shortcut: 'Ctrl+Shift+Z' },
 ]
