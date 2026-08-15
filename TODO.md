@@ -22,3 +22,4 @@
 - [x] Persist and restore the Show Grid preference through localStorage.
 - [x] Apply the requested menu order and remove the standalone sync action.
 - [x] Show pointer cursors on every menu and menu-dialog button.
+- [x] Restore the last locally saved canvas from the landing route and add a New Canvas command.

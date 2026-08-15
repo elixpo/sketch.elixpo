@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import useUIStore from '@/store/useUIStore'
 import { generateWorkspaceName } from '@/utils/nameGenerator'
+import { createCanvasSessionId, rememberCanvasId } from '@/utils/canvasSession'
 
 /**
  * Manages session ID in the URL and auto-generates workspace names.
@@ -34,7 +35,7 @@ export default function useSessionID() {
     if (isNewWorkspace || !sessionID) {
       if (!sessionID) {
         // /c/new or no session — generate a fresh ID
-        sessionID = `lx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+        sessionID = createCanvasSessionId()
       }
 
       if (isNewWorkspace && !preserveOtherLocalWorkspaces) {
@@ -68,6 +69,7 @@ export default function useSessionID() {
 
     // Store on window for the engine
     window.__sessionID = sessionID
+    rememberCanvasId(sessionID)
     // Flag so other hooks know this is a fresh workspace
     window.__isNewWorkspace = isNewWorkspace
 

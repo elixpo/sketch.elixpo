@@ -3,9 +3,11 @@
 import { useState, useEffect, useRef } from 'react'
 import useUIStore from '@/store/useUIStore'
 import useSketchStore, { TOOLS } from '@/store/useSketchStore'
+import { createCanvasSessionId } from '@/utils/canvasSession'
 
 const CANVAS_COMMANDS = [
   // --- App ---
+  { label: 'Open new canvas', icon: 'bx-plus-circle', section: 'App', action: 'newCanvas' },
   { label: 'Library', icon: 'bx-library', section: 'App' },
   { label: 'Find on canvas', icon: 'bx-search', section: 'App', shortcut: 'Ctrl+F', action: 'findOnCanvas' },
   { label: 'Live collaboration...', icon: 'bx-group', section: 'App' },
@@ -185,6 +187,11 @@ export default function CommandPalette() {
     const serializer = window.__sceneSerializer
 
     switch (action) {
+      case 'newCanvas': {
+        const canvasId = createCanvasSessionId()
+        window.location.assign(`/c/${canvasId}?new=1&preserveLocal=1`)
+        break
+      }
       case 'toggleTheme': {
         const store = useUIStore.getState()
         store.setTheme(store.theme === 'dark' ? 'light' : 'dark')
@@ -294,7 +301,7 @@ export default function CommandPalette() {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors cursor-pointer ${
                 activeTab === tab.id
                   ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/35'
                   : 'text-text-muted border border-transparent hover:bg-surface-hover hover:text-text-primary'
@@ -329,7 +336,7 @@ export default function CommandPalette() {
                     key={cmd.label}
                     data-index={idx}
                     onClick={() => handleCommand(cmd)}
-                    className={`w-full flex items-center justify-between px-4 py-2 text-text-secondary text-xs transition-all duration-100 ${
+                    className={`w-full flex items-center justify-between px-4 py-2 text-text-secondary text-xs transition-all duration-100 cursor-pointer ${
                       idx === selectedIndex
                         ? 'bg-surface-hover text-text-primary'
                         : 'hover:bg-surface-hover/60'
