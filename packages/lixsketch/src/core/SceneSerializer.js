@@ -35,15 +35,28 @@ function cloneOptions(options) {
     return JSON.parse(JSON.stringify(options));
 }
 
+function restoreDocBlockLinks(shape, data) {
+    const ids = [...new Set((Array.isArray(data.docBlockIds)
+        ? data.docBlockIds
+        : (data.docBlockId ? [data.docBlockId] : [])).filter(Boolean))];
+    shape.docBlockIds = ids;
+    delete shape.docBlockId;
+    if (ids.length) {
+        (shape.group || shape.element)?.setAttribute('data-doc-block-ids', JSON.stringify(ids));
+    }
+}
+
 // ============================================================
 // SERIALIZE a single shape to plain data
 // ============================================================
 function serializeShape(shape) {
     const base = {
         shapeID: shape.shapeID,
-        // Optional one-to-one connection to a BlockNote document block.
+        // Optional many-to-many connections to BlockNote document blocks.
         // Stored with the encrypted scene so navigation survives restore.
-        docBlockId: shape.docBlockId || null,
+        docBlockIds: [...new Set((Array.isArray(shape.docBlockIds)
+            ? shape.docBlockIds
+            : (shape.docBlockId ? [shape.docBlockId] : [])).filter(Boolean))],
         parentFrame: shape.parentFrame ? shape.parentFrame.shapeID : null,
         // Group membership — null when the shape isn't part of a group.
         // All shapes sharing a non-null groupId move/resize/rotate as a
@@ -414,10 +427,7 @@ export function loadScene(sceneData) {
         if (shape) {
             // Restore group membership if present.
             if (data.groupId) shape.groupId = data.groupId;
-            if (data.docBlockId) {
-                shape.docBlockId = data.docBlockId;
-                (shape.group || shape.element)?.setAttribute('data-doc-block-id', data.docBlockId);
-            }
+            restoreDocBlockLinks(shape, data);
             window.shapes.push(shape);
             if (data.shapeID) idMap.set(data.shapeID, shape);
         }
@@ -428,10 +438,7 @@ export function loadScene(sceneData) {
         const shape = deserializeShape(data);
         if (shape) {
             if (data.groupId) shape.groupId = data.groupId;
-            if (data.docBlockId) {
-                shape.docBlockId = data.docBlockId;
-                (shape.group || shape.element)?.setAttribute('data-doc-block-id', data.docBlockId);
-            }
+            restoreDocBlockLinks(shape, data);
             window.shapes.push(shape);
             if (data.shapeID) idMap.set(data.shapeID, shape);
         }

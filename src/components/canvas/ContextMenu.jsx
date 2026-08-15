@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import useSketchStore from '@/store/useSketchStore'
 import useUIStore from '@/store/useUIStore'
 import { showToast } from '@/utils/toast'
-import { focusDocumentBlock } from '@/utils/docCanvasLinks'
+import { focusDocumentBlock, getShapeDocBlockIds } from '@/utils/docCanvasLinks'
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -233,7 +233,7 @@ export default function ContextMenu() {
     close()
   }
 
-  const handleDeleteShape = () => {
+  const performDeleteShape = () => {
     // Multi-selection delete
     if (window.multiSelection?.selectedShapes?.size > 0) {
       if (typeof window.deleteSelectedShapes === 'function') window.deleteSelectedShapes()
@@ -257,6 +257,22 @@ export default function ContextMenu() {
     window.currentShape = null
     if (typeof window.disableAllSideBars === 'function') window.disableAllSideBars()
     close()
+  }
+
+  const handleDeleteShape = () => {
+    const selected = window.multiSelection?.selectedShapes
+    const targets = selected?.size
+      ? Array.from(selected)
+      : (targetShape || window.currentShape ? [targetShape || window.currentShape] : [])
+    if (!targets.length) { close(); return }
+    if (typeof window.__requestLinkedShapeDeletion === 'function') {
+      const warningOpened = window.__requestLinkedShapeDeletion(targets, performDeleteShape)
+      if (warningOpened) {
+        close()
+        return
+      }
+    }
+    performDeleteShape()
   }
 
   const handleDuplicate = () => {
@@ -357,6 +373,7 @@ export default function ContextMenu() {
   // ── Render ─────────────────────────────────────────────────
 
   const isShape = !!targetShape
+  const linkedBlockIds = getShapeDocBlockIds(targetShape)
 
   return (
     <div
@@ -368,12 +385,14 @@ export default function ContextMenu() {
       {isShape ? (
         /* ── Shape context menu ── */
         <>
-          {targetShape?.docBlockId && (
+          {linkedBlockIds.length > 0 && (
             <>
-              <MenuItem label="Open linked document block" onClick={() => {
-                focusDocumentBlock(targetShape.docBlockId)
-                close()
-              }} />
+              {linkedBlockIds.map((blockId, index) => (
+                <MenuItem key={blockId} label={`Open linked document block${linkedBlockIds.length > 1 ? ` ${index + 1}` : ''}`} onClick={() => {
+                  focusDocumentBlock(blockId)
+                  close()
+                }} />
+              ))}
               <Separator />
             </>
           )}

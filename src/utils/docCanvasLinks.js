@@ -25,14 +25,38 @@ export function getShapeById(shapeId) {
   return shapes().find((shape) => shape?.shapeID === shapeId) || null
 }
 
+export function getShapeDocBlockIds(shape) {
+  if (!shape) return []
+  const ids = Array.isArray(shape.docBlockIds)
+    ? shape.docBlockIds
+    : (shape.docBlockId ? [shape.docBlockId] : [])
+  return [...new Set(ids.filter((id) => typeof id === 'string' && id))]
+}
+
+function writeShapeDocBlockIds(shape, blockIds) {
+  if (!shape) return
+  const ids = [...new Set((blockIds || []).filter(Boolean))]
+  shape.docBlockIds = ids
+  delete shape.docBlockId
+  const element = getShapeElement(shape)
+  if (ids.length) element?.setAttribute('data-doc-block-ids', JSON.stringify(ids))
+  else element?.removeAttribute('data-doc-block-ids')
+  element?.removeAttribute('data-doc-block-id')
+}
+
+export function getShapesLinkedToBlock(blockId) {
+  if (!blockId || typeof window === 'undefined') return []
+  return shapes().filter((shape) => getShapeDocBlockIds(shape).includes(blockId))
+}
+
+// Kept for callers that only need the first destination.
 export function getShapeLinkedToBlock(blockId) {
-  if (!blockId || typeof window === 'undefined') return null
-  return shapes().find((shape) => shape?.docBlockId === blockId) || null
+  return getShapesLinkedToBlock(blockId)[0] || null
 }
 
 export function getLinkedShapes() {
   if (typeof window === 'undefined') return []
-  return shapes().filter((shape) => shape?.shapeID && shape?.docBlockId)
+  return shapes().filter((shape) => shape?.shapeID && getShapeDocBlockIds(shape).length)
 }
 
 export function emitDocCanvasLinksChanged() {
@@ -43,26 +67,37 @@ export function emitDocCanvasLinksChanged() {
 
 export function linkShapeToBlock(shape, blockId) {
   if (!shape?.shapeID || !blockId) return false
-  // Keep the relationship one-to-one. Relinking either endpoint replaces its
-  // previous connection and leaves no ambiguous navigation target.
-  for (const candidate of shapes()) {
-    if (candidate !== shape && candidate.docBlockId === blockId) {
-      delete candidate.docBlockId
-      getShapeElement(candidate)?.removeAttribute('data-doc-block-id')
-    }
-  }
-  shape.docBlockId = blockId
-  getShapeElement(shape)?.setAttribute('data-doc-block-id', blockId)
+  const ids = getShapeDocBlockIds(shape)
+  if (ids.includes(blockId)) return false
+  writeShapeDocBlockIds(shape, [...ids, blockId])
   emitDocCanvasLinksChanged()
   window.__onLocalSave?.()
   return true
 }
 
 export function unlinkBlock(blockId) {
-  const shape = getShapeLinkedToBlock(blockId)
-  if (!shape) return false
-  delete shape.docBlockId
-  getShapeElement(shape)?.removeAttribute('data-doc-block-id')
+  const linked = getShapesLinkedToBlock(blockId)
+  if (!linked.length) return false
+  for (const shape of linked) {
+    writeShapeDocBlockIds(shape, getShapeDocBlockIds(shape).filter((id) => id !== blockId))
+  }
+  emitDocCanvasLinksChanged()
+  window.__onLocalSave?.()
+  return true
+}
+
+export function unlinkShapeFromBlock(shape, blockId) {
+  const ids = getShapeDocBlockIds(shape)
+  if (!ids.includes(blockId)) return false
+  writeShapeDocBlockIds(shape, ids.filter((id) => id !== blockId))
+  emitDocCanvasLinksChanged()
+  window.__onLocalSave?.()
+  return true
+}
+
+export function unlinkShape(shape) {
+  if (!getShapeDocBlockIds(shape).length) return false
+  writeShapeDocBlockIds(shape, [])
   emitDocCanvasLinksChanged()
   window.__onLocalSave?.()
   return true
@@ -80,9 +115,10 @@ export function pruneDocCanvasLinks(documentBlocks) {
   collect(documentBlocks)
   let changed = false
   for (const shape of shapes()) {
-    if (shape.docBlockId && !blockIds.has(shape.docBlockId)) {
-      delete shape.docBlockId
-      getShapeElement(shape)?.removeAttribute('data-doc-block-id')
+    const ids = getShapeDocBlockIds(shape)
+    const validIds = ids.filter((id) => blockIds.has(id))
+    if (validIds.length !== ids.length || shape.docBlockId) {
+      writeShapeDocBlockIds(shape, validIds)
       changed = true
     }
   }

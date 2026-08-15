@@ -448,6 +448,20 @@ body.canvas-mode.theme-dark .lix-sketch-theme code {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
+.lix-doc-link-count {
+  position: absolute;
+  right: -5px;
+  top: -5px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 2px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  font: 9px/14px lixFont, sans-serif;
+  text-align: center;
+}
+
 .lix-doc-block-context {
   position: absolute;
   left: 0;
@@ -498,6 +512,42 @@ body.canvas-mode.theme-dark .lix-sketch-theme code {
 
 .lix-doc-block-context button.danger:hover {
   background: rgba(248, 113, 113, 0.1);
+}
+
+.lix-doc-linked-destination {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px;
+  align-items: center;
+}
+
+.lix-doc-linked-destination > button:last-child {
+  justify-content: center;
+  padding-inline: 6px;
+}
+
+.lix-doc-delete-warning {
+  margin: 4px;
+  padding: 8px;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: 8px;
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.lix-doc-delete-warning p {
+  margin: 0 0 8px;
+  color: var(--text-secondary);
+  font: 10px/1.4 lixFont, sans-serif;
+}
+
+.lix-doc-delete-warning > div {
+  display: flex;
+  gap: 4px;
+}
+
+.lix-doc-delete-warning > div > button {
+  justify-content: center;
+  padding: 6px;
+  text-align: center;
 }
 
 .lix-sketch-theme .bn-side-menu > * {

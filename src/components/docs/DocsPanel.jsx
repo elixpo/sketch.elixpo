@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import useSketchStore from '@/store/useSketchStore'
 import useUIStore from '@/store/useUIStore'
 import useDocAutoSave, { triggerDocSync } from '@/hooks/useDocAutoSave'
@@ -32,10 +33,12 @@ import {
   FOCUS_DOC_BLOCK_EVENT,
   focusCanvasShape,
   getSelectedCanvasShape,
-  getShapeLinkedToBlock,
+  getShapeDocBlockIds,
+  getShapesLinkedToBlock,
   linkShapeToBlock,
   pruneDocCanvasLinks,
   unlinkBlock,
+  unlinkShapeFromBlock,
 } from '@/utils/docCanvasLinks'
 
 const DOC_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
@@ -78,6 +81,7 @@ function DocumentBlockSideMenu() {
     selector: (state) => state?.block,
   })
   const [open, setOpen] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [, setLinkRevision] = useState(0)
   const menuRef = useRef(null)
 
@@ -89,6 +93,7 @@ function DocumentBlockSideMenu() {
 
   useEffect(() => {
     setOpen(false)
+    setConfirmDelete(false)
   }, [block?.id])
 
   useEffect(() => {
@@ -110,8 +115,11 @@ function DocumentBlockSideMenu() {
 
   if (!block) return null
 
-  const linkedShape = getShapeLinkedToBlock(block.id)
+  const linkedShapes = getShapesLinkedToBlock(block.id)
   const selectedShape = open ? getSelectedCanvasShape() : null
+  const selectedShapeIsLinked = selectedShape
+    ? getShapeDocBlockIds(selectedShape).includes(block.id)
+    : false
 
   const openContextMenu = (event) => {
     event.preventDefault()
@@ -131,13 +139,17 @@ function DocumentBlockSideMenu() {
     requestAnimationFrame(() => suggestionMenu.openSuggestionMenu('/'))
   }
   const deleteBlock = () => {
+    if (linkedShapes.length && !confirmDelete) {
+      setConfirmDelete(true)
+      return
+    }
     unlinkBlock(block.id)
     setOpen(false)
     editor.removeBlocks([block])
     requestAnimationFrame(() => editor.focus())
   }
   const linkSelectedShape = () => {
-    if (!selectedShape) return
+    if (!selectedShape || selectedShapeIsLinked) return
     linkShapeToBlock(selectedShape, block.id)
     setOpen(false)
     showToast('Shape linked to document block', { tone: 'success', duration: 1800 })
@@ -145,6 +157,10 @@ function DocumentBlockSideMenu() {
   const removeLink = () => {
     unlinkBlock(block.id)
     setOpen(false)
+    showToast('Canvas link removed', { duration: 1600 })
+  }
+  const removeShapeLink = (shape) => {
+    unlinkShapeFromBlock(shape, block.id)
     showToast('Canvas link removed', { duration: 1600 })
   }
 
@@ -176,15 +192,16 @@ function DocumentBlockSideMenu() {
       >
         <i className="bx bx-grid-vertical text-lg" />
       </button>
-      {linkedShape && (
+      {linkedShapes.length > 0 && (
         <button
           type="button"
           className="lix-doc-block-handle lix-doc-link-handle"
-          title="Open linked canvas shape"
-          aria-label="Open linked canvas shape"
-          onClick={() => focusCanvasShape(linkedShape.shapeID)}
+          title={`Open ${linkedShapes.length} linked canvas ${linkedShapes.length === 1 ? 'shape' : 'shapes'}`}
+          aria-label="Open linked canvas shapes"
+          onClick={() => linkedShapes.length === 1 ? focusCanvasShape(linkedShapes[0].shapeID) : setOpen(true)}
         >
           <i className="bx bx-link text-sm" />
+          {linkedShapes.length > 1 && <span className="lix-doc-link-count">{linkedShapes.length}</span>}
         </button>
       )}
       {open && (
@@ -193,32 +210,49 @@ function DocumentBlockSideMenu() {
             <i className="bx bx-plus-circle" />
             <span>Add block</span>
           </button>
-          <button type="button" role="menuitem" disabled={!selectedShape} onClick={linkSelectedShape}>
+          <button type="button" role="menuitem" disabled={!selectedShape || selectedShapeIsLinked} onClick={linkSelectedShape}>
             <i className="bx bx-link" />
-            <span>{linkedShape ? 'Relink selected shape' : 'Link selected shape'}</span>
+            <span>{selectedShapeIsLinked ? 'Selected shape is linked' : 'Link selected shape'}</span>
           </button>
-          {!selectedShape && !linkedShape && (
+          {!selectedShape && !linkedShapes.length && (
             <p className="lix-doc-block-context-hint">Select one canvas shape first</p>
           )}
-          {linkedShape && (
+          {linkedShapes.length > 0 && (
             <>
-              <button type="button" role="menuitem" onClick={() => {
-                setOpen(false)
-                focusCanvasShape(linkedShape.shapeID)
-              }}>
-                <i className="bx bx-target-lock" />
-                <span>Go to linked shape</span>
-              </button>
+              {linkedShapes.map((shape, index) => (
+                <div key={shape.shapeID} className="lix-doc-linked-destination">
+                  <button type="button" role="menuitem" onClick={() => {
+                    setOpen(false)
+                    focusCanvasShape(shape.shapeID)
+                  }}>
+                    <i className="bx bx-target-lock" />
+                    <span>{shape.shapeName || 'Canvas shape'} {index + 1}</span>
+                  </button>
+                  <button type="button" title="Remove this connection" aria-label="Remove this connection" onClick={() => removeShapeLink(shape)}>
+                    <i className="bx bx-unlink" />
+                  </button>
+                </div>
+              ))}
               <button type="button" role="menuitem" onClick={removeLink}>
                 <i className="bx bx-unlink" />
-                <span>Remove canvas link</span>
+                <span>Remove all canvas links</span>
               </button>
             </>
           )}
-          <button type="button" role="menuitem" className="danger" onClick={deleteBlock}>
-            <i className="bx bx-trash" />
-            <span>Delete block</span>
-          </button>
+          {confirmDelete ? (
+            <div className="lix-doc-delete-warning" role="alert">
+              <p>This block has {linkedShapes.length} canvas {linkedShapes.length === 1 ? 'connection' : 'connections'}. Deleting it will break them.</p>
+              <div>
+                <button type="button" onClick={() => setConfirmDelete(false)}>Cancel</button>
+                <button type="button" className="danger" onClick={deleteBlock}>Delete and break links</button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" role="menuitem" className="danger" onClick={deleteBlock}>
+              <i className="bx bx-trash" />
+              <span>Delete block</span>
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -319,7 +353,9 @@ export default function DocsPanel() {
   const editorRef = useRef(null)
   const docHostRef = useRef(null)
   const focusedForDocsRef = useRef(false)
+  const bypassLinkedDeleteRef = useRef(false)
   const [editorReady, setEditorReady] = useState(false)
+  const [pendingLinkedDelete, setPendingLinkedDelete] = useState(null)
   // Controlled-mode theme: pass the canvas theme straight through to the
   // editor. Available since @elixpo/lixeditor@2.6.7 — replaces the prior
   // `defaultTheme` + manual `localStorage.setItem` workaround that was
@@ -333,6 +369,53 @@ export default function DocsPanel() {
   useEffect(() => {
     if (!visible) setEditorReady(false)
   }, [visible])
+
+  useEffect(() => {
+    if (!editorReady) return undefined
+    const editor = editorRef.current?.getEditor?.()
+    if (!editor?.onBeforeChange) return undefined
+    return editor.onBeforeChange(({ getChanges, tr }) => {
+      if (bypassLinkedDeleteRef.current) {
+        bypassLinkedDeleteRef.current = false
+        return undefined
+      }
+      const deletedBlocks = getChanges()
+        .filter((change) => change.type === 'delete' && change.source?.type !== 'remote')
+        .map((change) => change.block)
+        .filter((block) => block?.id && getShapesLinkedToBlock(block.id).length)
+      if (!deletedBlocks.length) return undefined
+      const linkCount = deletedBlocks.reduce(
+        (total, block) => total + getShapesLinkedToBlock(block.id).length,
+        0,
+      )
+      setPendingLinkedDelete({ blocks: deletedBlocks, linkCount, editor, tr })
+      return false
+    })
+  }, [editorReady])
+
+  useEffect(() => {
+    if (!pendingLinkedDelete) return undefined
+    const close = (event) => {
+      if (event.key === 'Escape') setPendingLinkedDelete(null)
+    }
+    document.addEventListener('keydown', close, true)
+    return () => document.removeEventListener('keydown', close, true)
+  }, [pendingLinkedDelete])
+
+  const confirmLinkedBlockDelete = () => {
+    const pending = pendingLinkedDelete
+    if (!pending) return
+    for (const block of pending.blocks) unlinkBlock(block.id)
+    setPendingLinkedDelete(null)
+    bypassLinkedDeleteRef.current = true
+    try {
+      const view = pending.editor._tiptapEditor?.view
+      if (!view) throw new Error('Document transaction view unavailable')
+      view.dispatch(pending.tr)
+    } catch {
+      pending.editor.removeBlocks(pending.blocks)
+    }
+  }
 
   useEffect(() => {
     const focusBlock = (blockId) => {
@@ -492,6 +575,21 @@ export default function DocsPanel() {
           <DocsLoading />
         )}
       </div>
+      {pendingLinkedDelete && createPortal(
+        <div className="fixed inset-0 z-[10050] flex items-center justify-center bg-black/55 p-4" role="presentation">
+          <div className="w-full max-w-md rounded-2xl border border-border-light bg-surface-card p-5 shadow-2xl" role="alertdialog" aria-modal="true" aria-labelledby="linked-block-delete-title">
+            <h2 id="linked-block-delete-title" className="text-lg text-text-primary">Delete connected document block?</h2>
+            <p className="mt-2 text-sm text-text-secondary">
+              This deletion will break {pendingLinkedDelete.linkCount} canvas {pendingLinkedDelete.linkCount === 1 ? 'connection' : 'connections'}. The linked canvas shapes will not be deleted.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" className="px-4 py-2 rounded-lg border border-border-light text-text-primary hover:bg-surface-hover cursor-pointer" onClick={() => setPendingLinkedDelete(null)}>Cancel</button>
+              <button type="button" className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-500 cursor-pointer" onClick={confirmLinkedBlockDelete}>Delete and break links</button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   )
 }
