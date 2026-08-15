@@ -49,3 +49,4 @@
 - [x] Prevent the built-in BlockNote file panel from opening beneath the custom image placeholder.
 - [x] Position the text-tool editor at the clicked canvas point across pan, zoom, and split view.
 - [x] Place canvas rulers below the header and to the right of the left toolbar.
+- [x] Add live X/Y ruler guides and coordinate markers that follow the canvas pointer.

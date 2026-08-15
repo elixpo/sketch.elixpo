@@ -44,6 +44,7 @@ export default function CanvasRulers({ enabled, svgRef }) {
     rulerLeft: 64,
     rulerTop: 48,
   })
+  const [pointer, setPointer] = useState({ x: 0, y: 0, visible: false })
 
   useEffect(() => {
     if (!enabled) return undefined
@@ -84,6 +85,34 @@ export default function CanvasRulers({ enabled, svgRef }) {
     return () => cancelAnimationFrame(frameId)
   }, [enabled, svgRef])
 
+  useEffect(() => {
+    if (!enabled) return undefined
+    const svg = svgRef.current
+    if (!svg) return undefined
+    let frameId
+    const trackPointer = (event) => {
+      cancelAnimationFrame(frameId)
+      frameId = requestAnimationFrame(() => {
+        const hostRect = svg.parentElement?.getBoundingClientRect?.() || svg.getBoundingClientRect()
+        const x = event.clientX - hostRect.left
+        const y = event.clientY - hostRect.top
+        setPointer({
+          x,
+          y,
+          visible: x >= 0 && y >= 0 && x <= hostRect.width && y <= hostRect.height,
+        })
+      })
+    }
+    const hidePointer = () => setPointer((current) => ({ ...current, visible: false }))
+    svg.addEventListener('pointermove', trackPointer)
+    svg.addEventListener('pointerleave', hidePointer)
+    return () => {
+      cancelAnimationFrame(frameId)
+      svg.removeEventListener('pointermove', trackPointer)
+      svg.removeEventListener('pointerleave', hidePointer)
+    }
+  }, [enabled, svgRef])
+
   const step = useMemo(() => getRulerStep(viewport.zoom), [viewport.zoom])
   const horizontalTicks = useMemo(
     () => buildTicks(viewport.x, viewport.width, viewport.zoom, step),
@@ -98,6 +127,9 @@ export default function CanvasRulers({ enabled, svgRef }) {
 
   const horizontalStart = viewport.rulerLeft + RULER_SIZE
   const verticalStart = viewport.rulerTop + RULER_SIZE
+  const pointerInDrawingArea = pointer.visible && pointer.x >= horizontalStart && pointer.y >= verticalStart
+  const pointerWorldX = viewport.x + pointer.x / viewport.zoom
+  const pointerWorldY = viewport.y + pointer.y / viewport.zoom
 
   return (
     <div className="pointer-events-none absolute inset-0 z-[900] select-none text-text-muted" aria-hidden="true">
@@ -112,6 +144,13 @@ export default function CanvasRulers({ enabled, svgRef }) {
             </span>
           </div>
         ))}
+        {pointerInDrawingArea && (
+          <div className="absolute inset-y-0 border-l border-accent" style={{ left: pointer.x - horizontalStart }}>
+            <span className="absolute left-1 top-1 rounded bg-accent px-1 font-mono text-[9px] leading-4 text-white shadow-sm">
+              {formatDimension(pointerWorldX)}
+            </span>
+          </div>
+        )}
       </div>
       <div
         className="absolute bottom-0 overflow-hidden border-r border-border-light bg-surface/95 shadow-sm backdrop-blur-sm"
@@ -127,6 +166,16 @@ export default function CanvasRulers({ enabled, svgRef }) {
             </span>
           </div>
         ))}
+        {pointerInDrawingArea && (
+          <div className="absolute inset-x-0 border-t border-accent" style={{ top: pointer.y - verticalStart }}>
+            <span
+              className="absolute right-1 top-1 rounded bg-accent px-1 font-mono text-[9px] leading-4 text-white shadow-sm"
+              style={{ transform: 'rotate(-90deg)', transformOrigin: 'top right' }}
+            >
+              {formatDimension(pointerWorldY)}
+            </span>
+          </div>
+        )}
       </div>
       <div
         className="absolute border-b border-r border-border-light bg-accent/20"
@@ -135,6 +184,22 @@ export default function CanvasRulers({ enabled, svgRef }) {
         <span className="absolute left-1/2 top-1/2 h-2.5 -translate-x-1/2 -translate-y-1/2 border-l border-accent" />
         <span className="absolute left-1/2 top-1/2 w-2.5 -translate-x-1/2 -translate-y-1/2 border-t border-accent" />
       </div>
+      {pointerInDrawingArea && (
+        <>
+          <div
+            className="absolute bottom-0 border-l border-dashed border-accent/70"
+            style={{ left: pointer.x, top: verticalStart }}
+          />
+          <div
+            className="absolute right-0 border-t border-dashed border-accent/70"
+            style={{ left: horizontalStart, top: pointer.y }}
+          />
+          <span
+            className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-accent bg-surface"
+            style={{ left: pointer.x, top: pointer.y }}
+          />
+        </>
+      )}
     </div>
   )
 }
