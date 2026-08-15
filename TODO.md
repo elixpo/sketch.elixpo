@@ -18,3 +18,4 @@
 - [x] Show pointer cursors on canvas footer controls and before workspace-name editing.
 - [x] Improve icon category filters and reduce the icon picker height.
 - [x] Show a success toast after a workspace-name edit is completed.
+- [x] Place the Danger Zone at the end of the menu after authentication.
