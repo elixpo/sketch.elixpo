@@ -354,19 +354,6 @@ body.canvas-mode.theme-dark .lix-sketch-theme code {
   pointer-events: none !important;
 }
 
-/* When Embed URL is chosen, place the custom field immediately below the
- * image placeholder instead of centering it inside the dashed image area. */
-.lix-sketch-theme .blog-img-empty:has(> .blog-img-input-row) {
-  margin-bottom: 3.75rem;
-}
-
-.lix-sketch-theme .blog-img-empty > .blog-img-input-row {
-  position: absolute;
-  left: 50%;
-  top: calc(100% + 4px);
-  transform: translateX(-50%);
-}
-
 /* Floating-toolbar action buttons — text adapts to theme via vars */
 .lix-sketch-theme .mantine-ActionIcon-root,
 .lix-sketch-theme .mantine-Button-root {
