@@ -47,3 +47,4 @@
 - [x] Link canvas shapes and document blocks with persisted two-way navigation badges.
 - [x] Support many-to-many canvas/document connections with destination pickers and linked-item deletion warnings.
 - [x] Prevent the built-in BlockNote file panel from opening beneath the custom image placeholder.
+- [x] Position the text-tool editor at the clicked canvas point across pan, zoom, and split view.

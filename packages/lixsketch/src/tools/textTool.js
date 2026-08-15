@@ -231,22 +231,22 @@ function makeTextEditable(textElement, groupElement) {
     const currentFill = textElement.getAttribute("fill") || "#fff";
     const currentAnchor = textElement.getAttribute("text-anchor") || "start";
 
-    // Anchor the HTML editor to the text's actual rendered alignment point.
-    // Using bbox.x as the textarea's left edge only works for start-aligned
-    // text. With text-anchor="middle" (chart values and centered labels), the
-    // textarea's 150px minimum width put its own centered text far to the
-    // right of the SVG glyph.
+    // Anchor the HTML editor to the SVG text origin, transformed into viewport
+    // coordinates. A newly-created <text> is empty, so getBoundingClientRect()
+    // reports the SVG's top-left corner instead of the clicked canvas point.
+    // The CTM remains valid for empty text and also accounts for pan, zoom,
+    // split-view cropping, and frame transforms.
     const groupCTM = groupElement.getScreenCTM() || svg.getScreenCTM();
-    const screenRect = textElement.getBoundingClientRect();
-    const anchorScreenX = currentAnchor === "middle"
-        ? screenRect.left + screenRect.width / 2
-        : currentAnchor === "end"
-            ? screenRect.right
-            : screenRect.left;
+    const textOrigin = svg.createSVGPoint();
+    textOrigin.x = parseFloat(textElement.getAttribute("x")) || 0;
+    textOrigin.y = parseFloat(textElement.getAttribute("y")) || 0;
+    const screenOrigin = groupCTM
+        ? textOrigin.matrixTransform(groupCTM)
+        : { x: 0, y: 0 };
     const anchorTranslateX = currentAnchor === "middle" ? "-50%" : currentAnchor === "end" ? "-100%" : "0";
 
-    input.style.left = `${anchorScreenX}px`;
-    input.style.top = `${screenRect.top}px`;
+    input.style.left = `${screenOrigin.x}px`;
+    input.style.top = `${screenOrigin.y}px`;
     input.style.transform = `translateX(${anchorTranslateX})`;
     input.style.transformOrigin = "top left";
 
