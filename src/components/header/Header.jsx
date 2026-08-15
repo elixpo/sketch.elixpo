@@ -305,13 +305,17 @@ export default function Header() {
         <div className="w-px h-5 bg-border-light" />
 
         {/* Workspace name */}
-        <input
-          type="text"
-          value={workspaceName}
-          onChange={(e) => setWorkspaceName(e.target.value)}
-          className="bg-transparent text-text-secondary text-sm border-none outline-none w-40 px-1.5 py-1 rounded hover:bg-surface-hover/50 focus:bg-surface-hover/50 transition-all duration-200 font-[lixFont]"
-          spellCheck={false}
-        />
+        <label className="flex items-center gap-1 rounded px-1 py-0.5 hover:bg-surface-hover/50 focus-within:bg-surface-hover/50 transition-all duration-200" title="Edit workspace name">
+          <i className="bx bx-pencil text-sm text-text-dim pointer-events-none" aria-hidden="true" />
+          <input
+            type="text"
+            value={workspaceName}
+            onChange={(e) => setWorkspaceName(e.target.value)}
+            className="bg-transparent text-text-secondary text-sm border-none outline-none w-40 px-0.5 py-0.5 font-[lixFont]"
+            aria-label="Workspace name"
+            spellCheck={false}
+          />
+        </label>
 
       </div>
 
