@@ -141,6 +141,8 @@ body.canvas-mode.theme-dark {
 
 .lix-sketch-theme .bn-block-content {
   font-size: 1em;
+  box-sizing: border-box;
+  padding-left: 0.75rem;
 }
 
 /* Placeholder */
