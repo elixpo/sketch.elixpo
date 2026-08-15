@@ -312,6 +312,15 @@ body.canvas-mode.theme-dark .lix-sketch-theme code {
   overflow-x: hidden;
 }
 
+/* BlockNote sizes the slash menu from its currently visible contents.
+ * Keep it stable while filtering so short results such as `/image` do not
+ * collapse the popup and crowd the icon, title, and description. */
+.bn-suggestion-menu {
+  width: min(360px, calc(100vw - 2rem)) !important;
+  min-width: min(360px, calc(100vw - 2rem)) !important;
+  box-sizing: border-box;
+}
+
 .bn-suggestion-menu-item .bn-suggestion-menu-item-subtitle,
 .mantine-Menu-item .bn-suggestion-menu-item-subtitle {
   white-space: nowrap;
