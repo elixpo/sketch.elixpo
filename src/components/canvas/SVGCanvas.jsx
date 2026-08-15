@@ -12,6 +12,7 @@ export default function SVGCanvas() {
   const svgRef = useRef(null)
   const canvasBackground = useSketchStore((s) => s.canvasBackground)
   const gridEnabled = useSketchStore((s) => s.gridEnabled)
+  const hydrateGrid = useSketchStore((s) => s.hydrateGrid)
   const resolvedTheme = useUIStore((s) => s.resolvedTheme)
   // Issue #38 follow-up: grid strokes were hardcoded to white-on-dark
   // (`rgba(255,255,255,0.06)`) — invisible on the new light canvas.
@@ -87,6 +88,11 @@ export default function SVGCanvas() {
 
   // Initialize the imperative sketch engine on this SVG element
   useSketchEngine(svgRef, svgReady)
+
+  // Restore the user's grid preference after client hydration.
+  useEffect(() => {
+    hydrateGrid()
+  }, [hydrateGrid])
 
   // Expose grid state to engine
   useEffect(() => {

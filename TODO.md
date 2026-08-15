@@ -19,3 +19,4 @@
 - [x] Improve icon category filters and reduce the icon picker height.
 - [x] Show a success toast after a workspace-name edit is completed.
 - [x] Place the Danger Zone at the end of the menu after authentication.
+- [x] Persist and restore the Show Grid preference through localStorage.

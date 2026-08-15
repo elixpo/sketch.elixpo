@@ -11,6 +11,7 @@ export default function SVGCanvas() {
   const svgRef = useRef(null)
   const canvasBackground = useSketchStore((s) => s.canvasBackground)
   const gridEnabled = useSketchStore((s) => s.gridEnabled)
+  const hydrateGrid = useSketchStore((s) => s.hydrateGrid)
   const getCursor = useSketchStore((s) => s.getCursor)
   const cursor = getCursor()
 
@@ -78,6 +79,11 @@ export default function SVGCanvas() {
 
   // Initialize the imperative sketch engine on this SVG element
   useSketchEngine(svgRef, svgReady)
+
+  // Restore the user's grid preference after client hydration.
+  useEffect(() => {
+    hydrateGrid()
+  }, [hydrateGrid])
 
   // Expose grid state to engine
   useEffect(() => {
