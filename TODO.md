@@ -54,3 +54,4 @@
 - [x] Make save/export previews honor dark, light, and transparent canvas modes and export lossless high-resolution images.
 - [x] Make placed graphs viewport-sized, selectable, movable, resizable, editable, and persistent.
 - [x] Let explicit logo clicks open the landing page without automatic canvas restoration.
+- [x] Make the E2E test verify the actual encrypted database save/load path and AES-GCM authentication.
