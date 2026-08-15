@@ -58,6 +58,50 @@ function LayoutModeToggle() {
   )
 }
 
+function ProfileStatusAvatar({ avatar }) {
+  const saveStatus = useUIStore((s) => s.saveStatus)
+  const [pulsing, setPulsing] = useState(false)
+
+  useEffect(() => {
+    let timer
+    window.__onLocalSave = () => {
+      setPulsing(true)
+      clearTimeout(timer)
+      timer = setTimeout(() => setPulsing(false), 800)
+    }
+    return () => {
+      window.__onLocalSave = null
+      clearTimeout(timer)
+    }
+  }, [])
+
+  const synced = saveStatus === 'cloud'
+  const statusTitle = {
+    cloud: 'Synced to cloud — Ctrl+S to force sync',
+    local: 'Saved locally — waiting for cloud sync',
+    failed: 'Cloud sync failed — canvas remains stored locally',
+    idle: 'Not synced yet',
+  }[saveStatus] || 'Not synced yet'
+  const statusBorder = synced ? 'border-green-400' : 'border-yellow-400'
+
+  return avatar ? (
+    <img
+      src={avatar}
+      alt=""
+      title={statusTitle}
+      className={`w-7 h-7 rounded-md border-[3px] ${statusBorder} transition-colors duration-300 ${pulsing ? 'animate-pulse' : ''}`}
+      referrerPolicy="no-referrer"
+    />
+  ) : (
+    <div
+      title={statusTitle}
+      className={`w-7 h-7 rounded-md border-[3px] ${statusBorder} bg-accent-blue/20 flex items-center justify-center transition-colors duration-300 ${pulsing ? 'animate-pulse' : ''}`}
+    >
+      <i className="bx bx-user text-xs text-accent-blue" />
+    </div>
+  )
+}
+
 function ProfileDropdown() {
   const profile = useProfileStore((s) => s.profile)
   const setDisplayName = useProfileStore((s) => s.setDisplayName)
@@ -106,20 +150,10 @@ function ProfileDropdown() {
     <div ref={ref} className="relative flex items-center rounded-lg border border-border-light bg-surface/70">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 pl-1 pr-1.5 py-1 rounded-l-lg hover:bg-surface-hover transition-all duration-200"
+        className="flex items-center gap-1.5 pl-1 pr-1.5 py-0.5 rounded-l-lg hover:bg-surface-hover transition-all duration-200"
         title={`${displayName} · canvas and encryption status`}
       >
-        {avatar ? (
-          <img src={avatar} alt="" className="w-6 h-6 rounded-md" referrerPolicy="no-referrer" />
-        ) : (
-          <div className="w-6 h-6 rounded-md bg-accent-blue/20 flex items-center justify-center">
-            <i className="bx bx-user text-xs text-accent-blue" />
-          </div>
-        )}
-        <span className="text-text-muted text-xs max-w-[80px] truncate hidden sm:block">
-          {displayName}
-        </span>
-        <SaveStatusDot />
+        <ProfileStatusAvatar avatar={avatar} />
         <span className="e2e-badge flex items-center gap-0.5 px-1.5 py-0.5 rounded border select-none" title="End-to-end encryption enabled">
           <i className="bx bxs-shield text-[11px]" />
           <span className="text-[9px] font-medium">E2E</span>
@@ -127,10 +161,12 @@ function ProfileDropdown() {
         <i className={`bx bx-chevron-down text-text-dim text-xs transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
       </button>
 
+      <span className="w-px h-6 bg-border-light shrink-0" aria-hidden="true" />
+
       <button
         onClick={testE2E}
         disabled={testingE2E}
-        className="h-8 px-2 flex items-center justify-center gap-1 border-l border-border-light rounded-r-lg text-text-muted hover:text-accent hover:bg-surface-hover transition-all disabled:opacity-50"
+        className="h-8 px-2 flex items-center justify-center gap-1 rounded-r-lg text-text-muted hover:text-accent hover:bg-surface-hover transition-all disabled:opacity-50"
         title="Test E2E encryption"
         aria-label="Test E2E encryption"
       >
@@ -221,44 +257,6 @@ function ProfileDropdown() {
         </div>
       )}
     </div>
-  )
-}
-
-function SaveStatusDot() {
-  const saveStatus = useUIStore((s) => s.saveStatus)
-  const [pulsing, setPulsing] = useState(false)
-
-  // Listen for local save events to trigger a pulse
-  useEffect(() => {
-    let timer
-    window.__onLocalSave = () => {
-      setPulsing(true)
-      clearTimeout(timer)
-      timer = setTimeout(() => setPulsing(false), 800)
-    }
-    return () => {
-      window.__onLocalSave = null
-      clearTimeout(timer)
-    }
-  }, [])
-
-  const colorMap = {
-    idle: 'bg-yellow-400',
-    cloud: 'bg-green-400',
-    local: 'bg-yellow-400',
-    failed: 'bg-red-400',
-  }
-  const titleMap = {
-    idle: 'Not saved yet',
-    cloud: 'Synced to cloud — Ctrl+S to force sync',
-    local: 'Saved locally — auto-syncs every 5min or press Ctrl+S',
-    failed: 'Sync failed — will retry automatically',
-  }
-  return (
-    <span
-      className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-300 ${colorMap[saveStatus] || 'bg-yellow-400'} ${pulsing ? 'animate-pulse' : ''}`}
-      title={titleMap[saveStatus] || ''}
-    />
   )
 }
 
