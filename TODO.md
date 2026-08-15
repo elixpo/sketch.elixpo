@@ -34,3 +34,4 @@
 - [x] Keep one document image embed control and position its URL field directly below the image placeholder.
 - [x] Validate remote document images before embedding and preserve the empty URL form on failure.
 - [x] Open a shared block context menu from both document side handles with Add and Delete actions.
+- [x] Make split-view divider resizing crop the canvas without changing its vector viewport.

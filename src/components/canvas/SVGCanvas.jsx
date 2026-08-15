@@ -111,6 +111,14 @@ export default function SVGCanvas() {
       className="absolute inset-0 w-full h-full"
       style={{
         background: canvasBackground,
+        // Split view is a viewport crop, not a canvas resize. Keep the SVG
+        // surface at the browser width and let SplitLayout's overflow-hidden
+        // pane reveal less of it. If the SVG follows the pane width, each
+        // divider movement rewrites the viewBox and changes screen-to-world
+        // mapping underneath existing shapes.
+        width: '100vw',
+        maxWidth: 'none',
+        right: 'auto',
         cursor,
         userSelect: 'none',
         WebkitUserSelect: 'none',
