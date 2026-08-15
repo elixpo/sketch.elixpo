@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
 const GRID_STORAGE_KEY = 'lixsketch-grid-enabled'
+const RULER_STORAGE_KEY = 'lixsketch-rulers-enabled'
 
 // Tool enum replaces 15 boolean flags
 export const TOOLS = {
@@ -62,7 +63,6 @@ export const SHORTCUT_MAP = {
   h: TOOLS.PAN,
   v: TOOLS.SELECT,
   1: TOOLS.SELECT,
-  r: TOOLS.RECTANGLE,
   2: TOOLS.RECTANGLE,
   o: TOOLS.CIRCLE,
   4: TOOLS.CIRCLE,
@@ -204,6 +204,25 @@ const useSketchStore = create((set, get) => ({
       const saved = localStorage.getItem(GRID_STORAGE_KEY)
       if (saved === 'true' || saved === 'false') {
         set({ gridEnabled: saved === 'true' })
+      }
+    } catch {}
+  },
+
+  // --- Rulers ---
+  rulersEnabled: false,
+  toggleRulers: () => set((s) => {
+    const rulersEnabled = !s.rulersEnabled
+    if (typeof window !== 'undefined') {
+      try { localStorage.setItem(RULER_STORAGE_KEY, String(rulersEnabled)) } catch {}
+    }
+    return { rulersEnabled }
+  }),
+  hydrateRulers: () => {
+    if (typeof window === 'undefined') return
+    try {
+      const saved = localStorage.getItem(RULER_STORAGE_KEY)
+      if (saved === 'true' || saved === 'false') {
+        set({ rulersEnabled: saved === 'true' })
       }
     } catch {}
   },

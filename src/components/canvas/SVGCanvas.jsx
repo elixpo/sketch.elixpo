@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react'
 import useSketchStore, { TOOLS } from '@/store/useSketchStore'
 import useUIStore from '@/store/useUIStore'
 import useSketchEngine from '@/hooks/useSketchEngine'
+import CanvasRulers from './CanvasRulers'
 
 const GRID_SIZE = 20
 
@@ -13,6 +14,8 @@ export default function SVGCanvas() {
   const canvasBackground = useSketchStore((s) => s.canvasBackground)
   const gridEnabled = useSketchStore((s) => s.gridEnabled)
   const hydrateGrid = useSketchStore((s) => s.hydrateGrid)
+  const rulersEnabled = useSketchStore((s) => s.rulersEnabled)
+  const hydrateRulers = useSketchStore((s) => s.hydrateRulers)
   const resolvedTheme = useUIStore((s) => s.resolvedTheme)
   // Issue #38 follow-up: grid strokes were hardcoded to white-on-dark
   // (`rgba(255,255,255,0.06)`) — invisible on the new light canvas.
@@ -92,7 +95,8 @@ export default function SVGCanvas() {
   // Restore the user's grid preference after client hydration.
   useEffect(() => {
     hydrateGrid()
-  }, [hydrateGrid])
+    hydrateRulers()
+  }, [hydrateGrid, hydrateRulers])
 
   // Expose grid state to engine
   useEffect(() => {
@@ -100,6 +104,7 @@ export default function SVGCanvas() {
   }, [gridEnabled])
 
   return (
+    <>
     <svg
       id="freehand-canvas"
       ref={svgRef}
@@ -156,5 +161,7 @@ export default function SVGCanvas() {
         />
       )}
     </svg>
+    <CanvasRulers enabled={rulersEnabled} svgRef={svgRef} />
+    </>
   )
 }

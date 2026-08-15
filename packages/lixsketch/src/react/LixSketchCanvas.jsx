@@ -113,6 +113,14 @@ export default function LixSketchCanvas({
         useUIStore.getState().closeAllModals?.();
         return;
       }
+      const target = e.target;
+      const tag = (target?.tagName || '').toLowerCase();
+      const isTyping = tag === 'input' || tag === 'textarea' || target?.isContentEditable;
+      if (!isTyping && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && (e.key || '').toLowerCase() === 'r') {
+        e.preventDefault();
+        useSketchStore.getState().toggleRulers();
+        return;
+      }
       if (!(e.ctrlKey || e.metaKey)) return;
       const key = (e.key || '').toLowerCase();
       if (key !== 's' || e.shiftKey) return;

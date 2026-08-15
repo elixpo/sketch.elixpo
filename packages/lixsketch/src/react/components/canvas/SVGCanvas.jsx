@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from 'react'
 import useSketchStore, { TOOLS } from '../../store/useSketchStore'
 import useSketchEngine from '../../hooks/useSketchEngine'
+import CanvasRulers from './CanvasRulers'
 
 const GRID_SIZE = 20
 
@@ -12,6 +13,8 @@ export default function SVGCanvas() {
   const canvasBackground = useSketchStore((s) => s.canvasBackground)
   const gridEnabled = useSketchStore((s) => s.gridEnabled)
   const hydrateGrid = useSketchStore((s) => s.hydrateGrid)
+  const rulersEnabled = useSketchStore((s) => s.rulersEnabled)
+  const hydrateRulers = useSketchStore((s) => s.hydrateRulers)
   const getCursor = useSketchStore((s) => s.getCursor)
   const cursor = getCursor()
 
@@ -83,7 +86,8 @@ export default function SVGCanvas() {
   // Restore the user's grid preference after client hydration.
   useEffect(() => {
     hydrateGrid()
-  }, [hydrateGrid])
+    hydrateRulers()
+  }, [hydrateGrid, hydrateRulers])
 
   // Expose grid state to engine
   useEffect(() => {
@@ -91,6 +95,7 @@ export default function SVGCanvas() {
   }, [gridEnabled])
 
   return (
+    <>
     <svg
       id="freehand-canvas"
       ref={svgRef}
@@ -147,5 +152,7 @@ export default function SVGCanvas() {
         />
       )}
     </svg>
+    <CanvasRulers enabled={rulersEnabled} svgRef={svgRef} />
+    </>
   )
 }

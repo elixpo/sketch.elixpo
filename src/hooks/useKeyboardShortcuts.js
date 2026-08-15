@@ -286,6 +286,13 @@ export default function useKeyboardShortcuts() {
 
       // Tool switching shortcuts (no modifier keys)
       if (!e.shiftKey && !e.altKey) {
+        if (key === 'r') {
+          e.preventDefault()
+          store.toggleRulers()
+          showToast(store.rulersEnabled ? 'Rulers hidden' : 'Rulers shown', { tone: 'info' })
+          return
+        }
+
         if (key === 'q') {
           e.preventDefault()
           store.toggleToolLock()

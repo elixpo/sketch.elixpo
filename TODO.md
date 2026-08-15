@@ -25,3 +25,4 @@
 - [x] Restore the last locally saved canvas from the landing route and add a New Canvas command.
 - [x] Return Start Drawing users to their canvas after sign-in.
 - [x] Limit workspace names to 20 characters across UI, state, and persistence.
+- [x] Add persistent top and left canvas rulers that track grid coordinates during pan and zoom, toggled with `R`.

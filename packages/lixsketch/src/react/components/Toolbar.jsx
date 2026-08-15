@@ -16,7 +16,7 @@ function getToolItems() {
   { tool: TOOLS.PAN, icon: 'bxs-hand', title: 'Pan (H)', key: 'H' },
   { tool: TOOLS.SELECT, icon: 'bxs-pointer', title: 'Select (V)', key: 'V' },
   'spacer',
-  { tool: TOOLS.RECTANGLE, icon: 'bx-square', title: 'Rectangle (R)', key: 'R' },
+  { tool: TOOLS.RECTANGLE, icon: 'bx-square', title: 'Rectangle (2)', key: '2' },
   { tool: TOOLS.CIRCLE, icon: 'bx-circle', title: 'Circle (O)', key: 'O' },
   { tool: TOOLS.LINE, icon: 'bx-minus', title: 'Line (L)', key: 'L' },
   { tool: TOOLS.ARROW, icon: 'bx-right-arrow-alt', title: 'Arrow (A)', rotate: true, key: 'A' },

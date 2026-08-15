@@ -107,6 +107,7 @@ export default function AppMenu() {
     { label: t('prefs.toolLock'), shortcut: 'Q', id: 'toolLock' },
     { label: t('prefs.snapObjects'), shortcut: 'Alt+S', id: 'snapObjects' },
     { label: t('menu.showGrid'), shortcut: "Ctrl+'", id: 'toggleGrid' },
+    { label: 'Show rulers', shortcut: 'R', id: 'toggleRulers' },
     { label: t('prefs.zenMode'), shortcut: 'Alt+Z', id: 'zenMode' },
     { label: t('prefs.viewMode'), shortcut: 'Alt+R', id: 'viewMode' },
     { label: t('prefs.canvasShapeProps'), shortcut: 'Alt+/', id: 'properties' },
@@ -127,6 +128,8 @@ export default function AppMenu() {
   const clearHistory = useSketchStore((s) => s.clearHistory)
   const gridEnabled = useSketchStore((s) => s.gridEnabled)
   const toggleGrid = useSketchStore((s) => s.toggleGrid)
+  const rulersEnabled = useSketchStore((s) => s.rulersEnabled)
+  const toggleRulers = useSketchStore((s) => s.toggleRulers)
 
   const viewMode = useSketchStore((s) => s.viewMode)
   const zenMode = useSketchStore((s) => s.zenMode)
@@ -305,6 +308,7 @@ export default function AppMenu() {
                 (item.id === 'toolLock' && toolLock) ||
                 (item.id === 'snapObjects' && snapToObjects) ||
                 (item.id === 'toggleGrid' && gridEnabled) ||
+                (item.id === 'toggleRulers' && rulersEnabled) ||
                 (item.id === 'zenMode' && zenMode) ||
                 (item.id === 'viewMode' && viewMode) ||
                 (item.toggle) // arrow binding, snap midpoints default on
@@ -313,6 +317,7 @@ export default function AppMenu() {
                 if (item.id === 'toolLock') toggleToolLock()
                 else if (item.id === 'snapObjects') toggleSnapToObjects()
                 else if (item.id === 'toggleGrid') toggleGrid()
+                else if (item.id === 'toggleRulers') toggleRulers()
                 else if (item.id === 'zenMode') { toggleZenMode(); closeMenu() }
                 else if (item.id === 'viewMode') { toggleViewMode(); closeMenu() }
                 else if (item.id === 'properties') { useUIStore.getState().toggleCanvasProperties(); closeMenu() }
