@@ -211,6 +211,17 @@ export function parseChartDiagram(src) {
     return series.length ? { type: 'chart', kind: 'xy', title, categories, series } : null;
 }
 
+// Mermaid permits bar and line declarations in one xychart. LixSketch keeps a
+// bar chart visually bar-only: when at least one bar series exists, line
+// series (and their point markers) are omitted consistently from preview and
+// canvas placement. A chart made only from line declarations remains a line
+// chart.
+function renderedSeries(chart) {
+    if (chart?.kind !== 'xy') return chart?.series || [];
+    const bars = chart.series.filter(series => series.kind === 'bar');
+    return bars.length ? bars : chart.series.filter(series => series.kind === 'line');
+}
+
 export function renderChartPreviewSVG(chart) {
     if (!chart?.series?.length) return '';
     const TK = theme();
@@ -248,7 +259,8 @@ export function renderChartPreviewSVG(chart) {
     const top = 60;
     const plotWidth = 580;
     const plotHeight = 300;
-    const values = chart.series.flatMap(series => series.values);
+    const seriesToRender = renderedSeries(chart);
+    const values = seriesToRender.flatMap(series => series.values);
     const maximum = Math.max(1, ...values.map(Math.abs));
     const categoryCount = Math.max(1, chart.categories.length);
     const slot = plotWidth / categoryCount;
@@ -259,14 +271,14 @@ export function renderChartPreviewSVG(chart) {
         content += `<text x="${left + slot * (index + .5)}" y="${top + plotHeight + 24}" text-anchor="middle" fill="${TK.text}" font-size="11" font-family="lixFont">${escapeXml(category)}</text>`;
     });
 
-    chart.series.forEach((series, seriesIndex) => {
+    seriesToRender.forEach((series, seriesIndex) => {
         const color = PALETTE[seriesIndex % PALETTE.length];
         if (series.kind === 'line') {
             const points = series.values.map((value, index) => `${left + slot * (index + .5)},${top + plotHeight - Math.abs(value) / maximum * plotHeight}`).join(' ');
             content += `<polyline points="${points}" fill="none" stroke="${color.stroke}" stroke-width="3"/>`;
             series.values.forEach((value, index) => content += `<circle cx="${left + slot * (index + .5)}" cy="${top + plotHeight - Math.abs(value) / maximum * plotHeight}" r="5" fill="${color.fill}" stroke="${color.stroke}" stroke-width="2"/>`);
         } else {
-            const barWidth = Math.max(12, slot * .7 / chart.series.length);
+            const barWidth = Math.max(12, slot * .7 / seriesToRender.length);
             series.values.forEach((value, index) => {
                 const barHeight = Math.abs(value) / maximum * plotHeight;
                 const x = left + slot * index + slot * .15 + seriesIndex * barWidth;
@@ -424,7 +436,8 @@ export function renderChartOnCanvas(chart) {
     const top = origin.y + 65;
     const plotWidth = 580;
     const plotHeight = 300;
-    const values = chart.series.flatMap(series => series.values);
+    const seriesToRender = renderedSeries(chart);
+    const values = seriesToRender.flatMap(series => series.values);
     const maximum = Math.max(1, ...values.map(Math.abs));
     const slot = plotWidth / Math.max(1, chart.categories.length);
     push(new window.Line({ x: left, y: top }, { x: left, y: top + plotHeight }, { stroke: TK.line, strokeWidth: 1.5, roughness: 0 }), frame);
@@ -444,7 +457,7 @@ export function renderChartOnCanvas(chart) {
         'middle',
     ));
 
-    chart.series.forEach((series, seriesIndex) => {
+    seriesToRender.forEach((series, seriesIndex) => {
         const color = PALETTE[seriesIndex % PALETTE.length];
         if (series.kind === 'line') {
             const linePoints = series.values.map((value, index) => {
@@ -465,7 +478,7 @@ export function renderChartOnCanvas(chart) {
                 }), frame);
             }
         } else {
-            const barWidth = Math.max(18, slot * .7 / chart.series.length);
+            const barWidth = Math.max(18, slot * .7 / seriesToRender.length);
             series.values.forEach((value, index) => {
                 const barHeight = Math.max(8, Math.abs(value) / maximum * plotHeight);
                 const x = left + slot * index + slot * .15 + seriesIndex * barWidth;
