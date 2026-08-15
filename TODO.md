@@ -36,3 +36,4 @@
 - [x] Open a shared block context menu from both document side handles with Add and Delete actions.
 - [x] Make split-view divider resizing crop the canvas without changing its vector viewport.
 - [x] Apply the document line's 12px left inset to the add and move controls too.
+- [ ] Upstream reusable docs UX fixes to `@elixpo/lixeditor`, publish a release, then remove the matching Sketch overrides (GitHub write access required).
