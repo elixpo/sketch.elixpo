@@ -433,7 +433,7 @@ export default function AppMenu() {
         ) : (
           <button
             onClick={() => { login(); closeMenu() }}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all duration-200 text-text-secondary hover:bg-surface-hover"
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all duration-200 text-text-secondary hover:bg-surface-hover cursor-pointer"
           >
             <span className="flex items-center gap-2">
               <i className="bx bx-log-in text-sm" />
