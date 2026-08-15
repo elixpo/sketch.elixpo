@@ -51,7 +51,6 @@ export default function AppMenu() {
   const closeMenu = useUIStore((s) => s.closeMenu)
   const toggleSaveModal = useUIStore((s) => s.toggleSaveModal)
   const toggleCommandPalette = useUIStore((s) => s.toggleCommandPalette)
-  const toggleHelpModal = useUIStore((s) => s.toggleHelpModal)
   const toggleExportImageModal = useUIStore((s) => s.toggleExportImageModal)
   const theme = useUIStore((s) => s.theme)
   const resolvedTheme = useUIStore((s) => s.resolvedTheme)
@@ -260,17 +259,6 @@ export default function AppMenu() {
           <span className="flex items-center gap-2">
             <i className="bx bx-info-circle text-sm" />
             {t('menu.canvasProperties')}
-          </span>
-        </button>
-
-        {/* Help */}
-        <button
-          onClick={() => { toggleHelpModal(); closeMenu() }}
-          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[12.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
-        >
-          <span className="flex items-center gap-2">
-            <i className="bx bx-help-circle text-sm" />
-            {t('menu.help')}
           </span>
         </button>
 

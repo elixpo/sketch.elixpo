@@ -31,10 +31,8 @@ import ContextMenu from './components/canvas/ContextMenu.jsx';
 import FindBar from './components/canvas/FindBar.jsx';
 import ImageSourcePicker from './components/canvas/ImageSourcePicker.jsx';
 import CanvasLoadingOverlay from './components/canvas/CanvasLoadingOverlay.jsx';
-import ShortcutsModal from './components/modals/ShortcutsModal.jsx';
 import CommandPalette from './components/modals/CommandPalette.jsx';
 import ExportImageModal from './components/modals/ExportImageModal.jsx';
-import HelpModal from './components/modals/HelpModal.jsx';
 import LixScriptModal from './components/modals/LixScriptModal.jsx';
 import GraphModal from './components/modals/GraphModal.jsx';
 
@@ -223,10 +221,8 @@ export default function LixSketchCanvas({
       <IconSidebar />
       <ImageSidebar />
       <MultiSelectActions />
-      <ShortcutsModal />
       <CommandPalette />
       <ExportImageModal />
-      <HelpModal />
       <LixScriptModal />
       <GraphModal />
       <ContextMenu />
@@ -234,7 +230,7 @@ export default function LixSketchCanvas({
       <ImageSourcePicker />
       <CanvasLoadingOverlay />
 
-      {/* Floating header — menu trigger + help / shortcuts. Hosts can
+      {/* Floating header — menu trigger + command center. Hosts can
           hide this strip by setting CSS `.lixsketch-floating-header { display: none }`
           if they render their own chrome (blogs.elixpo's CanvasSubpage does). */}
       <div className="lixsketch-floating-header absolute top-2 right-2 z-[1000] flex items-center gap-1.5 font-[lixFont]">
@@ -256,16 +252,8 @@ export default function LixSketchCanvas({
         </button>
         <button
           type="button"
-          title="Help (?)"
-          onClick={() => useUIStore.getState().toggleHelpModal?.()}
-          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
-        >
-          <i className="bx bx-help-circle text-base" />
-        </button>
-        <button
-          type="button"
-          title="Shortcuts (Ctrl+/)"
-          onClick={() => useUIStore.getState().toggleShortcutsModal?.()}
+          title="Commands and shortcuts (Ctrl+/)"
+          onClick={() => useUIStore.getState().toggleCommandPalette?.()}
           className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
         >
           <i className="bx bx-command text-base" />

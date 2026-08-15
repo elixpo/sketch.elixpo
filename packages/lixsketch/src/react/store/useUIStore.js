@@ -67,19 +67,15 @@ function applyTheme(theme) {
 
 const useUIStore = create((set, get) => ({
   // --- Modals ---
-  shortcutsModalOpen: false,
   saveModalOpen: false,
   aiModalOpen: false,
   graphModalOpen: false,
   commandPaletteOpen: false,
-  helpModalOpen: false,
   exportImageModalOpen: false,
   findBarOpen: false,
   canvasPropertiesOpen: false,
   imageGenerateModalOpen: false,
 
-  toggleShortcutsModal: () =>
-    set((s) => ({ shortcutsModalOpen: !s.shortcutsModalOpen })),
   toggleSaveModal: () =>
     set((s) => ({ saveModalOpen: !s.saveModalOpen })),
   toggleAIModal: () =>
@@ -88,8 +84,6 @@ const useUIStore = create((set, get) => ({
     set((s) => ({ graphModalOpen: !s.graphModalOpen })),
   toggleCommandPalette: () =>
     set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
-  toggleHelpModal: () =>
-    set((s) => ({ helpModalOpen: !s.helpModalOpen })),
   toggleExportImageModal: () =>
     set((s) => ({ exportImageModalOpen: !s.exportImageModalOpen })),
   toggleFindBar: () =>
@@ -103,7 +97,7 @@ const useUIStore = create((set, get) => ({
   closeImageGenerateModal: () =>
     set({ imageGenerateModalOpen: false }),
   closeAllModals: () =>
-    set({ shortcutsModalOpen: false, saveModalOpen: false, aiModalOpen: false, graphModalOpen: false, commandPaletteOpen: false, helpModalOpen: false, exportImageModalOpen: false, findBarOpen: false, canvasPropertiesOpen: false, imageGenerateModalOpen: false }),
+    set({ saveModalOpen: false, aiModalOpen: false, graphModalOpen: false, commandPaletteOpen: false, exportImageModalOpen: false, findBarOpen: false, canvasPropertiesOpen: false, imageGenerateModalOpen: false }),
 
   // --- Menu ---
   menuOpen: false,

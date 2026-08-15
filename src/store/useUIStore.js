@@ -145,26 +145,20 @@ function applyCanvasTheme(resolved) {
 
 const useUIStore = create((set, get) => ({
   // --- Modals ---
-  shortcutsModalOpen: false,
   saveModalOpen: false,
   aiModalOpen: false,
   commandPaletteOpen: false,
-  helpModalOpen: false,
   exportImageModalOpen: false,
   findBarOpen: false,
   canvasPropertiesOpen: false,
   imageGenerateModalOpen: false,
 
-  toggleShortcutsModal: () =>
-    set((s) => ({ shortcutsModalOpen: !s.shortcutsModalOpen })),
   toggleSaveModal: () =>
     set((s) => ({ saveModalOpen: !s.saveModalOpen })),
   toggleAIModal: () =>
     set((s) => ({ aiModalOpen: !s.aiModalOpen })),
   toggleCommandPalette: () =>
     set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
-  toggleHelpModal: () =>
-    set((s) => ({ helpModalOpen: !s.helpModalOpen })),
   toggleExportImageModal: () =>
     set((s) => ({ exportImageModalOpen: !s.exportImageModalOpen })),
   toggleFindBar: () =>
@@ -178,7 +172,7 @@ const useUIStore = create((set, get) => ({
   closeImageGenerateModal: () =>
     set({ imageGenerateModalOpen: false }),
   closeAllModals: () =>
-    set({ shortcutsModalOpen: false, saveModalOpen: false, aiModalOpen: false, commandPaletteOpen: false, helpModalOpen: false, exportImageModalOpen: false, findBarOpen: false, canvasPropertiesOpen: false, imageGenerateModalOpen: false }),
+    set({ saveModalOpen: false, aiModalOpen: false, commandPaletteOpen: false, exportImageModalOpen: false, findBarOpen: false, canvasPropertiesOpen: false, imageGenerateModalOpen: false }),
 
   // --- Menu ---
   menuOpen: false,

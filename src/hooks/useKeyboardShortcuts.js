@@ -18,11 +18,9 @@ export default function useKeyboardShortcuts() {
       if (e.key === 'Escape') {
         const uiStore = useUIStore.getState()
         const hasOpenModal = [
-          uiStore.shortcutsModalOpen,
           uiStore.saveModalOpen,
           uiStore.aiModalOpen,
           uiStore.commandPaletteOpen,
-          uiStore.helpModalOpen,
           uiStore.exportImageModalOpen,
           uiStore.findBarOpen,
           uiStore.canvasPropertiesOpen,

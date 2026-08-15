@@ -267,7 +267,6 @@ export default function Header() {
   const setWorkspaceName = useUIStore((s) => s.setWorkspaceName)
   const toggleMenu = useUIStore((s) => s.toggleMenu)
   const toggleCommandPalette = useUIStore((s) => s.toggleCommandPalette)
-  const toggleHelpModal = useUIStore((s) => s.toggleHelpModal)
   const toggleSaveModal = useUIStore((s) => s.toggleSaveModal)
   const viewMode = useSketchStore((s) => s.viewMode)
   const zenMode = useSketchStore((s) => s.zenMode)
@@ -322,16 +321,6 @@ export default function Header() {
       <div className="flex items-center gap-2">
         {/* Profile pill owns identity, save state, and E2E status. */}
         <ProfileDropdown />
-
-        {/* Help */}
-        <button
-          onClick={toggleHelpModal}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-hover transition-all duration-200"
-          title="Help"
-          aria-label="Help"
-        >
-          <i className="bx bx-help-circle text-lg" />
-        </button>
 
         {/* Command palette */}
         <button
