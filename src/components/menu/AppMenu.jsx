@@ -6,7 +6,7 @@ import useUIStore from '@/store/useUIStore'
 import useSketchStore from '@/store/useSketchStore'
 import useAuthStore from '@/store/useAuthStore'
 import { triggerCloudSync, writeLocalScene } from '@/hooks/useAutoSave'
-import { triggerDocCloudSync, persistLayoutMode } from '@/hooks/useDocAutoSave'
+import { triggerDocCloudSync } from '@/hooks/useDocAutoSave'
 import { useTranslation } from '@/hooks/useTranslation'
 // Issue #38 follow-up: swatches are paired per theme. The light set
 // pairs with the soothing warm-off-white canvas; the dark set restores
@@ -71,14 +71,6 @@ export default function AppMenu() {
   const toggleToolLock = useSketchStore((s) => s.toggleToolLock)
   const toggleSnapToObjects = useSketchStore((s) => s.toggleSnapToObjects)
 
-  const layoutMode = useSketchStore((s) => s.layoutMode)
-  const setLayoutMode = useSketchStore((s) => s.setLayoutMode)
-  const handleSetLayout = (mode) => {
-    if (mode === layoutMode) return
-    setLayoutMode(mode)
-    persistLayoutMode(mode)
-  }
-
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const authUser = useAuthStore((s) => s.user)
   const login = useAuthStore((s) => s.login)
@@ -88,18 +80,14 @@ export default function AppMenu() {
   // Flyouts render through a portal so the vertically scrolling menu never
   // needs overflow-visible. This keeps its bottom edge inside the viewport.
   const [actionsOpen, setActionsOpen] = useState(false)
-  const [docOpen, setDocOpen] = useState(false)
   const [actionsFlyoutPosition, setActionsFlyoutPosition] = useState({ top: 0, left: 0 })
-  const [docFlyoutPosition, setDocFlyoutPosition] = useState({ top: 0, left: 0 })
   const [prefsFlyoutPosition, setPrefsFlyoutPosition] = useState({ top: 0, left: 0 })
   const actionsButtonRef = useRef(null)
-  const docButtonRef = useRef(null)
   const prefsButtonRef = useRef(null)
 
   useEffect(() => {
     if (menuOpen) return
     setActionsOpen(false)
-    setDocOpen(false)
     setPrefsOpen(false)
   }, [menuOpen])
 
@@ -114,24 +102,14 @@ export default function AppMenu() {
 
   const toggleActionsFlyout = () => {
     const opening = !actionsOpen
-    setDocOpen(false)
     setPrefsOpen(false)
     setActionsOpen(opening)
     if (opening) setActionsFlyoutPosition(flyoutPosition(actionsButtonRef.current, 230, 190))
   }
 
-  const toggleDocumentFlyout = () => {
-    const opening = !docOpen
-    setActionsOpen(false)
-    setPrefsOpen(false)
-    setDocOpen(opening)
-    if (opening) setDocFlyoutPosition(flyoutPosition(docButtonRef.current, 220, 126))
-  }
-
   const togglePreferencesFlyout = () => {
     const opening = !prefsOpen
     setActionsOpen(false)
-    setDocOpen(false)
     setPrefsOpen(opening)
     if (opening) setPrefsFlyoutPosition(flyoutPosition(prefsButtonRef.current, 240, Math.min(window.innerHeight * .6, 420)))
   }
@@ -195,11 +173,11 @@ export default function AppMenu() {
       {menuOpen && (
         <div
           className="fixed inset-0 z-999"
-          onClick={() => { closeMenu(); setActionsOpen(false); setPrefsOpen(false); setDocOpen(false) }}
+          onClick={() => { closeMenu(); setActionsOpen(false); setPrefsOpen(false) }}
         />
       )}
       <div
-        onScroll={() => { setActionsOpen(false); setPrefsOpen(false); setDocOpen(false) }}
+        onScroll={() => { setActionsOpen(false); setPrefsOpen(false) }}
         className={`absolute top-14 right-4 w-[230px] max-h-[calc(100vh-72px)] overflow-y-auto overscroll-contain no-scrollbar bg-surface/75 backdrop-blur-lg rounded-2xl z-[1000] border border-border-light p-1.5 font-[lixFont] text-[13px] transition-all duration-200 ${
           menuOpen
             ? 'opacity-100 blur-0 pointer-events-auto'
@@ -233,22 +211,6 @@ export default function AppMenu() {
         </button>
 
         <hr className="border-border-light my-1" />
-
-        <div className="relative">
-          {/* The flyout is portalled below so this menu remains scrollable. */}
-          <button
-            ref={docButtonRef}
-            onClick={toggleDocumentFlyout}
-            className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[12.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200 ${docOpen ? 'bg-surface-hover' : ''}`}
-          >
-            <span className="flex items-center gap-2">
-              <i className="bx bx-file-blank text-sm" />
-              Document
-            </span>
-            <i className="bx bx-chevron-left text-sm text-text-dim" />
-          </button>
-
-        </div>
 
         {/* Sync doc now (Ctrl+S triggers both, but explicit action is useful from menu) */}
         <button
@@ -438,34 +400,6 @@ export default function AppMenu() {
                   <span className="text-text-dim text-[10px]">{item.shortcut}</span>
                 </button>
               ))}
-            </div>
-          )}
-
-          {docOpen && (
-            <div
-              className="fixed w-[220px] bg-surface-card border border-border-light rounded-2xl p-1.5 shadow-2xl shadow-black/40 z-[1001] font-[lixFont]"
-              style={docFlyoutPosition}
-            >
-              {[
-                { key: 'canvas', icon: 'bx-pen', label: 'Canvas' },
-                { key: 'split', icon: 'bx-layout', label: 'Split' },
-                { key: 'docs', icon: 'bxs-notepad', label: 'Docs' },
-              ].map((mode) => {
-                const active = layoutMode === mode.key
-                return (
-                  <button
-                    key={mode.key}
-                    onClick={() => { handleSetLayout(mode.key); setDocOpen(false) }}
-                    className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[11px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
-                  >
-                    <span className="flex items-center gap-2">
-                      {active && <i className="bx bx-check text-sm text-accent-blue" />}
-                      <i className={`bx ${mode.icon} text-xs ${active ? 'text-accent-blue' : 'text-text-muted'}`} />
-                      {mode.label}
-                    </span>
-                  </button>
-                )
-              })}
             </div>
           )}
 

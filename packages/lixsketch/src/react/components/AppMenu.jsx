@@ -6,7 +6,7 @@ import useUIStore from '../store/useUIStore'
 import useSketchStore from '../store/useSketchStore'
 import { useAuthStore } from '../hooks/inertStores'
 import { triggerCloudSync } from '../hooks/inertStores'
-import { triggerDocCloudSync, persistLayoutMode } from '../hooks/inertStores'
+import { triggerDocCloudSync } from '../hooks/inertStores'
 import { useTranslation } from '../hooks/useTranslation'
 
 // Issue #38 follow-up: theme-paired swatches. The menu picks the
@@ -68,14 +68,6 @@ export default function AppMenu() {
   const toggleZenMode = useSketchStore((s) => s.toggleZenMode)
   const toggleToolLock = useSketchStore((s) => s.toggleToolLock)
   const toggleSnapToObjects = useSketchStore((s) => s.toggleSnapToObjects)
-
-  const layoutMode = useSketchStore((s) => s.layoutMode)
-  const setLayoutMode = useSketchStore((s) => s.setLayoutMode)
-  const handleSetLayout = (mode) => {
-    if (mode === layoutMode) return
-    setLayoutMode(mode)
-    persistLayoutMode(mode)
-  }
 
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const authUser = useAuthStore((s) => s.user)
@@ -186,38 +178,6 @@ export default function AppMenu() {
         </button>
 
         <hr className="border-border-light my-1" />
-
-        {/* Document layout */}
-        <div className="px-3 py-1.5">
-          <p className="text-text-dim text-[10px] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <i className="bx bx-file-blank text-[11px]" />
-            Document
-          </p>
-          <div className="flex items-center gap-1 bg-surface/60 border border-border-light rounded-lg p-0.5">
-            {[
-              { key: 'canvas', icon: 'bx-pen', label: 'Canvas' },
-              { key: 'split', icon: 'bx-layout', label: 'Split' },
-              { key: 'docs', icon: 'bxs-notepad', label: 'Docs' },
-            ].map((m) => {
-              const active = layoutMode === m.key
-              return (
-                <button
-                  key={m.key}
-                  onClick={() => handleSetLayout(m.key)}
-                  title={m.label}
-                  className={`flex-1 flex items-center justify-center gap-1 h-6 rounded-md text-[10.5px] transition-all duration-150 ${
-                    active
-                      ? 'bg-accent-blue text-text-primary'
-                      : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
-                  }`}
-                >
-                  <i className={`bx ${m.icon} text-[11px]`} />
-                  {m.label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
 
         {/* Sync doc now (Ctrl+S triggers both, but explicit action is useful from menu) */}
         <button

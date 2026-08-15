@@ -8,3 +8,4 @@
 - [x] Route browser zoom shortcuts to canvas zoom.
 - [x] Consolidate file and search commands into an Actions flyout.
 - [x] Keep the command center trigger in the header and remove its menu duplicate.
+- [x] Remove the redundant Document layout control from the menu.
