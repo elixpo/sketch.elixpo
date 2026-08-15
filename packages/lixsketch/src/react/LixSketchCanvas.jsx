@@ -116,7 +116,7 @@ export default function LixSketchCanvas({
       const target = e.target;
       const tag = (target?.tagName || '').toLowerCase();
       const isTyping = tag === 'input' || tag === 'textarea' || target?.isContentEditable;
-      if (!isTyping && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && (e.key || '').toLowerCase() === 'r') {
+      if (!isTyping && !e.ctrlKey && !e.metaKey && !e.altKey && e.shiftKey && (e.key || '').toLowerCase() === 'r') {
         e.preventDefault();
         useSketchStore.getState().toggleRulers();
         return;

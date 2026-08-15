@@ -121,7 +121,7 @@ export default function AppMenu() {
     { label: t('prefs.toolLock'), shortcut: 'Q', id: 'toolLock' },
     { label: t('prefs.snapObjects'), shortcut: 'Alt+S', id: 'snapObjects' },
     { label: t('menu.showGrid'), shortcut: "Ctrl+'", id: 'toggleGrid' },
-    { label: 'Show rulers', shortcut: 'R', id: 'toggleRulers' },
+    { label: 'Show rulers', shortcut: 'Shift+R', id: 'toggleRulers' },
     { label: t('prefs.zenMode'), shortcut: 'Alt+Z', id: 'zenMode' },
     { label: t('prefs.viewMode'), shortcut: 'Alt+R', id: 'viewMode' },
     { label: t('prefs.canvasShapeProps'), shortcut: 'Alt+/', id: 'properties' },

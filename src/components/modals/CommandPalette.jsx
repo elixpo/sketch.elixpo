@@ -29,7 +29,7 @@ const CANVAS_COMMANDS = [
   { label: 'Reset zoom', icon: 'bx-reset', section: 'Editor', shortcut: 'Ctrl+0' },
   { label: 'Zoom to fit all elements', icon: 'bx-fullscreen', section: 'Editor', shortcut: 'Shift+1' },
   { label: 'Toggle grid', icon: 'bx-grid-alt', section: 'Editor', shortcut: "Ctrl+'", action: 'toggleGrid' },
-  { label: 'Toggle rulers', icon: 'bx-ruler', section: 'Editor', shortcut: 'R', action: 'toggleRulers' },
+  { label: 'Toggle rulers', icon: 'bx-ruler', section: 'Editor', shortcut: 'Shift+R', action: 'toggleRulers' },
   { label: 'Select all', icon: 'bx-select-multiple', section: 'Editor', shortcut: 'Ctrl+A', action: 'selectAll' },
   { label: 'Reset canvas', icon: 'bx-trash', section: 'Editor', shortcut: 'Ctrl+Delete', action: 'resetCanvas' },
   { label: 'Canvas background', icon: 'bx-palette', section: 'Editor', action: 'openMenu' },
@@ -37,7 +37,7 @@ const CANVAS_COMMANDS = [
   // --- Tools ---
   { label: 'Hand (panning tool)', icon: 'bx-hand', section: 'Tools', shortcut: 'H', action: 'tool:pan' },
   { label: 'Selection', icon: 'bx-pointer', section: 'Tools', shortcut: 'V / 1', action: 'tool:select' },
-  { label: 'Rectangle', icon: 'bx-rectangle', section: 'Tools', shortcut: '2', action: 'tool:rectangle' },
+  { label: 'Rectangle', icon: 'bx-rectangle', section: 'Tools', shortcut: 'R / 2', action: 'tool:rectangle' },
   { label: 'Diamond', icon: 'bx-diamond', section: 'Tools', shortcut: '3', action: 'tool:diamond' },
   { label: 'Circle', icon: 'bx-circle', section: 'Tools', shortcut: 'O / 4', action: 'tool:circle' },
   { label: 'Arrow', icon: 'bx-right-arrow-alt', section: 'Tools', shortcut: 'A / 5', action: 'tool:arrow' },

@@ -29,6 +29,7 @@ export const SHORTCUT_MAP = {
     h: 'pan',
     v: 'select',
     1: 'select',
+    r: 'rectangle',
     2: 'rectangle',
     o: 'circle',
     4: 'circle',
