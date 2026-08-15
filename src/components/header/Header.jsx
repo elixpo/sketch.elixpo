@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import useUIStore from '@/store/useUIStore'
+import useUIStore, { MAX_WORKSPACE_NAME_LENGTH } from '@/store/useUIStore'
 import useSketchStore from '@/store/useSketchStore'
 import useAuthStore from '@/store/useAuthStore'
 import { useProfileStore } from '@/hooks/useGuestProfile'
@@ -317,6 +317,7 @@ export default function Header() {
           <input
             type="text"
             value={workspaceName}
+            maxLength={MAX_WORKSPACE_NAME_LENGTH}
             onChange={(e) => setWorkspaceName(e.target.value)}
             onFocus={() => { workspaceNameAtFocus.current = workspaceName }}
             onBlur={finishWorkspaceNameEdit}

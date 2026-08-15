@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from 'react'
-import useUIStore from '@/store/useUIStore'
+import useUIStore, { MAX_WORKSPACE_NAME_LENGTH } from '@/store/useUIStore'
 import useCollabStore from '@/store/useCollabStore'
 import { getSessionID } from '@/hooks/useSessionID'
 import { generateKey, encrypt } from '@/utils/encryption'
@@ -297,10 +297,14 @@ export default function SaveModal() {
         <div className="px-6 pb-6 flex flex-col gap-4">
           {/* Workspace Name */}
           <div>
-            <label className="text-text-dim text-xs uppercase tracking-wider mb-1.5 block">Workspace Name</label>
+            <div className="mb-1.5 flex items-center justify-between">
+              <label className="text-text-dim text-xs uppercase tracking-wider">Workspace Name</label>
+              <span className="text-[10px] text-text-dim">{workspaceName.length}/{MAX_WORKSPACE_NAME_LENGTH}</span>
+            </div>
             <input
               type="text"
               value={workspaceName}
+              maxLength={MAX_WORKSPACE_NAME_LENGTH}
               onChange={(e) => setWorkspaceName(e.target.value)}
               placeholder="e.g. cosmic-penguin"
               className="w-full bg-surface text-text-primary text-sm border border-border-light rounded-lg px-3 py-2 outline-none focus:border-accent-blue transition-all duration-200"

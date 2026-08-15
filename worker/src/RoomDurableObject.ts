@@ -5,6 +5,8 @@ const CURSOR_COLORS = [
   '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#F1948A',
 ];
 
+const MAX_WORKSPACE_NAME_LENGTH = 20;
+
 interface UserInfo {
   userId: string;
   displayName: string;
@@ -79,7 +81,8 @@ export class RoomDurableObject {
     const displayName = authSession?.displayName
       || decodeParam(url.searchParams.get('displayName') || '');
     const avatar = authSession?.avatar || url.searchParams.get('avatar') || '';
-    const workspaceName = decodeParam(url.searchParams.get('workspaceName') || 'Untitled');
+    const workspaceName = decodeParam(url.searchParams.get('workspaceName') || 'Untitled')
+      .slice(0, MAX_WORKSPACE_NAME_LENGTH);
     const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
 
     // Get or initialize room

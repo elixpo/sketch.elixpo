@@ -6,6 +6,12 @@ export const THEME_CANVAS_BACKGROUNDS = {
   light: '#fbf9fd',
 }
 
+export const MAX_WORKSPACE_NAME_LENGTH = 20
+
+function limitWorkspaceName(name) {
+  return String(name ?? '').slice(0, MAX_WORKSPACE_NAME_LENGTH)
+}
+
 export function resolveTheme(theme) {
   if (theme !== 'system') return theme === 'light' ? 'light' : 'dark'
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'dark'
@@ -182,10 +188,11 @@ const useUIStore = create((set, get) => ({
   // --- Workspace ---
   workspaceName: '',
   setWorkspaceName: (name) => {
+    const workspaceName = limitWorkspaceName(name)
     if (typeof window !== 'undefined') {
-      localStorage.setItem('lixsketch-workspace-name', name)
+      try { localStorage.setItem('lixsketch-workspace-name', workspaceName) } catch {}
     }
-    set({ workspaceName: name })
+    set({ workspaceName })
   },
 
   // --- Save Status ---

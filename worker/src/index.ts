@@ -371,6 +371,8 @@ async function handleAuthRefresh(request: Request, env: Env): Promise<Response> 
 // Scene Handlers
 // =============================================================================
 
+const MAX_WORKSPACE_NAME_LENGTH = 20;
+
 async function handleSceneSave(request: Request, env: Env): Promise<Response> {
   try {
     const body = await request.json() as {
@@ -385,6 +387,8 @@ async function handleSceneSave(request: Request, env: Env): Promise<Response> {
       return json({ error: 'Missing sessionId or encryptedData' }, 400);
     }
 
+    const workspaceName = String(body.workspaceName || 'Untitled').slice(0, MAX_WORKSPACE_NAME_LENGTH);
+
     const ownerType = body.createdBy && !body.createdBy.startsWith('guest-') ? 'user' : 'guest';
     const maxWorkspaces = ownerType === 'user' ? 3 : 1;
 
@@ -398,7 +402,7 @@ async function handleSceneSave(request: Request, env: Env): Promise<Response> {
       await env.DB.prepare(
         `UPDATE scenes SET encrypted_data = ?, workspace_name = ?, updated_at = datetime('now'),
          last_accessed_at = datetime('now'), size_bytes = ?, owner_type = ? WHERE id = ?`
-      ).bind(body.encryptedData, body.workspaceName || 'Untitled', sizeBytes, ownerType, existing.id).run();
+      ).bind(body.encryptedData, workspaceName, sizeBytes, ownerType, existing.id).run();
 
       const perm = await env.DB.prepare(
         `SELECT token FROM scene_permissions WHERE scene_id = ?`
@@ -432,7 +436,7 @@ async function handleSceneSave(request: Request, env: Env): Promise<Response> {
       env.DB.prepare(
         `INSERT INTO scenes (id, session_id, workspace_name, encrypted_data, permission, created_by, size_bytes, owner_type, last_accessed_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
-      ).bind(sceneId, body.sessionId, body.workspaceName || 'Untitled', body.encryptedData, body.permission || 'view', body.createdBy || null, sizeBytes, ownerType),
+      ).bind(sceneId, body.sessionId, workspaceName, body.encryptedData, body.permission || 'view', body.createdBy || null, sizeBytes, ownerType),
       env.DB.prepare(
         `INSERT INTO scene_permissions (id, scene_id, token, permission)
          VALUES (?, ?, ?, ?)`
