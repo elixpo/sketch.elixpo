@@ -17,7 +17,12 @@ import {
   FormattingToolbar,
   FormattingToolbarController,
   getFormattingToolbarItems,
+  SideMenuController,
+  useBlockNoteEditor,
+  useExtension,
+  useExtensionState,
 } from '@blocknote/react'
+import { SideMenuExtension, SuggestionMenu } from '@blocknote/core/extensions'
 import { flip, offset, shift } from '@floating-ui/react'
 import { compressImage } from '@elixpo/lixsketch/src/utils/imageCompressor.js'
 import { WORKER_URL } from '@/lib/env'
@@ -42,6 +47,97 @@ function DocumentFormattingToolbar() {
           return key !== 'createLink'
         })}
       </FormattingToolbar>
+    </div>
+  )
+}
+
+function DocumentBlockSideMenu() {
+  const editor = useBlockNoteEditor()
+  const sideMenu = useExtension(SideMenuExtension)
+  const suggestionMenu = useExtension(SuggestionMenu)
+  const block = useExtensionState(SideMenuExtension, {
+    editor,
+    selector: (state) => state?.block,
+  })
+  const [open, setOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    setOpen(false)
+  }, [block?.id])
+
+  useEffect(() => {
+    if (!open) return undefined
+    sideMenu.freezeMenu()
+    const close = (event) => {
+      if (event.type === 'keydown' && event.key !== 'Escape') return
+      if (event.type === 'pointerdown' && menuRef.current?.contains(event.target)) return
+      setOpen(false)
+    }
+    document.addEventListener('pointerdown', close, true)
+    document.addEventListener('keydown', close, true)
+    return () => {
+      document.removeEventListener('pointerdown', close, true)
+      document.removeEventListener('keydown', close, true)
+      sideMenu.unfreezeMenu()
+    }
+  }, [open, sideMenu])
+
+  if (!block) return null
+
+  const toggleMenu = () => setOpen((current) => !current)
+  const addBlock = () => {
+    const isEmpty = Array.isArray(block.content) && block.content.length === 0
+    const target = isEmpty
+      ? block
+      : editor.insertBlocks([{ type: 'paragraph', content: [] }], block, 'after')[0]
+    editor.setTextCursorPosition(target, 'start')
+    setOpen(false)
+    requestAnimationFrame(() => suggestionMenu.openSuggestionMenu('/'))
+  }
+  const deleteBlock = () => {
+    setOpen(false)
+    editor.removeBlocks([block])
+    requestAnimationFrame(() => editor.focus())
+  }
+
+  return (
+    <div ref={menuRef} className="bn-side-menu lix-doc-block-side-menu" role="group" aria-label="Block actions">
+      <button
+        type="button"
+        className="lix-doc-block-handle"
+        title="Block actions"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={toggleMenu}
+      >
+        <i className="bx bx-plus text-xl" />
+      </button>
+      <button
+        type="button"
+        className="lix-doc-block-handle"
+        title="Move or open block actions"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        draggable
+        onDragStart={(event) => sideMenu.blockDragStart(event, block)}
+        onDragEnd={sideMenu.blockDragEnd}
+        onClick={toggleMenu}
+      >
+        <i className="bx bx-grid-vertical text-lg" />
+      </button>
+      {open && (
+        <div className="lix-doc-block-context" role="menu">
+          <button type="button" role="menuitem" onClick={addBlock}>
+            <i className="bx bx-plus-circle" />
+            <span>Add block</span>
+          </button>
+          <button type="button" role="menuitem" className="danger" onClick={deleteBlock}>
+            <i className="bx bx-trash" />
+            <span>Delete block</span>
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -270,6 +366,7 @@ export default function DocsPanel() {
                 formattingToolbar={DocumentFormattingToolbar}
                 floatingUIOptions={DOC_FORMATTING_TOOLBAR_OPTIONS}
               />
+              <SideMenuController sideMenu={DocumentBlockSideMenu} />
             </LixEditor>
           </LixThemeProvider>
         ) : (

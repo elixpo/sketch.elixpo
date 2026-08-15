@@ -401,6 +401,76 @@ body.canvas-mode.theme-dark .lix-sketch-theme code {
   padding: 2px 4px !important;
 }
 
+/* Hide BlockNote's default side controls; DocsPanel injects a shared menu
+ * whose add and move handles both open actions for the exact hovered block. */
+.lix-sketch-theme .bn-side-menu:not(.lix-doc-block-side-menu) {
+  display: none !important;
+}
+
+.lix-sketch-theme .lix-doc-block-side-menu {
+  position: relative;
+}
+
+.lix-doc-block-handle {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+
+.lix-doc-block-handle:hover,
+.lix-doc-block-handle[aria-expanded="true"] {
+  background: var(--bg-hover);
+  color: var(--accent-text);
+}
+
+.lix-doc-block-context {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  z-index: 80;
+  width: 168px;
+  padding: 4px;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+}
+
+.lix-doc-block-context button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: 12px/1.2 lixFont, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lix-doc-block-context button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.lix-doc-block-context button.danger {
+  color: #f87171;
+}
+
+.lix-doc-block-context button.danger:hover {
+  background: rgba(248, 113, 113, 0.1);
+}
+
 .lix-sketch-theme .bn-side-menu > * {
   flex: 0 0 auto !important;
 }

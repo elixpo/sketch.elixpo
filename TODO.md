@@ -33,3 +33,4 @@
 - [x] Add a consistent left inset between document lines and their add/drag controls.
 - [x] Keep one document image embed control and position its URL field directly below the image placeholder.
 - [x] Validate remote document images before embedding and preserve the empty URL form on failure.
+- [x] Open a shared block context menu from both document side handles with Add and Delete actions.
