@@ -41,3 +41,4 @@
 - [x] Refine the profile dropdown hierarchy and remove its E2E documentation action.
 - [x] Keep profile workspace cards in sync with workspace-name edits.
 - [x] Add left-edge breathing room around the document add and move controls.
+- [x] Prevent the default and custom document side controls from overlapping.

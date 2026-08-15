@@ -407,6 +407,7 @@ body.canvas-mode.theme-dark .lix-sketch-theme code {
  * whose add and move handles both open actions for the exact hovered block. */
 .lix-sketch-theme .bn-side-menu:not(.lix-doc-block-side-menu) {
   display: none !important;
+  visibility: hidden !important;
 }
 
 .lix-sketch-theme .lix-doc-block-side-menu {
