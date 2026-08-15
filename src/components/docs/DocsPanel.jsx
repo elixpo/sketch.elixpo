@@ -27,6 +27,16 @@ import { flip, offset, shift } from '@floating-ui/react'
 import { compressImage } from '@elixpo/lixsketch/src/utils/imageCompressor.js'
 import { WORKER_URL } from '@/lib/env'
 import { showToast } from '@/utils/toast'
+import {
+  DOC_CANVAS_LINKS_EVENT,
+  FOCUS_DOC_BLOCK_EVENT,
+  focusCanvasShape,
+  getSelectedCanvasShape,
+  getShapeLinkedToBlock,
+  linkShapeToBlock,
+  pruneDocCanvasLinks,
+  unlinkBlock,
+} from '@/utils/docCanvasLinks'
 
 const DOC_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
 const DOC_IMAGE_MAX_BYTES = 5 * 1024 * 1024
@@ -68,7 +78,14 @@ function DocumentBlockSideMenu() {
     selector: (state) => state?.block,
   })
   const [open, setOpen] = useState(false)
+  const [, setLinkRevision] = useState(0)
   const menuRef = useRef(null)
+
+  useEffect(() => {
+    const refresh = () => setLinkRevision((revision) => revision + 1)
+    window.addEventListener(DOC_CANVAS_LINKS_EVENT, refresh)
+    return () => window.removeEventListener(DOC_CANVAS_LINKS_EVENT, refresh)
+  }, [])
 
   useEffect(() => {
     setOpen(false)
@@ -93,6 +110,9 @@ function DocumentBlockSideMenu() {
 
   if (!block) return null
 
+  const linkedShape = getShapeLinkedToBlock(block.id)
+  const selectedShape = open ? getSelectedCanvasShape() : null
+
   const openContextMenu = (event) => {
     event.preventDefault()
     setOpen(true)
@@ -111,9 +131,21 @@ function DocumentBlockSideMenu() {
     requestAnimationFrame(() => suggestionMenu.openSuggestionMenu('/'))
   }
   const deleteBlock = () => {
+    unlinkBlock(block.id)
     setOpen(false)
     editor.removeBlocks([block])
     requestAnimationFrame(() => editor.focus())
+  }
+  const linkSelectedShape = () => {
+    if (!selectedShape) return
+    linkShapeToBlock(selectedShape, block.id)
+    setOpen(false)
+    showToast('Shape linked to document block', { tone: 'success', duration: 1800 })
+  }
+  const removeLink = () => {
+    unlinkBlock(block.id)
+    setOpen(false)
+    showToast('Canvas link removed', { duration: 1600 })
   }
 
   return (
@@ -144,12 +176,45 @@ function DocumentBlockSideMenu() {
       >
         <i className="bx bx-grid-vertical text-lg" />
       </button>
+      {linkedShape && (
+        <button
+          type="button"
+          className="lix-doc-block-handle lix-doc-link-handle"
+          title="Open linked canvas shape"
+          aria-label="Open linked canvas shape"
+          onClick={() => focusCanvasShape(linkedShape.shapeID)}
+        >
+          <i className="bx bx-link text-sm" />
+        </button>
+      )}
       {open && (
         <div className="lix-doc-block-context" role="menu">
           <button type="button" role="menuitem" onClick={addBlock}>
             <i className="bx bx-plus-circle" />
             <span>Add block</span>
           </button>
+          <button type="button" role="menuitem" disabled={!selectedShape} onClick={linkSelectedShape}>
+            <i className="bx bx-link" />
+            <span>{linkedShape ? 'Relink selected shape' : 'Link selected shape'}</span>
+          </button>
+          {!selectedShape && !linkedShape && (
+            <p className="lix-doc-block-context-hint">Select one canvas shape first</p>
+          )}
+          {linkedShape && (
+            <>
+              <button type="button" role="menuitem" onClick={() => {
+                setOpen(false)
+                focusCanvasShape(linkedShape.shapeID)
+              }}>
+                <i className="bx bx-target-lock" />
+                <span>Go to linked shape</span>
+              </button>
+              <button type="button" role="menuitem" onClick={removeLink}>
+                <i className="bx bx-unlink" />
+                <span>Remove canvas link</span>
+              </button>
+            </>
+          )}
           <button type="button" role="menuitem" className="danger" onClick={deleteBlock}>
             <i className="bx bx-trash" />
             <span>Delete block</span>
@@ -266,6 +331,38 @@ export default function DocsPanel() {
   const { initialContent, ready } = useDocAutoSave(visible)
 
   useEffect(() => {
+    if (!visible) setEditorReady(false)
+  }, [visible])
+
+  useEffect(() => {
+    const focusBlock = (blockId) => {
+      const editor = editorRef.current?.getEditor?.()
+      if (!editor || !blockId) {
+        window.__pendingDocBlockFocus = blockId
+        return
+      }
+      const block = editor.getBlock?.(blockId)
+      if (!block) return
+      window.__pendingDocBlockFocus = null
+      editor.setTextCursorPosition(block, 'start')
+      editor.focus()
+      requestAnimationFrame(() => {
+        const escapedId = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(blockId) : blockId
+        docHostRef.current?.querySelector(`[data-id="${escapedId}"]`)?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        })
+      })
+    }
+    const handleFocusBlock = (event) => focusBlock(event.detail?.blockId)
+    window.addEventListener(FOCUS_DOC_BLOCK_EVENT, handleFocusBlock)
+    if (visible && editorReady && window.__pendingDocBlockFocus) {
+      focusBlock(window.__pendingDocBlockFocus)
+    }
+    return () => window.removeEventListener(FOCUS_DOC_BLOCK_EVENT, handleFocusBlock)
+  }, [editorReady, visible])
+
+  useEffect(() => {
     const host = docHostRef.current
     if (!host) return undefined
 
@@ -372,6 +469,7 @@ export default function DocsPanel() {
               onChange={(editor) => {
                 try {
                   const blocks = editor.document
+                  pruneDocCanvasLinks(blocks)
                   triggerDocSync(blocks)
                 } catch {}
               }}

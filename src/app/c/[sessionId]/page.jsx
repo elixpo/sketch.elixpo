@@ -21,6 +21,7 @@ import FrameSidebar from '@/components/sidebars/FrameSidebar'
 import IconSidebar from '@/components/sidebars/IconSidebar'
 import ImageSidebar from '@/components/sidebars/ImageSidebar'
 import SVGCanvas from '@/components/canvas/SVGCanvas'
+import CanvasDocConnectors from '@/components/canvas/CanvasDocConnectors'
 import MultiSelectActions from '@/components/canvas/MultiSelectActions'
 import ImageSourcePicker from '@/components/canvas/ImageSourcePicker'
 import ImageGenerateModal from '@/components/modals/ImageGenerateModal'
@@ -84,6 +85,7 @@ export default function CanvasPage() {
         canvas={
           <>
             <SVGCanvas />
+            <CanvasDocConnectors />
             {/* All canvas chrome lives inside the canvas wrapper so it
                 can't visually overflow into the docs panel during split. */}
             {canvasVisible && (

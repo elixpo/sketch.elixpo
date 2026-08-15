@@ -41,6 +41,9 @@ function cloneOptions(options) {
 function serializeShape(shape) {
     const base = {
         shapeID: shape.shapeID,
+        // Optional one-to-one connection to a BlockNote document block.
+        // Stored with the encrypted scene so navigation survives restore.
+        docBlockId: shape.docBlockId || null,
         parentFrame: shape.parentFrame ? shape.parentFrame.shapeID : null,
         // Group membership — null when the shape isn't part of a group.
         // All shapes sharing a non-null groupId move/resize/rotate as a
@@ -411,6 +414,10 @@ export function loadScene(sceneData) {
         if (shape) {
             // Restore group membership if present.
             if (data.groupId) shape.groupId = data.groupId;
+            if (data.docBlockId) {
+                shape.docBlockId = data.docBlockId;
+                (shape.group || shape.element)?.setAttribute('data-doc-block-id', data.docBlockId);
+            }
             window.shapes.push(shape);
             if (data.shapeID) idMap.set(data.shapeID, shape);
         }
@@ -421,6 +428,10 @@ export function loadScene(sceneData) {
         const shape = deserializeShape(data);
         if (shape) {
             if (data.groupId) shape.groupId = data.groupId;
+            if (data.docBlockId) {
+                shape.docBlockId = data.docBlockId;
+                (shape.group || shape.element)?.setAttribute('data-doc-block-id', data.docBlockId);
+            }
             window.shapes.push(shape);
             if (data.shapeID) idMap.set(data.shapeID, shape);
         }
@@ -539,6 +550,7 @@ export function loadScene(sceneData) {
     }
 
     console.log(`[SceneSerializer] Loaded ${window.shapes.length} shapes from "${sceneData.name}"`);
+    window.dispatchEvent(new CustomEvent('lix-doc-canvas-links-changed'));
 
     // Re-sync tool flags so shapes are interactable after restore
     if (window.__sketchEngine && typeof window.__sketchEngine.setActiveTool === 'function') {

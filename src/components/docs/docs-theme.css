@@ -434,6 +434,20 @@ body.canvas-mode.theme-dark .lix-sketch-theme code {
   color: var(--accent-text);
 }
 
+.lix-doc-link-handle {
+  position: absolute;
+  left: 50%;
+  top: -19px;
+  width: 20px;
+  height: 20px;
+  transform: translateX(-50%);
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--accent-text);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
 .lix-doc-block-context {
   position: absolute;
   left: 0;
@@ -465,6 +479,17 @@ body.canvas-mode.theme-dark .lix-sketch-theme code {
 .lix-doc-block-context button:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
+}
+
+.lix-doc-block-context button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.lix-doc-block-context-hint {
+  margin: -2px 8px 4px;
+  color: var(--text-faint);
+  font: 10px/1.3 lixFont, sans-serif;
 }
 
 .lix-doc-block-context button.danger {

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import useSketchStore from '@/store/useSketchStore'
 import useUIStore from '@/store/useUIStore'
 import { showToast } from '@/utils/toast'
+import { focusDocumentBlock } from '@/utils/docCanvasLinks'
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -367,6 +368,15 @@ export default function ContextMenu() {
       {isShape ? (
         /* ── Shape context menu ── */
         <>
+          {targetShape?.docBlockId && (
+            <>
+              <MenuItem label="Open linked document block" onClick={() => {
+                focusDocumentBlock(targetShape.docBlockId)
+                close()
+              }} />
+              <Separator />
+            </>
+          )}
           <MenuItem label="Cut" shortcut="Ctrl+X" onClick={handleCut} />
           <MenuItem label="Copy" shortcut="Ctrl+C" onClick={handleCopy} />
           <MenuItem label="Paste" shortcut="Ctrl+V" onClick={handlePaste} />
