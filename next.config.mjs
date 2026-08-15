@@ -52,7 +52,10 @@ if (process.env.NODE_ENV === 'development') {
     // Loading the production worker config here makes workerd look for the
     // RoomDurableObject class inside the Next runtime, where it cannot exist.
     configPath: 'wrangler.next.toml',
-    persist: { path: '.wrangler/state' },
+    // Wrangler v4 stores `--persist-to .wrangler/state` resources below its
+    // v3 directory. Point Miniflare at that same directory so route handlers
+    // see the schema applied by `npm run db:migrate:local`.
+    persist: { path: '.wrangler/state/v3' },
   })
 }
 

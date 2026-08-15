@@ -38,6 +38,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
+    "predev": "npm run db:migrate:local",
     "dev": "concurrently -k -n next,worker -c blue,magenta \"npm run dev:next\" \"npm run dev:rooms\"",
     "dev:next": "next dev --turbo",
     "dev:rooms": "wrangler dev --config wrangler.dev.toml --persist-to .wrangler/state --local --port 8787",
