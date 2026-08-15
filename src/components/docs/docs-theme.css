@@ -345,6 +345,8 @@ body.canvas-mode.theme-dark .lix-sketch-theme code {
 /* Keep only LixEditor's image controls. BlockNote mounts a second file panel
  * below the custom placeholder; it must never be visible or interactive. */
 .bn-file-panel,
+.bn-panel:has([data-test="embed-input"]),
+.bn-panel:has([data-test="upload-input"]),
 [class*="mantine-Popover-dropdown"]:has([data-test="embed-input"]),
 [class*="mantine-Popover-dropdown"]:has([data-test="upload-input"]) {
   display: none !important;

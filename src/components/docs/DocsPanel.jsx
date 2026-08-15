@@ -490,42 +490,11 @@ export default function DocsPanel() {
       submitEmbed(button, input)
     }
 
-    const handleImagePointerDown = (event) => {
-      const imageBlock = event.target.closest?.('.blog-img-loaded, .blog-img-empty')
-      if (!imageBlock || !host.contains(imageBlock)) return
-      const interactive = event.target.closest?.('button, input, .blog-img-caption')
-      if (interactive) return
-
-      // Image blocks have no editable ProseMirror content. Allowing the
-      // pointer event to reach the editor makes it place a text selection in
-      // the nearest paragraph placeholder, which looks like the image click
-      // selected that default text.
-      event.preventDefault()
-      event.stopPropagation()
-      imageBlock.focus({ preventScroll: true })
-      const clearTextSelection = () => window.getSelection?.()?.removeAllRanges?.()
-      clearTextSelection()
-      requestAnimationFrame(clearTextSelection)
-    }
-
-    const handleImageClick = (event) => {
-      const imageBlock = event.target.closest?.('.blog-img-loaded, .blog-img-empty')
-      if (!imageBlock || !host.contains(imageBlock)) return
-      if (event.target.closest?.('button, input, .blog-img-caption')) return
-      event.preventDefault()
-      event.stopPropagation()
-      window.getSelection?.()?.removeAllRanges?.()
-    }
-
     host.addEventListener('click', handleClick, true)
-    host.addEventListener('click', handleImageClick, true)
     host.addEventListener('keydown', handleKeyDown, true)
-    host.addEventListener('pointerdown', handleImagePointerDown, true)
     return () => {
       host.removeEventListener('click', handleClick, true)
-      host.removeEventListener('click', handleImageClick, true)
       host.removeEventListener('keydown', handleKeyDown, true)
-      host.removeEventListener('pointerdown', handleImagePointerDown, true)
     }
   }, [visible])
 
