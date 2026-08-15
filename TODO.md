@@ -46,3 +46,4 @@
 - [x] Open document block actions from right-click instead of left-clicking the side controls.
 - [x] Link canvas shapes and document blocks with persisted two-way navigation badges.
 - [x] Support many-to-many canvas/document connections with destination pickers and linked-item deletion warnings.
+- [x] Prevent image-block clicks from selecting the document's default placeholder text.
