@@ -21,6 +21,7 @@ import {
 import { flip, offset, shift } from '@floating-ui/react'
 import { compressImage } from '@elixpo/lixsketch/src/utils/imageCompressor.js'
 import { WORKER_URL } from '@/lib/env'
+import { showToast } from '@/utils/toast'
 
 const DOC_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
 const DOC_IMAGE_MAX_BYTES = 5 * 1024 * 1024
@@ -51,6 +52,37 @@ function readFileAsDataURL(file) {
     reader.onload = () => resolve(reader.result)
     reader.onerror = () => reject(reader.error || new Error('Could not read image'))
     reader.readAsDataURL(file)
+  })
+}
+
+function validateRemoteImage(url, timeoutMs = 8000) {
+  return new Promise((resolve) => {
+    let parsed
+    try {
+      parsed = new URL(url)
+    } catch {
+      resolve(false)
+      return
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      resolve(false)
+      return
+    }
+
+    const image = new Image()
+    let settled = false
+    const finish = (valid) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      image.onload = null
+      image.onerror = null
+      resolve(valid)
+    }
+    const timer = setTimeout(() => finish(false), timeoutMs)
+    image.onload = () => finish(image.naturalWidth > 0 && image.naturalHeight > 0)
+    image.onerror = () => finish(false)
+    image.src = parsed.href
   })
 }
 
@@ -106,6 +138,7 @@ export default function DocsPanel() {
   const layoutMode = useSketchStore((s) => s.layoutMode)
   const visible = layoutMode === 'split' || layoutMode === 'docs'
   const editorRef = useRef(null)
+  const docHostRef = useRef(null)
   const focusedForDocsRef = useRef(false)
   const [editorReady, setEditorReady] = useState(false)
   // Controlled-mode theme: pass the canvas theme straight through to the
@@ -117,6 +150,59 @@ export default function DocsPanel() {
   const docTheme = canvasTheme === 'dark' ? 'dark' : 'light'
 
   const { initialContent, ready } = useDocAutoSave(visible)
+
+  useEffect(() => {
+    const host = docHostRef.current
+    if (!host) return undefined
+
+    const submitEmbed = async (button, input) => {
+      if (!button || !input || button.dataset.lixValidating === 'true') return
+      button.dataset.lixValidating = 'true'
+      const url = input.value.trim()
+      const valid = await validateRemoteImage(url)
+      delete button.dataset.lixValidating
+
+      if (!valid) {
+        showToast('Image URL could not be loaded', { tone: 'warn', duration: 2200 })
+        input.focus()
+        return
+      }
+
+      // Allow exactly one validated event through to LixEditor's handler.
+      button.dataset.lixValidated = 'true'
+      button.click()
+    }
+
+    const handleClick = (event) => {
+      const button = event.target.closest?.('.blog-img-submit-btn')
+      if (!button || !host.contains(button)) return
+      if (button.dataset.lixValidated === 'true') {
+        delete button.dataset.lixValidated
+        return
+      }
+      event.preventDefault()
+      event.stopPropagation()
+      const input = button.closest('.blog-img-input-row')?.querySelector('.blog-img-url-input')
+      submitEmbed(button, input)
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Enter') return
+      const input = event.target.closest?.('.blog-img-url-input')
+      if (!input || !host.contains(input)) return
+      event.preventDefault()
+      event.stopPropagation()
+      const button = input.closest('.blog-img-input-row')?.querySelector('.blog-img-submit-btn')
+      submitEmbed(button, input)
+    }
+
+    host.addEventListener('click', handleClick, true)
+    host.addEventListener('keydown', handleKeyDown, true)
+    return () => {
+      host.removeEventListener('click', handleClick, true)
+      host.removeEventListener('keydown', handleKeyDown, true)
+    }
+  }, [visible])
 
   useEffect(() => {
     if (layoutMode !== 'docs') {
@@ -162,7 +248,7 @@ export default function DocsPanel() {
 
   return (
     <div className="w-full h-full bg-surface-dark overflow-hidden flex flex-col lix-sketch-theme">
-      <div className="flex-1 min-h-0 overflow-y-auto lix-editor-host">
+      <div ref={docHostRef} className="flex-1 min-h-0 overflow-y-auto lix-editor-host">
         {ready ? (
           <LixThemeProvider theme={docTheme}>
             <LixEditor
