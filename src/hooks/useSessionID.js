@@ -19,6 +19,7 @@ export default function useSessionID() {
     const segments = path.split('/').filter(Boolean)
     const searchParams = new URLSearchParams(window.location.search)
     const isExplicitNew = searchParams.get('new') === '1'
+    const preserveOtherLocalWorkspaces = searchParams.get('preserveLocal') === '1'
     const isPathNew = segments[0] === 'c' && segments[1] === 'new'
     const isNewWorkspace = isExplicitNew || isPathNew
 
@@ -36,7 +37,7 @@ export default function useSessionID() {
         sessionID = `lx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
       }
 
-      if (isNewWorkspace) {
+      if (isNewWorkspace && !preserveOtherLocalWorkspaces) {
         // Clear ALL autosave data so the new workspace starts with a blank canvas
         localStorage.removeItem('lixsketch-autosave')
         localStorage.removeItem('lixsketch-autosave-meta')

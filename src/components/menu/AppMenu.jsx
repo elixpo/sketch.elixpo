@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import useUIStore from '@/store/useUIStore'
 import useSketchStore from '@/store/useSketchStore'
-import useAuthStore from '@/store/useAuthStore'
-import { triggerCloudSync, writeLocalScene } from '@/hooks/useAutoSave'
-import { triggerDocCloudSync } from '@/hooks/useDocAutoSave'
+import useAuthStore, { WORKER_URL } from '@/store/useAuthStore'
+import { useProfileStore } from '@/hooks/useGuestProfile'
+import { beginWorkspaceDeletion, triggerCloudSync, writeLocalScene } from '@/hooks/useAutoSave'
+import { discardPendingDocChanges, triggerDocCloudSync } from '@/hooks/useDocAutoSave'
 import { useTranslation } from '@/hooks/useTranslation'
 // Issue #38 follow-up: swatches are paired per theme. The light set
 // pairs with the soothing warm-off-white canvas; the dark set restores
@@ -26,6 +27,86 @@ const CANVAS_BACKGROUNDS_DARK = [
   { color: '#181605', label: 'menu.canvasBg.darkYellow' },
   { color: '#1B1615', label: 'menu.canvasBg.darkBrown' },
 ]
+
+function DangerWarningDialog({ action, busy, error, workspaceName, onCancel, onConfirm }) {
+  useEffect(() => {
+    if (!action || busy) return undefined
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') onCancel()
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [action, busy, onCancel])
+
+  if (!action) return null
+
+  const deleting = action === 'delete'
+  const title = deleting ? 'Delete workspace?' : 'Reset canvas?'
+  const description = deleting
+    ? `“${workspaceName || 'Untitled'}” will be permanently removed from cloud storage and this browser.`
+    : 'Every shape on this canvas will be removed. The workspace and its document will remain available.'
+  const warning = deleting
+    ? 'This cannot be undone. Shared links to this workspace will stop working, and you will be moved to a new blank workspace.'
+    : 'This cannot be undone after the empty canvas is saved or synced.'
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[10020] flex items-center justify-center p-4 font-[lixFont]"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="danger-warning-title"
+      onClick={() => { if (!busy) onCancel() }}
+    >
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-[480px] rounded-2xl border border-red-500/35 bg-surface-card p-5 shadow-2xl shadow-black/50"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500/15 text-red-400">
+            <i className={`bx ${deleting ? 'bx-trash' : 'bx-reset'} text-xl`} />
+          </div>
+          <div>
+            <h2 id="danger-warning-title" className="text-base text-text-primary">{title}</h2>
+            <p className="mt-1 text-xs leading-5 text-text-secondary">{description}</p>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2.5 text-xs leading-5 text-red-300">
+          <i className="bx bx-error-circle mr-1.5" />
+          {warning}
+        </div>
+
+        {error && (
+          <p className="mt-3 rounded-lg border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+            {error}
+          </p>
+        )}
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={busy}
+            className="rounded-lg border border-border-light px-3 py-2 text-xs text-text-secondary hover:bg-surface-hover disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy}
+            className="flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-2 text-xs text-white hover:bg-red-600 disabled:opacity-60"
+          >
+            {busy && <i className="bx bx-loader-alt animate-spin" />}
+            {deleting ? 'Delete workspace' : 'Reset canvas'}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  )
+}
 
 export default function AppMenu() {
   const { t, language } = useTranslation()
@@ -82,6 +163,9 @@ export default function AppMenu() {
   const [actionsOpen, setActionsOpen] = useState(false)
   const [actionsFlyoutPosition, setActionsFlyoutPosition] = useState({ top: 0, left: 0 })
   const [prefsFlyoutPosition, setPrefsFlyoutPosition] = useState({ top: 0, left: 0 })
+  const [dangerAction, setDangerAction] = useState(null)
+  const [dangerBusy, setDangerBusy] = useState(false)
+  const [dangerError, setDangerError] = useState('')
   const actionsButtonRef = useRef(null)
   const prefsButtonRef = useRef(null)
 
@@ -168,6 +252,92 @@ export default function AppMenu() {
     { label: t('menu.findText'), icon: 'bx-search', shortcut: 'Ctrl+F', onClick: () => { useUIStore.getState().toggleFindBar(); closeMenu() } },
   ]
 
+  const openDangerWarning = (action) => {
+    setDangerError('')
+    setDangerAction(action)
+    closeMenu()
+  }
+
+  const closeDangerWarning = () => {
+    if (dangerBusy) return
+    setDangerError('')
+    setDangerAction(null)
+  }
+
+  const clearLocalWorkspace = (sessionId) => {
+    const keys = [
+      'lixsketch-autosave',
+      'lixsketch-autosave-meta',
+      'lixsketch-doc-autosave',
+      'lixsketch-doc-autosave-meta',
+      'lixsketch-workspace-name',
+    ]
+    if (sessionId) {
+      keys.push(
+        `lixsketch-autosave-${sessionId}`,
+        `lixsketch-autosave-meta-${sessionId}`,
+        `lixsketch-doc-autosave-${sessionId}`,
+        `lixsketch-doc-autosave-meta-${sessionId}`,
+        `lixsketch-enc-key-${sessionId}`,
+      )
+    }
+    keys.forEach((key) => localStorage.removeItem(key))
+  }
+
+  const handleDangerConfirm = async () => {
+    if (!dangerAction || dangerBusy) return
+    setDangerBusy(true)
+    setDangerError('')
+
+    try {
+      const serializer = window.__sceneSerializer
+      if (dangerAction === 'reset') {
+        serializer?.resetCanvas?.()
+        clearShapes()
+        clearHistory()
+        useUIStore.getState().setSaveStatus('local')
+        setDangerAction(null)
+        return
+      }
+
+      const sessionId = window.__sessionID
+      if (!sessionId) throw new Error('The current workspace session is not ready yet.')
+
+      const profile = useProfileStore.getState().profile
+      const createdBy = isAuthenticated && authUser?.id
+        ? authUser.id
+        : (profile?.id || localStorage.getItem('lixsketch-guest-session'))
+
+      const response = await fetch(`${WORKER_URL}/api/scenes/delete`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, createdBy }),
+      })
+
+      const localDevelopment = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname)
+      const ignorableLocalBackendFailure = localDevelopment && response.status >= 500
+      if (!response.ok && response.status !== 404 && !ignorableLocalBackendFailure) {
+        const body = await response.json().catch(() => ({}))
+        throw new Error(body.error || 'Cloud deletion failed. The workspace was not removed.')
+      }
+
+      beginWorkspaceDeletion()
+      discardPendingDocChanges()
+      window.__disconnectCollaboration?.()
+      clearLocalWorkspace(sessionId)
+      serializer?.resetCanvas?.()
+      clearShapes()
+      clearHistory()
+      useUIStore.getState().setSaveStatus('idle')
+      const nextSessionId = `lx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+      window.location.assign(`/c/${nextSessionId}?new=1&preserveLocal=1`)
+    } catch (error) {
+      setDangerError(error.message || 'The workspace could not be deleted.')
+    } finally {
+      setDangerBusy(false)
+    }
+  }
+
   return (
     <>
       {menuOpen && (
@@ -245,20 +415,23 @@ export default function AppMenu() {
 
         </div>
 
-        {/* Reset The Canvas */}
-        <button
-          onClick={() => {
-            const serializer = window.__sceneSerializer
-            if (serializer?.resetCanvas) serializer.resetCanvas()
-            clearShapes(); clearHistory(); closeMenu()
-          }}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-red-400 text-xs hover:bg-red-500/10 cursor-pointer transition-all duration-200"
-        >
-          <span className="flex items-center gap-2">
+        <div className="my-1 rounded-xl border border-red-500/25 bg-red-500/[0.04] p-1">
+          <p className="px-2 py-1 text-[10px] uppercase tracking-wider text-red-400/80">Danger zone</p>
+          <button
+            onClick={() => openDangerWarning('reset')}
+            className="w-full flex items-center gap-2 border-b border-red-500/20 px-2 py-2 text-left text-xs text-red-300 hover:bg-red-500/10 transition-colors"
+          >
             <i className="bx bx-reset text-sm" />
             {t('menu.resetCanvas')}
-          </span>
-        </button>
+          </button>
+          <button
+            onClick={() => openDangerWarning('delete')}
+            className="w-full flex items-center gap-2 px-2 py-2 text-left text-xs text-red-400 hover:bg-red-500/10 transition-colors"
+          >
+            <i className="bx bx-trash text-sm" />
+            Delete workspace
+          </button>
+        </div>
 
         <hr className="border-border-light my-1" />
 
@@ -425,6 +598,15 @@ export default function AppMenu() {
         </>,
         document.body,
       )}
+
+      <DangerWarningDialog
+        action={dangerAction}
+        busy={dangerBusy}
+        error={dangerError}
+        workspaceName={useUIStore.getState().workspaceName}
+        onCancel={closeDangerWarning}
+        onConfirm={handleDangerConfirm}
+      />
     </>
   )
 }

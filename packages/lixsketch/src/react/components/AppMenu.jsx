@@ -26,6 +26,75 @@ const CANVAS_BACKGROUNDS_DARK = [
   { color: '#1B1615', label: 'menu.canvasBg.darkBrown' },
 ]
 
+function DangerWarningDialog({ action, workspaceName, onCancel, onConfirm }) {
+  useEffect(() => {
+    if (!action) return undefined
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') onCancel()
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [action, onCancel])
+
+  if (!action) return null
+  const deleting = action === 'delete'
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[10020] flex items-center justify-center p-4 font-[lixFont]"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="danger-warning-title"
+      onClick={onCancel}
+    >
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-[480px] rounded-2xl border border-red-500/35 bg-surface-card p-5 shadow-2xl shadow-black/50"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500/15 text-red-400">
+            <i className={`bx ${deleting ? 'bx-trash' : 'bx-reset'} text-xl`} />
+          </div>
+          <div>
+            <h2 id="danger-warning-title" className="text-base text-text-primary">
+              {deleting ? 'Delete workspace?' : 'Reset canvas?'}
+            </h2>
+            <p className="mt-1 text-xs leading-5 text-text-secondary">
+              {deleting
+                ? `“${workspaceName || 'Untitled'}” will be removed from this browser.`
+                : 'Every shape on this canvas will be removed. The workspace shell remains available.'}
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2.5 text-xs leading-5 text-red-300">
+          <i className="bx bx-error-circle mr-1.5" />
+          {deleting
+            ? 'This cannot be undone. Persistence managed by the host application is not deleted by the offline package.'
+            : 'This cannot be undone after the empty canvas is saved.'}
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg border border-border-light px-3 py-2 text-xs text-text-secondary hover:bg-surface-hover"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="rounded-lg bg-red-500 px-3 py-2 text-xs text-white hover:bg-red-600"
+          >
+            {deleting ? 'Delete workspace' : 'Reset canvas'}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
 export default function AppMenu() {
   const { t, language } = useTranslation()
 
@@ -78,6 +147,7 @@ export default function AppMenu() {
   const [actionsOpen, setActionsOpen] = useState(false)
   const [actionsFlyoutPosition, setActionsFlyoutPosition] = useState({ top: 0, left: 0 })
   const actionsButtonRef = useRef(null)
+  const [dangerAction, setDangerAction] = useState(null)
 
   useEffect(() => {
     if (menuOpen) return
@@ -134,6 +204,41 @@ export default function AppMenu() {
     { label: t('menu.exportImage'), icon: 'bx-image', shortcut: 'Ctrl+Shift+E', onClick: () => { toggleExportImageModal(); closeMenu() } },
     { label: t('menu.findText'), icon: 'bx-search', shortcut: 'Ctrl+F', onClick: () => { useUIStore.getState().toggleFindBar(); closeMenu() } },
   ]
+
+  const openDangerWarning = (action) => {
+    setDangerAction(action)
+    closeMenu()
+  }
+
+  const handleDangerConfirm = () => {
+    const serializer = window.__sceneSerializer
+    if (dangerAction === 'delete') {
+      const sessionId = window.__sessionID
+      const keys = [
+        'lixsketch-autosave',
+        'lixsketch-autosave-meta',
+        'lixsketch-doc-autosave',
+        'lixsketch-doc-autosave-meta',
+        'lixsketch-workspace-name',
+      ]
+      if (sessionId) {
+        keys.push(
+          `lixsketch-autosave-${sessionId}`,
+          `lixsketch-autosave-meta-${sessionId}`,
+          `lixsketch-doc-autosave-${sessionId}`,
+          `lixsketch-doc-autosave-meta-${sessionId}`,
+          `lixsketch-enc-key-${sessionId}`,
+        )
+      }
+      keys.forEach((key) => localStorage.removeItem(key))
+      useUIStore.getState().setWorkspaceName?.('Untitled')
+      useUIStore.getState().setSaveStatus?.('idle')
+    }
+    serializer?.resetCanvas?.()
+    clearShapes()
+    clearHistory()
+    setDangerAction(null)
+  }
 
   return (
     <>
@@ -265,20 +370,23 @@ export default function AppMenu() {
           </div>
         )}
 
-        {/* Reset The Canvas */}
-        <button
-          onClick={() => {
-            const serializer = window.__sceneSerializer
-            if (serializer?.resetCanvas) serializer.resetCanvas()
-            clearShapes(); clearHistory(); closeMenu()
-          }}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-red-400 text-xs hover:bg-red-500/10 cursor-pointer transition-all duration-200"
-        >
-          <span className="flex items-center gap-2">
+        <div className="my-1 rounded-xl border border-red-500/25 bg-red-500/[0.04] p-1">
+          <p className="px-2 py-1 text-[10px] uppercase tracking-wider text-red-400/80">Danger zone</p>
+          <button
+            onClick={() => openDangerWarning('reset')}
+            className="w-full flex items-center gap-2 border-b border-red-500/20 px-2 py-2 text-left text-xs text-red-300 hover:bg-red-500/10 transition-colors"
+          >
             <i className="bx bx-reset text-sm" />
             {t('menu.resetCanvas')}
-          </span>
-        </button>
+          </button>
+          <button
+            onClick={() => openDangerWarning('delete')}
+            className="w-full flex items-center gap-2 px-2 py-2 text-left text-xs text-red-400 hover:bg-red-500/10 transition-colors"
+          >
+            <i className="bx bx-trash text-sm" />
+            Delete workspace
+          </button>
+        </div>
 
         <hr className="border-border-light my-1" />
 
@@ -407,6 +515,13 @@ export default function AppMenu() {
         </div>,
         document.body,
       )}
+
+      <DangerWarningDialog
+        action={dangerAction}
+        workspaceName={useUIStore.getState().workspaceName}
+        onCancel={() => setDangerAction(null)}
+        onConfirm={handleDangerConfirm}
+      />
     </>
   )
 }

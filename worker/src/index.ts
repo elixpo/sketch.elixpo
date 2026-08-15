@@ -500,12 +500,37 @@ async function handleSceneLoad(request: Request, env: Env): Promise<Response> {
 async function handleSceneDelete(request: Request, env: Env): Promise<Response> {
   try {
     const body = await request.json() as {
-      token: string;
-      sessionId: string;
+      token?: string;
+      sessionId?: string;
+      createdBy?: string;
     };
 
-    if (!body.token || !body.sessionId) {
-      return json({ error: 'Missing token or sessionId' }, 400);
+    if (!body.sessionId) {
+      return json({ error: 'Missing sessionId' }, 400);
+    }
+
+    // Workspace-owner deletion used by the canvas menu/profile. This is
+    // intentionally separate from token revocation so users can delete the
+    // editable workspace even when no share token is stored in the browser.
+    if (body.createdBy) {
+      const scene = await env.DB.prepare(
+        `SELECT id, created_by FROM scenes WHERE session_id = ?`
+      ).bind(body.sessionId).first<{ id: string; created_by: string | null }>();
+
+      if (!scene) return json({ error: 'Workspace not found' }, 404);
+      if (scene.created_by !== body.createdBy) return json({ error: 'Unauthorized' }, 403);
+
+      await env.DB.batch([
+        env.DB.prepare(`DELETE FROM canvas_docs WHERE session_id = ?`).bind(body.sessionId),
+        env.DB.prepare(`DELETE FROM scene_permissions WHERE scene_id = ?`).bind(scene.id),
+        env.DB.prepare(`DELETE FROM scenes WHERE id = ?`).bind(scene.id),
+      ]);
+
+      return json({ success: true });
+    }
+
+    if (!body.token) {
+      return json({ error: 'Missing token or owner identity' }, 400);
     }
 
     // Verify the token belongs to the session before deleting

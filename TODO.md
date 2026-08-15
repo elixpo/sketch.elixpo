@@ -11,3 +11,4 @@
 - [x] Remove the redundant Document layout control from the menu.
 - [x] Move Show Grid into Preferences and separate preference rows.
 - [x] Add horizontal separators between Actions flyout rows.
+- [x] Add a warned Danger Zone for canvas reset and workspace deletion.
