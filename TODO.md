@@ -31,3 +31,4 @@
 - [x] Keep the document slash-command suggestion menu at a stable responsive width while filtering.
 - [x] Keep document text focused and position its formatting toolbar 4px below the selected line.
 - [x] Add a consistent left inset between document lines and their add/drag controls.
+- [x] Replace the document `/image` Upload/Embed card with direct host-controlled image selection.

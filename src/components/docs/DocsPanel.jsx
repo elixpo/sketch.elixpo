@@ -19,6 +19,11 @@ import {
   getFormattingToolbarItems,
 } from '@blocknote/react'
 import { flip, offset, shift } from '@floating-ui/react'
+import { compressImage } from '@elixpo/lixsketch/src/utils/imageCompressor.js'
+import { WORKER_URL } from '@/lib/env'
+
+const DOC_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
+const DOC_IMAGE_MAX_BYTES = 5 * 1024 * 1024
 
 const DOC_FORMATTING_TOOLBAR_OPTIONS = {
   useFloatingOptions: {
@@ -38,6 +43,55 @@ function DocumentFormattingToolbar() {
       </FormattingToolbar>
     </div>
   )
+}
+
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(reader.error || new Error('Could not read image'))
+    reader.readAsDataURL(file)
+  })
+}
+
+async function uploadDocumentImage(file) {
+  const dataUrl = await readFileAsDataURL(file)
+  const compressed = await compressImage(dataUrl)
+  const sessionId = window.__sessionID
+  const workerUrl = window.__WORKER_URL || WORKER_URL
+
+  // Offline/local fallback: retain the compressed image without exposing the
+  // package's default Embed URL card.
+  if (!workerUrl || !sessionId) return compressed.dataUrl
+
+  const signResponse = await fetch(`${workerUrl}/api/images/sign`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sessionId,
+      filename: `doc_${Date.now()}`,
+    }),
+  })
+  if (!signResponse.ok) throw new Error('Could not authorize document image upload')
+  const signData = await signResponse.json()
+
+  const formData = new FormData()
+  formData.append('file', compressed.blob)
+  formData.append('api_key', signData.apiKey)
+  formData.append('timestamp', String(signData.timestamp))
+  formData.append('signature', signData.signature)
+  formData.append('folder', signData.folder)
+  formData.append('public_id', signData.publicId)
+
+  const uploadResponse = await fetch(
+    `https://api.cloudinary.com/v1_1/${signData.cloudName}/image/upload`,
+    { method: 'POST', body: formData },
+  )
+  if (!uploadResponse.ok) throw new Error('Document image upload failed')
+  const uploaded = await uploadResponse.json()
+  const imageUrl = uploaded.secure_url || uploaded.url
+  if (!imageUrl) throw new Error('Document image upload returned no URL')
+  return imageUrl
 }
 
 function DocsLoading() {
@@ -122,6 +176,10 @@ export default function DocsPanel() {
                 } catch {}
               }}
               features={{ equations: true, mermaid: true, code: true }}
+              imageInsert="host"
+              uploadFile={uploadDocumentImage}
+              acceptImageTypes={DOC_IMAGE_TYPES}
+              maxFileSizeBytes={DOC_IMAGE_MAX_BYTES}
             >
               <FormattingToolbarController
                 formattingToolbar={DocumentFormattingToolbar}
