@@ -327,9 +327,12 @@ export default function Header() {
         {/* Command palette */}
         <button
           onClick={toggleCommandPalette}
-          className="px-2.5 py-1.5 bg-surface hover:bg-surface-hover text-text-muted text-sm rounded-lg border border-border transition-all duration-200 font-[lixFont]"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface hover:bg-surface-hover text-text-muted text-sm rounded-lg border border-border transition-all duration-200 font-[lixFont]"
+          title="Open command center"
+          aria-label="Open command center (Ctrl + /)"
         >
-          Ctrl+/
+          <i className="bx bx-command text-base" aria-hidden="true" />
+          <span>Ctrl + /</span>
         </button>
 
         {/* Share */}

@@ -50,7 +50,6 @@ export default function AppMenu() {
   const menuOpen = useUIStore((s) => s.menuOpen)
   const closeMenu = useUIStore((s) => s.closeMenu)
   const toggleSaveModal = useUIStore((s) => s.toggleSaveModal)
-  const toggleCommandPalette = useUIStore((s) => s.toggleCommandPalette)
   const toggleExportImageModal = useUIStore((s) => s.toggleExportImageModal)
   const theme = useUIStore((s) => s.theme)
   const resolvedTheme = useUIStore((s) => s.resolvedTheme)
@@ -221,18 +220,6 @@ export default function AppMenu() {
         </button>
 
         <hr className="border-border-light my-1" />
-
-        {/* Commands - highlighted */}
-        <button
-          onClick={() => { toggleCommandPalette(); closeMenu() }}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all duration-200 text-accent-blue bg-accent-blue/10 hover:bg-accent-blue/20 cursor-pointer"
-        >
-          <span className="flex items-center gap-2">
-            <i className="bx bx-command text-sm" />
-            {t('menu.commands')}
-          </span>
-          <span className="text-text-dim text-xs">Ctrl+/</span>
-        </button>
 
         {/* Canvas Properties */}
         <button

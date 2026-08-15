@@ -7,3 +7,4 @@
 - [x] Add an edit affordance beside the workspace name.
 - [x] Route browser zoom shortcuts to canvas zoom.
 - [x] Consolidate file and search commands into an Actions flyout.
+- [x] Keep the command center trigger in the header and remove its menu duplicate.
