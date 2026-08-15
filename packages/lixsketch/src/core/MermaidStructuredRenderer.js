@@ -289,7 +289,7 @@ function push(shape, frame) {
     return shape;
 }
 
-function pushText(text, x, y, fontSize, fill, frame) {
+function pushText(text, x, y, fontSize, fill, frame, textAnchor = 'start') {
     if (!window.TextShape || !window.svg) return null;
     const group = document.createElementNS(NS, 'g');
     group.setAttribute('data-type', 'text-group');
@@ -301,6 +301,7 @@ function pushText(text, x, y, fontSize, fill, frame) {
     element.setAttribute('x', 0);
     element.setAttribute('y', 0);
     element.setAttribute('dominant-baseline', 'central');
+    element.setAttribute('text-anchor', textAnchor);
     element.setAttribute('fill', fill);
     element.setAttribute('font-size', fontSize);
     element.setAttribute('font-family', 'lixFont, sans-serif');
@@ -321,7 +322,8 @@ function canvasOrigin(width, height) {
 function createFrame(x, y, width, height, name, type) {
     const TK = theme();
     const frame = new window.Frame(x - 45, y - 45, width + 90, height + 90, {
-        stroke: TK.frame, strokeWidth: 1, fill: 'transparent', opacity: .75, frameName: name,
+        stroke: TK.frame, strokeWidth: 1, fill: 'transparent', opacity: .75,
+        frameName: name, labelColor: TK.text,
     });
     frame._diagramType = type;
     push(frame);
@@ -428,14 +430,28 @@ export function renderChartOnCanvas(chart) {
     push(new window.Line({ x: left, y: top }, { x: left, y: top + plotHeight }, { stroke: TK.line, strokeWidth: 1.5, roughness: 0 }), frame);
     push(new window.Line({ x: left, y: top + plotHeight }, { x: left + plotWidth, y: top + plotHeight }, { stroke: TK.line, strokeWidth: 1.5, roughness: 0 }), frame);
 
+    // Match the preview layout: categories live below the axis and values sit
+    // above bars. Embedding both strings in the rectangle used to add an
+    // opaque canvas-coloured label pill through the middle of every bar,
+    // visually splitting it and changing the perceived series colour.
+    chart.categories.forEach((category, index) => pushText(
+        category,
+        left + slot * (index + .5),
+        top + plotHeight + 24,
+        11,
+        TK.text,
+        frame,
+        'middle',
+    ));
+
     chart.series.forEach((series, seriesIndex) => {
         const color = PALETTE[seriesIndex % PALETTE.length];
         if (series.kind === 'line') {
             const linePoints = series.values.map((value, index) => {
                 const point = { x: left + slot * (index + .5), y: top + plotHeight - Math.abs(value) / maximum * plotHeight };
                 push(new window.Circle(point.x, point.y, 8, 8, {
-                    stroke: color.stroke, strokeWidth: 2, fill: color.fill, fillStyle: 'solid', roughness: .5,
-                    label: String(value), labelColor: contrastText(color.fill), labelFontSize: 9,
+                    stroke: color.stroke, strokeWidth: 2, fill: color.fill,
+                    fillStyle: 'solid', roughness: 0, disableMultiStroke: true,
                 }), frame);
                 return [point.x, point.y, .5];
             });
@@ -454,9 +470,11 @@ export function renderChartOnCanvas(chart) {
                 const barHeight = Math.max(8, Math.abs(value) / maximum * plotHeight);
                 const x = left + slot * index + slot * .15 + seriesIndex * barWidth;
                 push(new window.Rectangle(x, top + plotHeight - barHeight, barWidth, barHeight, {
-                    stroke: color.stroke, strokeWidth: 1.5, fill: color.fill, fillStyle: 'solid', roughness: .7,
-                    label: `${chart.categories[index] || index + 1}\n${value}`, labelColor: contrastText(color.fill), labelFontSize: 11,
+                    stroke: color.stroke, strokeWidth: 1.5, fill: color.fill,
+                    fillStyle: 'solid', roughness: 0, disableMultiStroke: true,
+                    disableMultiStrokeFill: true, preserveVertices: true,
                 }), frame);
+                pushText(String(value), x + barWidth / 2, top + plotHeight - barHeight - 7, 10, TK.text, frame, 'middle');
             });
         }
     });

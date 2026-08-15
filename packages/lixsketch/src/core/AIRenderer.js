@@ -1432,6 +1432,7 @@ export function adaptCanvasContrast(background) {
         }
         if (shape.shapeName === 'frame' && generated && shape.options) {
             shape.options.stroke = muted;
+            shape.options.labelColor = foreground;
         }
         if ('labelColor' in shape && generated) {
             shape.labelColor = solidFill ? readableColor(shape.labelColor || foreground, fill, 4.5) : foreground;
