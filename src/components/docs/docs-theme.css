@@ -342,13 +342,14 @@ body.canvas-mode.theme-dark .lix-sketch-theme code {
   display: flex !important;
 }
 
-/* Keep only LixEditor's custom image controls. BlockNote also mounts its own
- * floating Upload/Embed panel for file blocks, which would duplicate the URL
- * field shown by the custom image block. */
+/* Keep only LixEditor's image controls. BlockNote mounts a second file panel
+ * below the custom placeholder; it must never be visible or interactive. */
 .bn-file-panel,
 [class*="mantine-Popover-dropdown"]:has([data-test="embed-input"]),
 [class*="mantine-Popover-dropdown"]:has([data-test="upload-input"]) {
   display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 /* When Embed URL is chosen, place the custom field immediately below the

@@ -42,3 +42,4 @@
 - [x] Keep profile workspace cards in sync with workspace-name edits.
 - [x] Add left-edge breathing room around the document add and move controls.
 - [x] Prevent the default and custom document side controls from overlapping.
+- [x] Suppress BlockNote's duplicate image embed panel below the document image placeholder.
