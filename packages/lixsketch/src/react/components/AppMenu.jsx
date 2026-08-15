@@ -6,7 +6,6 @@ import useUIStore from '../store/useUIStore'
 import useSketchStore from '../store/useSketchStore'
 import { useAuthStore } from '../hooks/inertStores'
 import { triggerCloudSync } from '../hooks/inertStores'
-import { triggerDocCloudSync } from '../hooks/inertStores'
 import { useTranslation } from '../hooks/useTranslation'
 
 // Issue #38 follow-up: theme-paired swatches. The menu picks the
@@ -271,37 +270,6 @@ export default function AppMenu() {
 
         <hr className="border-border-light my-1" />
 
-        {/* Canvas Properties */}
-        <button
-          onClick={() => { useUIStore.getState().toggleCanvasProperties(); closeMenu() }}
-          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[12.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
-        >
-          <span className="flex items-center gap-2">
-            <i className="bx bx-info-circle text-sm" />
-            {t('menu.canvasProperties')}
-          </span>
-        </button>
-
-        <hr className="border-border-light my-1" />
-
-        {/* Sync doc now (Ctrl+S triggers both, but explicit action is useful from menu) */}
-        <button
-          onClick={() => {
-            triggerCloudSync()
-            triggerDocCloudSync()
-            closeMenu()
-          }}
-          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[12.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
-        >
-          <span className="flex items-center gap-2">
-            <i className="bx bx-cloud-upload text-sm" />
-            Sync canvas + doc
-          </span>
-          <span className="text-text-dim text-xs">Ctrl+S</span>
-        </button>
-
-        <hr className="border-border-light my-1" />
-
         {/* Preferences - inline expandable */}
         <button
           onClick={() => setPrefsOpen((p) => !p)}
@@ -347,6 +315,7 @@ export default function AppMenu() {
                 else if (item.id === 'toggleGrid') toggleGrid()
                 else if (item.id === 'zenMode') { toggleZenMode(); closeMenu() }
                 else if (item.id === 'viewMode') { toggleViewMode(); closeMenu() }
+                else if (item.id === 'properties') { useUIStore.getState().toggleCanvasProperties(); closeMenu() }
               }
 
               return (
@@ -388,6 +357,62 @@ export default function AppMenu() {
             </a>
           )
         })}
+
+        <hr className="border-border-light my-1" />
+
+        <div className="rounded-xl border border-red-500/25 bg-red-500/[0.04] p-1">
+          <p className="px-2 py-1 text-[10px] uppercase tracking-wider text-red-400/80">Danger zone</p>
+          <button
+            onClick={() => openDangerWarning('reset')}
+            className="w-full flex items-center gap-2 border-b border-red-500/20 px-2 py-2 text-left text-xs text-red-300 hover:bg-red-500/10 transition-colors cursor-pointer"
+          >
+            <i className="bx bx-reset text-sm" />
+            {t('menu.resetCanvas')}
+          </button>
+          <button
+            onClick={() => openDangerWarning('delete')}
+            className="w-full flex items-center gap-2 px-2 py-2 text-left text-xs text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+          >
+            <i className="bx bx-trash text-sm" />
+            Delete workspace
+          </button>
+        </div>
+
+        <hr className="border-border-light my-1" />
+
+        {/* Sign In / Sign Out */}
+        {isAuthenticated ? (
+          <>
+            <div className="px-3 py-2 flex items-center gap-2">
+              {authUser?.avatar ? (
+                <img src={authUser.avatar} alt="" className="w-5 h-5 rounded-full" />
+              ) : (
+                <i className="bx bx-user-circle text-sm text-accent-blue" />
+              )}
+              <span className="text-text-secondary text-xs truncate flex-1">{authUser?.displayName || authUser?.email}</span>
+            </div>
+            <button
+              onClick={() => { logout(); closeMenu() }}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all duration-200 text-red-400 hover:bg-red-500/10 cursor-pointer"
+            >
+              <span className="flex items-center gap-2">
+                <i className="bx bx-log-out text-sm" />
+                {t('menu.signOut')}
+              </span>
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => { login(); closeMenu() }}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all duration-200 text-text-secondary hover:bg-surface-hover cursor-pointer"
+          >
+            <span className="flex items-center gap-2">
+              <i className="bx bx-log-in text-sm" />
+              {t('menu.signIn')}
+            </span>
+            <span className="text-text-dim text-[10px] px-1.5 py-0.5 rounded bg-accent-blue/15 text-accent-blue">Elixpo</span>
+          </button>
+        )}
 
         <hr className="border-border-light my-1" />
 
@@ -439,59 +464,6 @@ export default function AppMenu() {
           </div>
         </div>
 
-        <hr className="border-border-light my-1" />
-
-        {/* Sign In / Sign Out */}
-        {isAuthenticated ? (
-          <>
-            <div className="px-3 py-2 flex items-center gap-2">
-              {authUser?.avatar ? (
-                <img src={authUser.avatar} alt="" className="w-5 h-5 rounded-full" />
-              ) : (
-                <i className="bx bx-user-circle text-sm text-accent-blue" />
-              )}
-              <span className="text-text-secondary text-xs truncate flex-1">{authUser?.displayName || authUser?.email}</span>
-            </div>
-            <button
-              onClick={() => { logout(); closeMenu() }}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all duration-200 text-red-400 hover:bg-red-500/10 cursor-pointer"
-            >
-              <span className="flex items-center gap-2">
-                <i className="bx bx-log-out text-sm" />
-                {t('menu.signOut')}
-              </span>
-            </button>
-          </>
-        ) : (
-          <button
-            onClick={() => { login(); closeMenu() }}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all duration-200 text-text-secondary hover:bg-surface-hover cursor-pointer"
-          >
-            <span className="flex items-center gap-2">
-              <i className="bx bx-log-in text-sm" />
-              {t('menu.signIn')}
-            </span>
-            <span className="text-text-dim text-[10px] px-1.5 py-0.5 rounded bg-accent-blue/15 text-accent-blue">Elixpo</span>
-          </button>
-        )}
-
-        <div className="mt-1 rounded-xl border border-red-500/25 bg-red-500/[0.04] p-1">
-          <p className="px-2 py-1 text-[10px] uppercase tracking-wider text-red-400/80">Danger zone</p>
-          <button
-            onClick={() => openDangerWarning('reset')}
-            className="w-full flex items-center gap-2 border-b border-red-500/20 px-2 py-2 text-left text-xs text-red-300 hover:bg-red-500/10 transition-colors cursor-pointer"
-          >
-            <i className="bx bx-reset text-sm" />
-            {t('menu.resetCanvas')}
-          </button>
-          <button
-            onClick={() => openDangerWarning('delete')}
-            className="w-full flex items-center gap-2 px-2 py-2 text-left text-xs text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
-          >
-            <i className="bx bx-trash text-sm" />
-            Delete workspace
-          </button>
-        </div>
       </div>
 
       {menuOpen && actionsOpen && typeof document !== 'undefined' && createPortal(
