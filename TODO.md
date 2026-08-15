@@ -16,3 +16,4 @@
 - [x] Show the pointer cursor on the navbar account login controls.
 - [x] Show pointer cursors on all interactive navbar and header icons.
 - [x] Show pointer cursors on canvas footer controls and before workspace-name editing.
+- [x] Improve icon category filters and reduce the icon picker height.
