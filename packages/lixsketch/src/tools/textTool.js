@@ -215,7 +215,7 @@ function makeTextEditable(textElement, groupElement) {
     }
 
     input.value = textContent;
-    input.style.position = "absolute";
+    input.style.position = "fixed";
     input.style.outline = "none";
     input.style.padding = "1px";
     input.style.margin = "0";
@@ -226,26 +226,34 @@ function makeTextEditable(textElement, groupElement) {
     input.style.minHeight = "1.2em";
     input.style.zIndex = "10000";
 
-    // Use the group element's own screenCTM which includes group transform + SVG viewBox transform
-    const textBBox = textElement.getBBox();
-    let pt = svg.createSVGPoint();
-    pt.x = textBBox.x;
-    pt.y = textBBox.y;
-
-    const groupCTM = groupElement.getScreenCTM() || svg.getScreenCTM();
-    let screenPt = pt.matrixTransform(groupCTM);
-
-    input.style.left = `${screenPt.x}px`;
-    input.style.top = `${screenPt.y}px`;
-
-    const svgZoomFactor = svg.getScreenCTM() ? svg.getScreenCTM().a : 1;
-    input.style.width = "auto";
-    input.style.height = "auto";
-
     const currentFontSize = textElement.getAttribute("font-size") || "20px";
     const currentFontFamily = textElement.getAttribute("font-family") || "lixFont";
     const currentFill = textElement.getAttribute("fill") || "#fff";
     const currentAnchor = textElement.getAttribute("text-anchor") || "start";
+
+    // Anchor the HTML editor to the text's actual rendered alignment point.
+    // Using bbox.x as the textarea's left edge only works for start-aligned
+    // text. With text-anchor="middle" (chart values and centered labels), the
+    // textarea's 150px minimum width put its own centered text far to the
+    // right of the SVG glyph.
+    const groupCTM = groupElement.getScreenCTM() || svg.getScreenCTM();
+    const screenRect = textElement.getBoundingClientRect();
+    const anchorScreenX = currentAnchor === "middle"
+        ? screenRect.left + screenRect.width / 2
+        : currentAnchor === "end"
+            ? screenRect.right
+            : screenRect.left;
+    const anchorTranslateX = currentAnchor === "middle" ? "-50%" : currentAnchor === "end" ? "-100%" : "0";
+
+    input.style.left = `${anchorScreenX}px`;
+    input.style.top = `${screenRect.top}px`;
+    input.style.transform = `translateX(${anchorTranslateX})`;
+    input.style.transformOrigin = "top left";
+
+    const svgZoomFactor = groupCTM ? Math.hypot(groupCTM.a, groupCTM.b) : 1;
+    input.style.width = "auto";
+    input.style.height = "auto";
+
     // Scale font-size by zoom so the textarea matches what the user sees on canvas
     const rawSize = parseFloat(currentFontSize) || 20;
     const scaledFontSize = `${rawSize * svgZoomFactor}px`;
