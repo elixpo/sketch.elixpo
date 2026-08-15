@@ -29,3 +29,4 @@
 - [x] Focus a trailing document line when entering Docs and increase the default document font size.
 - [x] Keep the document add and drag controls side by side with reserved editor padding.
 - [x] Keep the document slash-command suggestion menu at a stable responsive width while filtering.
+- [x] Keep document text focused and position its formatting toolbar 4px below the selected line.

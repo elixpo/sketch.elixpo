@@ -329,6 +329,17 @@ body.canvas-mode.theme-dark .lix-sketch-theme code {
   max-width: 100%;
 }
 
+/* LixEditor currently owns a formatting toolbar controller with a fixed
+ * top/10px configuration. Hide that instance and show the host controller,
+ * which remains focused on the selection and sits 4px below the text. */
+.lix-sketch-theme .bn-formatting-toolbar {
+  display: none !important;
+}
+
+.lix-doc-formatting-toolbar .bn-formatting-toolbar {
+  display: flex !important;
+}
+
 /* Floating-toolbar action buttons — text adapts to theme via vars */
 .lix-sketch-theme .mantine-ActionIcon-root,
 .lix-sketch-theme .mantine-Button-root {

@@ -13,6 +13,32 @@ import 'katex/dist/katex.min.css'
 import '@elixpo/lixeditor/styles'
 import './docs-theme.css'
 import { LixEditor, LixThemeProvider } from '@elixpo/lixeditor'
+import {
+  FormattingToolbar,
+  FormattingToolbarController,
+  getFormattingToolbarItems,
+} from '@blocknote/react'
+import { flip, offset, shift } from '@floating-ui/react'
+
+const DOC_FORMATTING_TOOLBAR_OPTIONS = {
+  useFloatingOptions: {
+    placement: 'bottom-start',
+    middleware: [offset(4), shift({ padding: 8 }), flip({ padding: 8 })],
+  },
+}
+
+function DocumentFormattingToolbar() {
+  return (
+    <div className="lix-doc-formatting-toolbar">
+      <FormattingToolbar>
+        {getFormattingToolbarItems().filter((item) => {
+          const key = item?.key ?? item?.props?.key
+          return key !== 'createLink'
+        })}
+      </FormattingToolbar>
+    </div>
+  )
+}
 
 function DocsLoading() {
   return (
@@ -96,7 +122,12 @@ export default function DocsPanel() {
                 } catch {}
               }}
               features={{ equations: true, mermaid: true, code: true }}
-            />
+            >
+              <FormattingToolbarController
+                formattingToolbar={DocumentFormattingToolbar}
+                floatingUIOptions={DOC_FORMATTING_TOOLBAR_OPTIONS}
+              />
+            </LixEditor>
           </LixThemeProvider>
         ) : (
           <DocsLoading />
