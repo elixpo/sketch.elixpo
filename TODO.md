@@ -39,3 +39,4 @@
 - [ ] Upstream reusable docs UX fixes to `@elixpo/lixeditor`, publish a release, then remove the matching Sketch overrides (GitHub write access required).
 - [x] Close the hamburger menu popup when the profile dropdown opens.
 - [x] Refine the profile dropdown hierarchy and remove its E2E documentation action.
+- [x] Keep profile workspace cards in sync with workspace-name edits.

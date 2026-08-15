@@ -7,6 +7,7 @@ import useSketchStore from '@/store/useSketchStore'
 import useAuthStore from '@/store/useAuthStore'
 import { useProfileStore } from '@/hooks/useGuestProfile'
 import { persistLayoutMode } from '@/hooks/useDocAutoSave'
+import { triggerCloudSync } from '@/hooks/useAutoSave'
 import { generateKey, encrypt, decrypt } from '@/utils/encryption'
 import { showToast } from '@/utils/toast'
 
@@ -273,6 +274,8 @@ export default function Header() {
   const finishWorkspaceNameEdit = () => {
     if (workspaceName === workspaceNameAtFocus.current) return
     workspaceNameAtFocus.current = workspaceName
+    useUIStore.getState().setSaveStatus('local')
+    void triggerCloudSync()
     showToast('Workspace name updated', { tone: 'success', duration: 1800 })
   }
 
