@@ -150,7 +150,7 @@ function ProfileDropdown() {
     <div ref={ref} className="relative flex items-center rounded-lg border border-border-light bg-surface/70">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 pl-1 pr-1.5 py-0.5 rounded-l-lg hover:bg-surface-hover transition-all duration-200"
+        className="flex items-center gap-1.5 pl-1 pr-1.5 py-0.5 rounded-l-lg hover:bg-surface-hover transition-all duration-200 cursor-pointer"
         title={`${displayName} · canvas and encryption status`}
       >
         <ProfileStatusAvatar avatar={avatar} />
@@ -239,7 +239,7 @@ function ProfileDropdown() {
             {isGuest ? (
               <button
                 onClick={() => { useAuthStore.getState().login(); setOpen(false) }}
-                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-accent-blue text-xs hover:bg-accent-blue/10 transition-all duration-200"
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-accent-blue text-xs hover:bg-accent-blue/10 transition-all duration-200 cursor-pointer"
               >
                 <i className="bx bx-log-in text-sm" />
                 Sign in

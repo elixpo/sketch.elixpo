@@ -13,3 +13,4 @@
 - [x] Add horizontal separators between Actions flyout rows.
 - [x] Add a warned Danger Zone for canvas reset and workspace deletion.
 - [x] Show the pointer cursor on the Sign In button.
+- [x] Show the pointer cursor on the navbar account login controls.
