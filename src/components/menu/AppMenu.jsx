@@ -39,7 +39,7 @@ export default function AppMenu() {
   const PREFERENCE_ITEMS = [
     { label: t('prefs.toolLock'), shortcut: 'Q', id: 'toolLock' },
     { label: t('prefs.snapObjects'), shortcut: 'Alt+S', id: 'snapObjects' },
-    { label: t('prefs.toggleGrid'), shortcut: "Ctrl+'", id: 'toggleGrid' },
+    { label: t('menu.showGrid'), shortcut: "Ctrl+'", id: 'toggleGrid' },
     { label: t('prefs.zenMode'), shortcut: 'Alt+Z', id: 'zenMode' },
     { label: t('prefs.viewMode'), shortcut: 'Alt+R', id: 'viewMode' },
     { label: t('prefs.canvasShapeProps'), shortcut: 'Alt+/', id: 'properties' },
@@ -245,20 +245,6 @@ export default function AppMenu() {
 
         </div>
 
-        {/* Grid toggle */}
-        <button
-          onClick={toggleGrid}
-          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[12.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
-        >
-          <span className="flex items-center gap-2">
-            <i className="bx bx-grid-alt text-sm" />
-            {t('menu.showGrid')}
-          </span>
-          <div className={`w-7 h-4 rounded-full transition-all duration-150 relative ${gridEnabled ? 'bg-accent-blue' : 'bg-white/10'}`}>
-            <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all duration-150 ${gridEnabled ? 'left-3.5' : 'left-0.5'}`} />
-          </div>
-        </button>
-
         {/* Reset The Canvas */}
         <button
           onClick={() => {
@@ -408,7 +394,7 @@ export default function AppMenu() {
               className="fixed w-[240px] max-h-[60vh] overflow-y-auto overscroll-contain no-scrollbar bg-surface-card border border-border-light rounded-2xl p-1.5 shadow-2xl shadow-black/40 z-[1001] font-[lixFont]"
               style={prefsFlyoutPosition}
             >
-              <div className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[11px]">
+              <div className="w-full flex items-center justify-between px-3 py-2 border-b border-border-light text-text-secondary text-[11px]">
                 <span>{t('prefs.language')}</span>
                 <select
                   className="bg-surface-hover text-text-primary text-[10px] rounded px-1 outline-none border border-border-light"
@@ -425,7 +411,7 @@ export default function AppMenu() {
                 <button
                   key={item.id}
                   onClick={() => handlePreference(item)}
-                  className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-text-secondary text-[11px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
+                  className="w-full flex items-center justify-between px-3 py-2 border-b border-border-light last:border-b-0 text-text-secondary text-[11px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
                 >
                   <span className="flex items-center gap-2">
                     {preferenceIsActive(item) && <i className="bx bx-check text-sm text-accent-blue" />}
