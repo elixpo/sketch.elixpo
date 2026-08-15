@@ -108,6 +108,7 @@ function ProfileDropdown() {
   const regenerateProfile = useProfileStore((s) => s.regenerateProfile)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const authUser = useAuthStore((s) => s.user)
+  const closeMenu = useUIStore((s) => s.closeMenu)
   const [open, setOpen] = useState(false)
   const [testingE2E, setTestingE2E] = useState(false)
   const ref = useRef(null)
@@ -125,6 +126,11 @@ function ProfileDropdown() {
   const displayName = isAuthenticated ? (authUser?.displayName || authUser?.email) : profile?.displayName
   const avatar = isAuthenticated ? authUser?.avatar : profile?.avatar
   const isGuest = !isAuthenticated
+
+  const toggleProfileDropdown = () => {
+    if (!open) closeMenu()
+    setOpen((current) => !current)
+  }
 
   if (!profile && !isAuthenticated) return null
 
@@ -149,7 +155,7 @@ function ProfileDropdown() {
   return (
     <div ref={ref} className="relative flex items-center rounded-lg border border-border-light bg-surface/70">
       <button
-        onClick={() => setOpen(!open)}
+        onClick={toggleProfileDropdown}
         className="flex items-center gap-1.5 pl-1 pr-1.5 py-0.5 rounded-l-lg hover:bg-surface-hover transition-all duration-200 cursor-pointer"
         title={`${displayName} · canvas and encryption status`}
       >
