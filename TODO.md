@@ -10,3 +10,4 @@
 - [x] Keep the command center trigger in the header and remove its menu duplicate.
 - [x] Remove the redundant Document layout control from the menu.
 - [x] Move Show Grid into Preferences and separate preference rows.
+- [x] Add horizontal separators between Actions flyout rows.

@@ -377,7 +377,7 @@ export default function AppMenu() {
                 <button
                   key={item.label}
                   onClick={() => { setActionsOpen(false); item.onClick() }}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-text-secondary text-[11.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
+                  className="w-full flex items-center justify-between px-3 py-2 border-b border-border-light last:border-b-0 text-text-secondary text-[11.5px] hover:bg-surface-hover cursor-pointer transition-all duration-200"
                 >
                   <span className="flex items-center gap-2">
                     <i className={`bx ${item.icon} text-sm text-text-muted`} />
