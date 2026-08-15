@@ -27,3 +27,4 @@
 - [x] Limit workspace names to 20 characters across UI, state, and persistence.
 - [x] Add persistent top and left canvas rulers that track grid coordinates during pan and zoom, toggled with `Shift + R`.
 - [x] Focus a trailing document line when entering Docs and increase the default document font size.
+- [x] Keep the document add and drag controls side by side with reserved editor padding.

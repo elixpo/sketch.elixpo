@@ -21,7 +21,7 @@
  *      `.lix-sketch-theme` so heading sizes, font, inline-code chip,
  *      code blocks, and dividers all render the same.
  *   4. Keep the sketch-specific fixes that aren't part of blogs:
- *      side-menu vertical stacking, host overflow padding workaround,
+ *      side-menu spacing, host overflow padding workaround,
  *      Mantine portal width caps.
  */
 
@@ -337,22 +337,28 @@ body.canvas-mode.theme-dark .lix-sketch-theme code {
  * the block's negative-x space — clipped by the host. Add a bit of
  * left padding so the menu has room. */
 .lix-sketch-theme .lix-editor-wrapper {
-  padding-left: 3.5rem;
+  padding-left: 4.5rem;
   padding-right: 1.5rem;
 }
 
-/* Stack the +/drag handle vertically and unwind the package's
- * single-row caps so the drag-handle isn't clipped. */
+/* Keep the add and drag controls on one line. The wider wrapper padding
+ * reserves room for the complete control without covering document text. */
 .lix-sketch-theme .bn-side-menu {
   display: flex !important;
-  flex-direction: column !important;
-  gap: 2px !important;
-  align-items: center;
-  height: auto !important;
-  max-height: none !important;
-  min-height: 0 !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 0 !important;
+  align-items: center !important;
+  width: max-content !important;
+  height: 32px !important;
+  max-height: 32px !important;
+  min-height: 32px !important;
   overflow: visible !important;
-  padding: 2px 0 !important;
+  padding: 2px 4px !important;
+}
+
+.lix-sketch-theme .bn-side-menu > * {
+  flex: 0 0 auto !important;
 }
 
 /* Cursor — text on the editable area, pointer on chrome. */
