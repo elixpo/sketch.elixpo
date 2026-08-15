@@ -35,7 +35,7 @@ function buildTicks(start, extent, zoom, step) {
 }
 
 export default function CanvasRulers({ enabled, svgRef }) {
-  const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1, width: 0, height: 0 })
+  const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1, width: 0, height: 0, rulerLeft: 64, rulerTop: 48 })
 
   useEffect(() => {
     if (!enabled) return undefined
@@ -45,10 +45,21 @@ export default function CanvasRulers({ enabled, svgRef }) {
       const svg = svgRef.current
       if (svg) {
         const rect = svg.getBoundingClientRect()
+        const hostRect = svg.parentElement?.getBoundingClientRect?.() || rect
+        const toolbarRect = document.querySelector('[data-canvas-toolbar]')?.getBoundingClientRect?.()
+        const headerRect = document.querySelector('header')?.getBoundingClientRect?.()
         const viewBox = window.currentViewBox || svg.viewBox?.baseVal
         const zoom = Number(window.currentZoom) || (viewBox?.width ? rect.width / viewBox.width : 1)
-        const next = { x: Number(viewBox?.x) || 0, y: Number(viewBox?.y) || 0, zoom: Math.max(0.001, zoom), width: rect.width, height: rect.height }
-        const signature = `${next.x}|${next.y}|${next.zoom}|${next.width}|${next.height}`
+        const next = {
+          x: Number(viewBox?.x) || 0,
+          y: Number(viewBox?.y) || 0,
+          zoom: Math.max(0.001, zoom),
+          width: rect.width,
+          height: rect.height,
+          rulerLeft: Math.max(0, Math.min(hostRect.width - RULER_SIZE, toolbarRect ? toolbarRect.right - hostRect.left + 8 : 64)),
+          rulerTop: Math.max(0, headerRect ? headerRect.bottom - hostRect.top : 48),
+        }
+        const signature = `${next.x}|${next.y}|${next.zoom}|${next.width}|${next.height}|${next.rulerLeft}|${next.rulerTop}`
         if (signature !== previous) {
           previous = signature
           setViewport(next)
@@ -66,23 +77,26 @@ export default function CanvasRulers({ enabled, svgRef }) {
 
   if (!enabled) return null
 
+  const horizontalStart = viewport.rulerLeft + RULER_SIZE
+  const verticalStart = viewport.rulerTop + RULER_SIZE
+
   return (
     <div className="pointer-events-none absolute inset-0 z-[900] select-none text-text-muted" aria-hidden="true">
-      <div className="absolute inset-x-0 top-0 overflow-hidden border-b border-border-light bg-surface/95 shadow-sm backdrop-blur-sm" style={{ height: RULER_SIZE }}>
+      <div className="absolute right-0 overflow-hidden border-b border-border-light bg-surface/95 shadow-sm backdrop-blur-sm" style={{ height: RULER_SIZE, left: horizontalStart, top: viewport.rulerTop }}>
         {horizontalTicks.map(({ value, position }) => (
-          <div key={value} className="absolute bottom-0 h-2 border-l border-text-dim" style={{ left: position }}>
+          <div key={value} className="absolute bottom-0 h-2 border-l border-text-dim" style={{ left: position - horizontalStart }}>
             <span className="absolute bottom-2 left-1 font-mono text-[9px] leading-none tabular-nums">{formatDimension(value)}</span>
           </div>
         ))}
       </div>
-      <div className="absolute inset-y-0 left-0 overflow-hidden border-r border-border-light bg-surface/95 shadow-sm backdrop-blur-sm" style={{ width: RULER_SIZE }}>
+      <div className="absolute bottom-0 overflow-hidden border-r border-border-light bg-surface/95 shadow-sm backdrop-blur-sm" style={{ width: RULER_SIZE, left: viewport.rulerLeft, top: verticalStart }}>
         {verticalTicks.map(({ value, position }) => (
-          <div key={value} className="absolute right-0 w-2 border-t border-text-dim" style={{ top: position }}>
+          <div key={value} className="absolute right-0 w-2 border-t border-text-dim" style={{ top: position - verticalStart }}>
             <span className="absolute right-2 top-1 font-mono text-[9px] leading-none tabular-nums" style={{ transform: 'rotate(-90deg)', transformOrigin: 'top right' }}>{formatDimension(value)}</span>
           </div>
         ))}
       </div>
-      <div className="absolute left-0 top-0 border-b border-r border-border-light bg-accent/20" style={{ width: RULER_SIZE, height: RULER_SIZE }}>
+      <div className="absolute border-b border-r border-border-light bg-accent/20" style={{ width: RULER_SIZE, height: RULER_SIZE, left: viewport.rulerLeft, top: viewport.rulerTop }}>
         <span className="absolute left-1/2 top-1/2 h-2.5 -translate-x-1/2 -translate-y-1/2 border-l border-accent" />
         <span className="absolute left-1/2 top-1/2 w-2.5 -translate-x-1/2 -translate-y-1/2 border-t border-accent" />
       </div>
