@@ -88,7 +88,7 @@ function DangerWarningDialog({ action, busy, error, workspaceName, onCancel, onC
             type="button"
             onClick={onCancel}
             disabled={busy}
-            className="rounded-lg border border-border-light px-3 py-2 text-xs text-text-secondary hover:bg-surface-hover disabled:opacity-50"
+            className="rounded-lg border border-border-light px-3 py-2 text-xs text-text-secondary hover:bg-surface-hover cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancel
           </button>
@@ -96,7 +96,7 @@ function DangerWarningDialog({ action, busy, error, workspaceName, onCancel, onC
             type="button"
             onClick={onConfirm}
             disabled={busy}
-            className="flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-2 text-xs text-white hover:bg-red-600 disabled:opacity-60"
+            className="flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-2 text-xs text-white hover:bg-red-600 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
           >
             {busy && <i className="bx bx-loader-alt animate-spin" />}
             {deleting ? 'Delete workspace' : 'Reset canvas'}

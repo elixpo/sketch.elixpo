@@ -76,14 +76,14 @@ function DangerWarningDialog({ action, workspaceName, onCancel, onConfirm }) {
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-border-light px-3 py-2 text-xs text-text-secondary hover:bg-surface-hover"
+            className="rounded-lg border border-border-light px-3 py-2 text-xs text-text-secondary hover:bg-surface-hover cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="rounded-lg bg-red-500 px-3 py-2 text-xs text-white hover:bg-red-600"
+            className="rounded-lg bg-red-500 px-3 py-2 text-xs text-white hover:bg-red-600 cursor-pointer"
           >
             {deleting ? 'Delete workspace' : 'Reset canvas'}
           </button>

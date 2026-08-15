@@ -21,3 +21,4 @@
 - [x] Place the Danger Zone at the end of the menu after authentication.
 - [x] Persist and restore the Show Grid preference through localStorage.
 - [x] Apply the requested menu order and remove the standalone sync action.
+- [x] Show pointer cursors on every menu and menu-dialog button.
