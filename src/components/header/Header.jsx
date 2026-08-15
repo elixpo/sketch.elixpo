@@ -181,13 +181,13 @@ function ProfileDropdown() {
       </button>
 
       {open && (
-        <div className="absolute top-full right-0 mt-2 w-[220px] bg-surface/90 backdrop-blur-lg border border-border-light rounded-xl p-3 z-[1002] font-[lixFont]">
-          <div className="flex items-center gap-2.5 mb-3">
+        <div className="absolute top-full right-0 mt-2 w-[244px] overflow-hidden bg-surface/95 backdrop-blur-xl border border-border-light rounded-xl p-2 z-[1002] font-[lixFont] shadow-2xl shadow-black/35">
+          <div className="flex items-center gap-3 px-2 py-2">
             {avatar ? (
-              <img src={avatar} alt="" className="w-10 h-10 rounded-lg" referrerPolicy="no-referrer" />
+              <img src={avatar} alt="" className="w-11 h-11 rounded-xl border border-border-light" referrerPolicy="no-referrer" />
             ) : (
-              <div className="w-10 h-10 rounded-lg bg-accent-blue/20 flex items-center justify-center">
-                <i className="bx bx-user text-lg text-accent-blue" />
+              <div className="w-11 h-11 rounded-xl border border-border-light bg-accent-blue/15 flex items-center justify-center">
+                <i className="bx bx-user text-xl text-accent" />
               </div>
             )}
             <div className="flex-1 min-w-0">
@@ -196,66 +196,60 @@ function ProfileDropdown() {
                   type="text"
                   value={profile?.displayName || ''}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="w-full bg-transparent text-text-primary text-sm outline-none border-b border-transparent focus:border-accent-blue transition-all"
+                  aria-label="Profile display name"
+                  className="w-full bg-transparent text-text-primary text-sm outline-none border-b border-transparent focus:border-accent transition-colors cursor-text"
                   spellCheck={false}
                 />
               ) : (
-                <p className="text-text-primary text-sm truncate">{displayName}</p>
+                <p className="text-text-primary text-sm truncate" title={displayName}>{displayName}</p>
               )}
-              <span className="text-text-dim text-[10px]">
+              <span className="mt-1 inline-flex items-center rounded-full border border-border-light bg-surface-hover/70 px-1.5 py-0.5 text-text-dim text-[9px] uppercase tracking-wider">
                 {isGuest ? 'Guest' : 'Signed in'}
               </span>
               {!isGuest && authUser?.email && (
-                <p className="text-text-dim text-[10px] truncate">{authUser.email}</p>
+                <p className="mt-1 text-text-dim text-[10px] truncate" title={authUser.email}>{authUser.email}</p>
               )}
             </div>
           </div>
 
-          <div className="border-t border-white/[0.06] mt-2 pt-2 flex flex-col gap-0.5">
-            <a
-              href="/docs/blog/e2e-encryption"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setOpen(false)}
-              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-text-secondary text-xs hover:bg-surface-hover transition-all duration-200"
-            >
-              <i className="bx bxs-shield text-sm text-accent" />
-              How E2E encryption works
-            </a>
-
+          <div className="mt-1 border-t border-border-light">
             <Link
               href="/profile"
               onClick={() => setOpen(false)}
-              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-text-secondary text-xs hover:bg-surface-hover transition-all duration-200"
+              className="w-full flex items-center gap-2.5 px-2 py-2.5 rounded-lg text-text-secondary text-xs hover:bg-surface-hover hover:text-text-primary transition-colors cursor-pointer"
             >
-              <i className="bx bx-user text-sm" />
+              <i className="bx bx-user text-base text-text-muted" />
               Profile & Usage
             </Link>
+          </div>
 
-            {isGuest && (
+          {isGuest && (
+            <div className="border-t border-border-light">
               <button
                 onClick={() => { regenerateProfile(); setOpen(false) }}
-                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-text-secondary text-xs hover:bg-surface-hover transition-all duration-200 cursor-pointer"
+                className="w-full flex items-center gap-2.5 px-2 py-2.5 rounded-lg text-text-secondary text-xs hover:bg-surface-hover hover:text-text-primary transition-colors cursor-pointer"
               >
-                <i className="bx bx-refresh text-sm" />
+                <i className="bx bx-refresh text-base text-text-muted" />
                 New identity
               </button>
-            )}
+            </div>
+          )}
 
+          <div className="border-t border-border-light">
             {isGuest ? (
               <button
                 onClick={() => { useAuthStore.getState().login(); setOpen(false) }}
-                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-accent-blue text-xs hover:bg-accent-blue/10 transition-all duration-200 cursor-pointer"
+                className="w-full flex items-center gap-2.5 px-2 py-2.5 rounded-lg text-accent text-xs hover:bg-accent/10 transition-colors cursor-pointer"
               >
-                <i className="bx bx-log-in text-sm" />
+                <i className="bx bx-log-in text-base" />
                 Sign in
               </button>
             ) : (
               <button
                 onClick={() => { useAuthStore.getState().logout(); setOpen(false) }}
-                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-red-400/70 text-xs hover:bg-red-500/10 transition-all duration-200 cursor-pointer"
+                className="w-full flex items-center gap-2.5 px-2 py-2.5 rounded-lg text-red-400/80 text-xs hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer"
               >
-                <i className="bx bx-log-out text-sm" />
+                <i className="bx bx-log-out text-base" />
                 Sign out
               </button>
             )}
