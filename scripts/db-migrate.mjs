@@ -32,7 +32,7 @@ function wranglerDatabaseArgs(...extra) {
 
 function run(cmd, cmdArgs, opts = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, cmdArgs, { stdio: opts.capture ? ['inherit', 'pipe', 'inherit'] : 'inherit', shell: false })
+    const child = spawn(cmd, cmdArgs, { stdio: opts.capture ? ['inherit', 'pipe', 'inherit'] : 'inherit', shell: process.platform === 'win32' })
     let out = ''
     if (opts.capture) child.stdout.on('data', (d) => { out += d.toString(); process.stdout.write(d) })
     child.on('exit', (code) => code === 0 ? resolve(out) : reject(new Error(`${cmd} exited ${code}`)))
