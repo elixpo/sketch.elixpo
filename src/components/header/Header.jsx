@@ -263,11 +263,18 @@ function ProfileDropdown() {
 export default function Header() {
   const workspaceName = useUIStore((s) => s.workspaceName)
   const setWorkspaceName = useUIStore((s) => s.setWorkspaceName)
+  const workspaceNameAtFocus = useRef(workspaceName)
   const toggleMenu = useUIStore((s) => s.toggleMenu)
   const toggleCommandPalette = useUIStore((s) => s.toggleCommandPalette)
   const toggleSaveModal = useUIStore((s) => s.toggleSaveModal)
   const viewMode = useSketchStore((s) => s.viewMode)
   const zenMode = useSketchStore((s) => s.zenMode)
+
+  const finishWorkspaceNameEdit = () => {
+    if (workspaceName === workspaceNameAtFocus.current) return
+    workspaceNameAtFocus.current = workspaceName
+    showToast('Workspace name updated', { tone: 'success', duration: 1800 })
+  }
 
   // View mode or Zen mode: only show the menu button floating in top-right
   if (viewMode || zenMode) {
@@ -311,6 +318,14 @@ export default function Header() {
             type="text"
             value={workspaceName}
             onChange={(e) => setWorkspaceName(e.target.value)}
+            onFocus={() => { workspaceNameAtFocus.current = workspaceName }}
+            onBlur={finishWorkspaceNameEdit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                e.currentTarget.blur()
+              }
+            }}
             className="bg-transparent text-text-secondary text-sm border-none outline-none w-40 px-0.5 py-0.5 font-[lixFont] cursor-pointer focus:cursor-text"
             aria-label="Workspace name"
             spellCheck={false}
