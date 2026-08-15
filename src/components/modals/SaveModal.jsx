@@ -64,6 +64,7 @@ export default function SaveModal() {
   const [startingCollab, setStartingCollab] = useState(false)
   const [collabError, setCollabError] = useState('')
   const collabConnected = useCollabStore((s) => s.connected)
+  const collabRuntimeError = useCollabStore((s) => s.error)
 
   // Issue #24 bug #9: one-time view-only share link. Creates a separate
   // read-only snapshot of the current scene that anyone with the link can
@@ -122,6 +123,7 @@ export default function SaveModal() {
       const origin = window.location.origin
       const link = `${origin}/room/${roomId}#key=${key}`
 
+      useCollabStore.getState().startRoom(roomId)
       setCollabLink(link)
       setCollabCopied(false)
     } catch (err) {
@@ -199,11 +201,8 @@ export default function SaveModal() {
   }
 
   const handleEndSession = () => {
-    const ws = useCollabStore.getState().ws
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.close()
-    }
-    useCollabStore.getState().reset()
+    window.__disconnectCollaboration?.()
+    useCollabStore.getState().stopRoom()
     setCollabLink('')
     setCollabCopied(false)
   }
@@ -471,8 +470,8 @@ export default function SaveModal() {
               </button>
             )}
 
-            {collabError && (
-              <p className="text-red-400 text-[10px] mt-2">{collabError}</p>
+            {(collabError || collabRuntimeError) && (
+              <p className="text-red-400 text-[10px] mt-2">{collabError || collabRuntimeError}</p>
             )}
           </div>
 

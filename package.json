@@ -40,10 +40,10 @@
   "scripts": {
     "dev": "concurrently -k -n next,worker -c blue,magenta \"npm run dev:next\" \"npm run dev:rooms\"",
     "dev:next": "next dev --turbo",
-    "dev:rooms": "wrangler dev worker/src/index.ts --persist-to .wrangler/state --local --port 8787",
+    "dev:rooms": "wrangler dev --config wrangler.dev.toml --persist-to .wrangler/state --local --port 8787",
     "build": "next build",
     "start": "next start",
-    "worker:dev": "wrangler dev --port 8787 --local",
+    "worker:dev": "wrangler dev --config wrangler.dev.toml --persist-to .wrangler/state --port 8787 --local",
     "worker:deploy": "wrangler deploy",
     "db:create": "wrangler d1 create lixsketch",
     "db:migrate": "node scripts/db-migrate.mjs --remote",

@@ -37,6 +37,8 @@ import FindBar from '@/components/canvas/FindBar'
 import SplitLayout from '@/components/docs/SplitLayout'
 import dynamic from 'next/dynamic'
 import useSketchStore from '@/store/useSketchStore'
+import useCollabStore from '@/store/useCollabStore'
+import useCollaboration from '@/hooks/useCollaboration'
 
 // Lazy: only pulls BlockNote/Mantine/Mermaid into the bundle when the
 // docs panel is actually mounted (i.e. layoutMode is 'split' or 'docs').
@@ -69,6 +71,9 @@ export default function CanvasPage() {
   useSessionID()
   useGuestProfile()
   useAutoSave()
+
+  const activeRoomId = useCollabStore((s) => s.activeRoomId)
+  useCollaboration(activeRoomId)
 
   const layoutMode = useSketchStore((s) => s.layoutMode)
   const canvasVisible = layoutMode !== 'docs'

@@ -806,6 +806,9 @@ export function resetCanvas() {
     } catch (_) {}
 
     console.log('[SceneSerializer] Canvas reset');
+    if (typeof window.__collabSceneChanged === 'function') {
+        window.__collabSceneChanged();
+    }
 }
 
 // ============================================================
