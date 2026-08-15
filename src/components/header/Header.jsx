@@ -302,11 +302,7 @@ export default function Header() {
         {/* Logo */}
         <div
           onClick={() => {
-            if (window.location.pathname === '/') {
-              window.location.reload()
-            } else {
-              window.location.href = '/'
-            }
+            window.location.href = '/?noredirect=1'
           }}
           className="w-[26px] h-[26px] rounded-md bg-contain bg-no-repeat bg-center cursor-pointer"
           style={{ backgroundImage: "url('/icon.png')" }}
