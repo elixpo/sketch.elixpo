@@ -176,7 +176,6 @@ export default function DocsPanel() {
                 } catch {}
               }}
               features={{ equations: true, mermaid: true, code: true }}
-              imageInsert="host"
               uploadFile={uploadDocumentImage}
               acceptImageTypes={DOC_IMAGE_TYPES}
               maxFileSizeBytes={DOC_IMAGE_MAX_BYTES}
