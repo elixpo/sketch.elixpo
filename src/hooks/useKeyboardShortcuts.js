@@ -36,6 +36,27 @@ export default function useKeyboardShortcuts() {
 
       // Global Ctrl shortcuts (work even when typing)
       if (e.ctrlKey || e.metaKey) {
+        const zoomDirection = (key === '+' || key === '=' || e.code === 'NumpadAdd')
+          ? 1
+          : (key === '-' || e.code === 'NumpadSubtract')
+            ? -1
+            : 0
+        if (zoomDirection !== 0) {
+          if (!e.defaultPrevented) {
+            e.preventDefault()
+            if (typeof window.zoomFromCenter === 'function') {
+              window.zoomFromCenter(zoomDirection)
+            }
+          }
+          return
+        }
+        if (key === '0' || e.code === 'Numpad0') {
+          if (!e.defaultPrevented) {
+            e.preventDefault()
+            if (typeof window.zoomReset === 'function') window.zoomReset()
+          }
+          return
+        }
         if (key === 's' && e.shiftKey) {
           e.preventDefault()
           useUIStore.getState().toggleSaveModal()
