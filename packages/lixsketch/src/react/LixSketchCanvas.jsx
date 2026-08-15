@@ -238,7 +238,7 @@ export default function LixSketchCanvas({
           type="button"
           title="LixScript MCP — coming soon"
           onClick={() => useUIStore.getState().toggleAIModal?.()}
-          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
         >
           <i className="bx bx-code-alt text-base" />
         </button>
@@ -246,7 +246,7 @@ export default function LixSketchCanvas({
           type="button"
           title="Graph — plot equations"
           onClick={() => useUIStore.getState().toggleGraphModal?.()}
-          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
         >
           <i className="bx bx-line-chart text-base" />
         </button>
@@ -254,7 +254,7 @@ export default function LixSketchCanvas({
           type="button"
           title="Commands and shortcuts (Ctrl+/)"
           onClick={() => useUIStore.getState().toggleCommandPalette?.()}
-          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
         >
           <i className="bx bx-command text-base" />
         </button>
@@ -262,7 +262,7 @@ export default function LixSketchCanvas({
           type="button"
           title="Menu"
           onClick={() => useUIStore.getState().toggleMenu?.()}
-          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
         >
           <i className="bx bx-menu text-base" />
         </button>

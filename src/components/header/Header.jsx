@@ -41,7 +41,7 @@ function LayoutModeToggle() {
             title={m.title}
             aria-selected={active}
             role="tab"
-            className={`group flex items-center gap-1.5 h-7 px-2.5 rounded-md transition-all duration-150 ${
+            className={`group flex items-center gap-1.5 h-7 px-2.5 rounded-md transition-all duration-150 cursor-pointer ${
               active
                 ? 'bg-accent-blue text-white'
                 : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
@@ -166,7 +166,7 @@ function ProfileDropdown() {
       <button
         onClick={testE2E}
         disabled={testingE2E}
-        className="h-8 px-2 flex items-center justify-center gap-1 rounded-r-lg text-text-muted hover:text-accent hover:bg-surface-hover transition-all disabled:opacity-50"
+        className="h-8 px-2 flex items-center justify-center gap-1 rounded-r-lg text-text-muted hover:text-accent hover:bg-surface-hover transition-all cursor-pointer disabled:cursor-wait disabled:opacity-50"
         title="Test E2E encryption"
         aria-label="Test E2E encryption"
       >
@@ -229,7 +229,7 @@ function ProfileDropdown() {
             {isGuest && (
               <button
                 onClick={() => { regenerateProfile(); setOpen(false) }}
-                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-text-secondary text-xs hover:bg-surface-hover transition-all duration-200"
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-text-secondary text-xs hover:bg-surface-hover transition-all duration-200 cursor-pointer"
               >
                 <i className="bx bx-refresh text-sm" />
                 New identity
@@ -247,7 +247,7 @@ function ProfileDropdown() {
             ) : (
               <button
                 onClick={() => { useAuthStore.getState().logout(); setOpen(false) }}
-                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-red-400/70 text-xs hover:bg-red-500/10 transition-all duration-200"
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-red-400/70 text-xs hover:bg-red-500/10 transition-all duration-200 cursor-pointer"
               >
                 <i className="bx bx-log-out text-sm" />
                 Sign out
@@ -275,7 +275,7 @@ export default function Header() {
       <div className="fixed top-3 right-4 z-[1001] font-[lixFont]">
         <button
           onClick={toggleMenu}
-          className="w-8 h-8 flex items-center justify-center rounded-lg bg-surface text-text-muted hover:text-text-primary hover:bg-surface-hover transition-all duration-200"
+          className="w-8 h-8 flex items-center justify-center rounded-lg bg-surface text-text-muted hover:text-text-primary hover:bg-surface-hover transition-all duration-200 cursor-pointer"
         >
           <i className="bx bx-menu text-xl" />
         </button>
@@ -305,13 +305,13 @@ export default function Header() {
         <div className="w-px h-5 bg-border-light" />
 
         {/* Workspace name */}
-        <label className="flex items-center gap-1 rounded px-1 py-0.5 hover:bg-surface-hover/50 focus-within:bg-surface-hover/50 transition-all duration-200" title="Edit workspace name">
+        <label className="flex items-center gap-1 rounded px-1 py-0.5 hover:bg-surface-hover/50 focus-within:bg-surface-hover/50 transition-all duration-200 cursor-pointer" title="Edit workspace name">
           <i className="bx bx-pencil text-sm text-text-dim pointer-events-none" aria-hidden="true" />
           <input
             type="text"
             value={workspaceName}
             onChange={(e) => setWorkspaceName(e.target.value)}
-            className="bg-transparent text-text-secondary text-sm border-none outline-none w-40 px-0.5 py-0.5 font-[lixFont]"
+            className="bg-transparent text-text-secondary text-sm border-none outline-none w-40 px-0.5 py-0.5 font-[lixFont] cursor-text"
             aria-label="Workspace name"
             spellCheck={false}
           />
@@ -327,7 +327,7 @@ export default function Header() {
         {/* Command palette */}
         <button
           onClick={toggleCommandPalette}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface hover:bg-surface-hover text-text-muted text-sm rounded-lg border border-border transition-all duration-200 font-[lixFont]"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface hover:bg-surface-hover text-text-muted text-sm rounded-lg border border-border transition-all duration-200 font-[lixFont] cursor-pointer"
           title="Open command center"
           aria-label="Open command center (Ctrl + /)"
         >
@@ -338,7 +338,7 @@ export default function Header() {
         {/* Share */}
         <button
           onClick={toggleSaveModal}
-          className="px-3.5 py-1.5 bg-accent-blue hover:bg-accent-blue-hover text-white text-sm rounded-lg transition-all duration-200 font-[lixFont]"
+          className="px-3.5 py-1.5 bg-accent-blue hover:bg-accent-blue-hover text-white text-sm rounded-lg transition-all duration-200 font-[lixFont] cursor-pointer"
         >
           Share
         </button>
@@ -346,7 +346,7 @@ export default function Header() {
         {/* Hamburger is the far-right control. */}
         <button
           onClick={toggleMenu}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-hover transition-all duration-200"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-hover transition-all duration-200 cursor-pointer"
         >
           <i className="bx bx-menu text-xl" />
         </button>
