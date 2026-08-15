@@ -381,7 +381,9 @@ body.canvas-mode.theme-dark .lix-sketch-theme code {
  * the block's negative-x space — clipped by the host. Add a bit of
  * left padding so the menu has room. */
 .lix-sketch-theme .lix-editor-wrapper {
-  padding-left: 4.5rem;
+  /* Add the same 12px inset to the wrapper gutter so the floating + / move
+   * controls shift inward along with the document line. */
+  padding-left: 5.25rem;
   padding-right: 1.5rem;
 }
 
