@@ -78,3 +78,4 @@
 - [x] Add persisted personal profile details, biography, location, website, and custom links to the Personal tab.
 - [x] Enrich every profile tab with section context, summary metrics, entitlement details, and clearer status information.
 - [x] Keep the standard site navbar visible on the profile route.
+- [x] Let Cloudinary OAuth identify the selected product environment without asking users for a cloud name.
