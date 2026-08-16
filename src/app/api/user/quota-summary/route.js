@@ -56,10 +56,16 @@ export async function GET(request) {
     const limits = getPlanLimits(normalizedTier)
     const workspaceLimit = limits.workspaces
 
-    // Image storage
+    // Image limits are per workspace, so expose the fullest workspace rather
+    // than summing unrelated rooms into one misleading total.
     const storageResult = await DB.prepare(
-      `SELECT COALESCE(SUM(size_bytes), 0) as total FROM scenes
-       WHERE created_by = ? AND owner_type = ?`
+      `SELECT COALESCE(MAX(workspace_bytes), 0) AS total FROM (
+         SELECT COALESCE(SUM(ia.size_bytes), 0) AS workspace_bytes
+         FROM scenes s
+         LEFT JOIN image_assets ia ON ia.session_id = s.session_id AND ia.status = 'complete'
+         WHERE s.created_by = ? AND s.owner_type = ?
+         GROUP BY s.session_id
+       )`
     ).bind(identifier, ownerType).first()
     const storageUsed = storageResult?.total || 0
 

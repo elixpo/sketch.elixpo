@@ -5,7 +5,6 @@ export interface Env {
   DB: D1Database;
   KV: KVNamespace;
   ENVIRONMENT: string;
-  MAX_ROOM_USERS: string;
   ROOM_TTL_HOURS: string;
   IDLE_TIMEOUT_MINS: string;
   ELIXPO_AUTH_URL: string;
@@ -172,6 +171,7 @@ export default {
           try {
             await deleteCloudinaryFolder(scene.session_id, env);
           } catch {}
+          await env.DB.prepare(`DELETE FROM image_assets WHERE session_id = ?`).bind(scene.session_id).run();
           await env.DB.prepare(`DELETE FROM scenes WHERE id = ?`).bind(scene.id).run();
         }
         console.log(`[Scheduled Cleanup] Deleted ${staleScenes.results.length} stale workspaces`);
@@ -564,6 +564,7 @@ async function handleSceneDelete(request: Request, env: Env): Promise<Response> 
 
       await env.DB.batch([
         env.DB.prepare(`DELETE FROM canvas_docs WHERE session_id = ?`).bind(body.sessionId),
+        env.DB.prepare(`DELETE FROM image_assets WHERE session_id = ?`).bind(body.sessionId),
         env.DB.prepare(`DELETE FROM scene_permissions WHERE scene_id = ?`).bind(scene.id),
         env.DB.prepare(`DELETE FROM scenes WHERE id = ?`).bind(scene.id),
       ]);
@@ -598,6 +599,7 @@ async function handleSceneDelete(request: Request, env: Env): Promise<Response> 
     // the paired canvas doc — there's no real FK so we cascade manually.
     await env.DB.batch([
       env.DB.prepare(`DELETE FROM canvas_docs WHERE session_id = ?`).bind(perm.session_id),
+      env.DB.prepare(`DELETE FROM image_assets WHERE session_id = ?`).bind(perm.session_id),
       env.DB.prepare(`DELETE FROM scenes WHERE id = ?`).bind(perm.scene_id),
     ]);
 
@@ -676,6 +678,7 @@ async function handleSceneCleanup(request: Request, env: Env): Promise<Response>
 
       // Delete from DB (cascade deletes scene_permissions)
       await env.DB.prepare(`DELETE FROM scenes WHERE id = ?`).bind(scene.id).run();
+      await env.DB.prepare(`DELETE FROM image_assets WHERE session_id = ?`).bind(scene.session_id).run();
       deletedSessionIds.push(scene.session_id);
     }
 
@@ -795,7 +798,7 @@ async function handleImageComplete(request: Request, env: Env): Promise<Response
     ).bind(body.publicId, body.sessionId).first();
     if (!asset) return json({ error: 'Unknown image reservation' }, 404);
     await env.DB.prepare(
-      `UPDATE image_assets SET size_bytes = ?, status = 'complete', updated_at = datetime('now')
+      `UPDATE image_assets SET size_bytes = MAX(size_bytes, ?), status = 'complete', updated_at = datetime('now')
        WHERE public_id = ? AND session_id = ?`
     ).bind(sizeBytes, body.publicId, body.sessionId).run();
     return json({ success: true });
@@ -1025,10 +1028,16 @@ async function handleQuotaSummary(request: Request, env: Env): Promise<Response>
     const normalizedTier = normalizeTier(tier, Boolean(userId));
     const workspaceLimit = PLAN_LIMITS[normalizedTier].workspaces;
 
-    // Image storage (sum of size_bytes for user's scenes)
+    // Report the fullest workspace because image limits are per workspace,
+    // not a pooled account allowance.
     const storageResult = await env.DB.prepare(
-      `SELECT COALESCE(SUM(size_bytes), 0) as total FROM scenes
-       WHERE created_by = ? AND owner_type = ?`
+      `SELECT COALESCE(MAX(workspace_bytes), 0) AS total FROM (
+         SELECT COALESCE(SUM(ia.size_bytes), 0) AS workspace_bytes
+         FROM scenes s
+         LEFT JOIN image_assets ia ON ia.session_id = s.session_id AND ia.status = 'complete'
+         WHERE s.created_by = ? AND s.owner_type = ?
+         GROUP BY s.session_id
+       )`
     ).bind(identifier, ownerType).first<{ total: number }>();
     const storageUsed = storageResult?.total || 0;
 
