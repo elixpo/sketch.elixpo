@@ -123,7 +123,7 @@ export default function DocsPage() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-surface-dark/80 backdrop-blur-xl border-b border-white/[0.06]">
         <div className="max-w-[1400px] mx-auto flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
-            <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <a href="/?noredirect=1" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
               <img src="/icon.png" alt="LixSketch" className="w-7 h-7 rounded-md" />
               <span className="text-text-primary font-medium">LixSketch</span>
             </a>
@@ -212,7 +212,7 @@ export default function DocsPage() {
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <h1 className="text-3xl font-semibold text-text-primary">LixScript</h1>
-                  <span className="px-2 py-0.5 text-[10px] rounded-md bg-[#a97852]/15 text-[#8f6244] font-medium uppercase">Coming soon</span>
+                  <span className="px-2 py-0.5 text-[10px] rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium uppercase">Coming soon</span>
                 </div>
                 <p className="text-text-muted text-lg max-w-2xl leading-relaxed">
                   LixScript is being prepared as the programmable MCP interface for LixSketch.
@@ -241,8 +241,8 @@ export default function DocsPage() {
             </div>
           </div>
 
-          <div className="mb-10 rounded-2xl border border-[#a97852]/25 bg-[#f4e3d4]/55 px-5 py-4 flex items-start gap-3">
-            <i className="bx bx-info-circle text-xl text-[#8f6244] mt-0.5" />
+          <div className="mb-10 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-4 flex items-start gap-3">
+            <i className="bx bx-info-circle text-xl text-amber-400 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-text-primary">LixScript MCP is coming soon</p>
               <p className="text-xs leading-relaxed text-text-muted mt-1">Syntax and APIs shown on this page are previews and may change before the MCP integration is released.</p>
