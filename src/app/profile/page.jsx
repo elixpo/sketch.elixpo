@@ -244,6 +244,20 @@ const TIER_COLORS = {
   team: { bg: 'bg-[#D99BF0]/10', text: 'text-[#D99BF0]', border: 'border-[#D99BF0]/20' },
 }
 
+const PROFILE_TABS = [
+  { id: 'personal', label: 'Personal', icon: 'bx-user' },
+  { id: 'workspaces', label: 'Workspaces', icon: 'bx-grid-alt' },
+  { id: 'integrations', label: 'Integrations', icon: 'bx-plug' },
+  { id: 'usage', label: 'Usage', icon: 'bx-bar-chart-alt-2' },
+  { id: 'billing', label: 'Billing', icon: 'bx-credit-card' },
+]
+
+function profileTabFromLocation() {
+  if (typeof window === 'undefined') return 'personal'
+  const requested = new URLSearchParams(window.location.search).get('tab')
+  return PROFILE_TABS.some((tab) => tab.id === requested) ? requested : 'personal'
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
@@ -257,6 +271,7 @@ export default function ProfilePage() {
   const [quotaData, setQuotaData] = useState(null)
   const [workspaces, setWorkspaces] = useState([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('personal')
 
   const headerRef = useRef(null)
   const headerInView = useInView(headerRef, { once: true })
@@ -269,6 +284,21 @@ export default function ProfilePage() {
 
   // Init auth on mount
   useEffect(() => { init() }, [init])
+
+  useEffect(() => {
+    const syncTab = () => setActiveTab(profileTabFromLocation())
+    syncTab()
+    window.addEventListener('popstate', syncTab)
+    return () => window.removeEventListener('popstate', syncTab)
+  }, [])
+
+  const selectTab = (tabId) => {
+    setActiveTab(tabId)
+    const destination = new URL(window.location.href)
+    destination.searchParams.set('tab', tabId)
+    destination.hash = tabId === 'integrations' ? 'integrations' : ''
+    window.history.pushState({}, '', `${destination.pathname}${destination.search}${destination.hash}`)
+  }
 
   // Fetch quota + workspaces
   useEffect(() => {
@@ -410,6 +440,27 @@ export default function ProfilePage() {
           </div>
         </motion.div>
 
+        <nav className="mb-8 flex gap-1 overflow-x-auto rounded-xl border border-[#8B88E8]/20 bg-[#151321]/80 p-1.5" aria-label="Profile sections">
+          {PROFILE_TABS.map((tab) => {
+            const selected = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => selectTab(tab.id)}
+                className={`flex min-w-max flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors ${selected
+                  ? 'bg-[#8B88E8]/20 text-[#B6ACF4]'
+                  : 'text-text-dim hover:bg-white/[0.04] hover:text-text-secondary'
+                }`}
+                aria-current={selected ? 'page' : undefined}
+              >
+                <i className={`bx ${tab.icon} text-sm`} />
+                {tab.label}
+              </button>
+            )
+          })}
+        </nav>
+
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="relative w-8 h-8">
@@ -420,7 +471,7 @@ export default function ProfilePage() {
         ) : (
           <div className="space-y-8">
             {/* Usage overview */}
-            <motion.div
+            {activeTab === 'usage' && <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
@@ -459,10 +510,10 @@ export default function ProfilePage() {
                   )}
                 </div>
               </RoughCard>
-            </motion.div>
+            </motion.div>}
 
             {/* Workspaces */}
-            <motion.div
+            {activeTab === 'workspaces' && <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.2 }}
@@ -507,10 +558,10 @@ export default function ProfilePage() {
                   ))}
                 </div>
               )}
-            </motion.div>
+            </motion.div>}
 
             {/* Account details for authenticated users */}
-            {isAuthenticated && (
+            {activeTab === 'personal' && isAuthenticated && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -543,10 +594,10 @@ export default function ProfilePage() {
               </motion.div>
             )}
 
-            {isAuthenticated && <CloudinaryIntegrationCard />}
+            {activeTab === 'integrations' && isAuthenticated && <CloudinaryIntegrationCard />}
 
             {/* Guest info card */}
-            {!isAuthenticated && (
+            {activeTab === 'personal' && !isAuthenticated && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -592,6 +643,66 @@ export default function ProfilePage() {
                   </div>
                 </RoughCard>
               </motion.div>
+            )}
+
+            {activeTab === 'integrations' && !isAuthenticated && (
+              <RoughCard color="#8B88E8">
+                <div id="integrations" className="p-8 text-center">
+                  <i className="bx bx-plug mb-3 text-3xl text-[#A99CF1]" />
+                  <h2 className="text-sm font-medium text-text-primary">Personal integrations</h2>
+                  <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-text-dim">
+                    Sign in to connect your own Cloudinary product environment and keep personal media outside the managed workspace allowance.
+                  </p>
+                  <button type="button" onClick={login} className="mt-4 cursor-pointer rounded-lg bg-[#8B88E8] px-4 py-2 text-xs text-white hover:bg-[#9E91EE]">
+                    Sign in to connect
+                  </button>
+                </div>
+              </RoughCard>
+            )}
+
+            {activeTab === 'billing' && (
+              <RoughCard color="#8B88E8">
+                <div className="p-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h2 className="flex items-center gap-2 text-sm font-medium text-text-primary">
+                        <i className="bx bx-credit-card text-[#A99CF1]" />
+                        Billing
+                      </h2>
+                      <p className="mt-2 text-xs leading-5 text-text-dim">
+                        Pro billing is in early access. Viewing plans will not charge you or change your current account.
+                      </p>
+                    </div>
+                    <span className={`w-fit rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-wider ${tierStyle.bg} ${tierStyle.text} ${tierStyle.border}`}>
+                      {tier} plan
+                    </span>
+                  </div>
+                  <div className="mt-5 grid gap-3 border-y border-white/[0.07] py-4 text-xs sm:grid-cols-3">
+                    <div>
+                      <p className="text-text-dim">Workspaces</p>
+                      <p className="mt-1 text-text-secondary">{workspaceLimit}</p>
+                    </div>
+                    <div>
+                      <p className="text-text-dim">Managed images</p>
+                      <p className="mt-1 text-text-secondary">{quotaData?.storage?.limitBytes ? `${Math.round(quotaData.storage.limitBytes / (1024 * 1024))} MB / workspace` : '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-text-dim">Billing status</p>
+                      <p className="mt-1 text-text-secondary">{tier === 'pro' || tier === 'team' ? 'Early access' : 'No active subscription'}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Link href="/pricing" className="cursor-pointer rounded-lg bg-[#8B88E8] px-4 py-2 text-xs text-white hover:bg-[#9E91EE]">
+                      View plans
+                    </Link>
+                    {!isAuthenticated && (
+                      <button type="button" onClick={login} className="cursor-pointer rounded-lg border border-[#8B88E8]/30 px-4 py-2 text-xs text-[#A99CF1] hover:bg-[#8B88E8]/10">
+                        Sign in
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </RoughCard>
             )}
           </div>
         )}
