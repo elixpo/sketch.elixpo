@@ -75,3 +75,4 @@
 - [x] Hide AI request allowances from profiles until the Pollinations integration ships.
 - [x] Organize profiles into Personal, Workspaces, Integrations, Usage, and Billing tabs with URL-addressable navigation.
 - [x] Handle Cloudinary OAuth grants that omit the selected product environment by validating a user-supplied public cloud name.
+- [x] Add persisted personal profile details, biography, location, website, and custom links to the Personal tab.

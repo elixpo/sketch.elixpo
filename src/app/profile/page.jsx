@@ -9,6 +9,7 @@ import { useProfileStore } from '@/hooks/useGuestProfile'
 import { WORKER_URL } from '@/lib/env'
 import { getRememberedCanvasId } from '@/utils/canvasSession'
 import CloudinaryIntegrationCard from '@/components/profile/CloudinaryIntegrationCard'
+import PersonalDetailsCard from '@/components/profile/PersonalDetailsCard'
 
 function reconcileActiveWorkspaceName(workspaces) {
   if (typeof window === 'undefined' || !Array.isArray(workspaces)) return workspaces || []
@@ -567,30 +568,7 @@ export default function ProfilePage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.3 }}
               >
-                <RoughCard color="#555">
-                  <div className="p-5">
-                    <h2 className="text-sm font-medium font-[lixFont] text-text-primary mb-4 flex items-center gap-2">
-                      <i className="bx bx-shield-alt-2 text-text-dim" />
-                      Account
-                    </h2>
-                    <div className="grid grid-cols-2 gap-4 text-xs">
-                      <div>
-                        <span className="text-text-dim">Email</span>
-                        <p className="text-text-secondary truncate">{user?.email || '—'}</p>
-                      </div>
-                      <div>
-                        <span className="text-text-dim">Plan</span>
-                        <p className="text-text-secondary capitalize">{tier}</p>
-                      </div>
-                      <div>
-                        <span className="text-text-dim">Workspace limit</span>
-                        <p className="text-text-secondary">
-                          {workspaceLimit}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </RoughCard>
+                <PersonalDetailsCard />
               </motion.div>
             )}
 
