@@ -4,6 +4,9 @@ Signed-in users can connect a Cloudinary product environment from the
 Integrations section of their profile. When personal storage is enabled, new
 canvas and document images are uploaded through the LixSketch server to that
 environment and do not consume the platform-managed per-workspace image quota.
+The connection form asks for the environment's public cloud name because some
+Cloudinary OAuth grants omit it; the callback verifies that the OAuth token can
+access the supplied environment before storing the connection.
 
 ## OAuth application
 

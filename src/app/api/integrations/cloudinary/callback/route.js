@@ -18,6 +18,7 @@ function finish(request, result, reference = '') {
   if (reference) destination.searchParams.set('cloudinary_ref', reference)
   const response = NextResponse.redirect(destination)
   response.cookies.delete('cloudinary_oauth_state')
+  response.cookies.delete('cloudinary_oauth_cloud_name')
   return response
 }
 
@@ -41,7 +42,11 @@ export async function GET(request) {
     stage = 'offline_access'
     if (!tokens.refresh_token) throw new Error('Offline access did not issue a refresh token')
     stage = 'environment'
-    const cloudName = await resolveCloudinaryCloudName(tokens, callbackUrl)
+    const tokenCloudName = await resolveCloudinaryCloudName(tokens, callbackUrl)
+    const requestedCloudName = request.cookies.get('cloudinary_oauth_cloud_name')?.value || ''
+    // Some valid self-service OAuth grants omit the selected environment.
+    // The following API request proves the token can access this public name.
+    const cloudName = tokenCloudName || requestedCloudName
     if (!isValidCloudinaryCloudName(cloudName)) throw new Error('Cloudinary did not identify the product environment')
     stage = 'validation'
     await testCloudinaryOAuthConnection({ cloudName, oauthToken: tokens.access_token })

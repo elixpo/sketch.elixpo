@@ -73,3 +73,5 @@
 - [x] Add signed-in personal Cloudinary OAuth storage for canvas and document media, with encrypted refresh tokens and platform-quota bypass.
 - [x] Show remaining account-wide managed storage and connected Cloudinary storage in profiles.
 - [x] Hide AI request allowances from profiles until the Pollinations integration ships.
+- [x] Organize profiles into Personal, Workspaces, Integrations, Usage, and Billing tabs with URL-addressable navigation.
+- [x] Handle Cloudinary OAuth grants that omit the selected product environment by validating a user-supplied public cloud name.

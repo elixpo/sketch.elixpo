@@ -33,6 +33,9 @@ const RESULT_MESSAGES = {
   disconnected: { ok: true, text: 'Cloudinary disconnected. Existing media remains in your Cloudinary account.' },
   denied: { ok: false, text: 'Cloudinary authorization was cancelled.' },
   invalid_state: { ok: false, text: 'The authorization session expired. Please try again.' },
+  invalid_environment: { ok: false, text: 'Enter a valid Cloudinary cloud name before connecting.' },
+  failed_environment: { ok: false, text: 'Cloudinary did not return a product environment. Confirm the cloud name and try again.' },
+  failed_validation: { ok: false, text: 'Cloudinary did not authorize access to that product environment. Confirm the cloud name and account selection.' },
   config_error: { ok: false, text: 'Cloudinary OAuth is not configured on this deployment.' },
 }
 
@@ -44,6 +47,7 @@ export default function CloudinaryIntegrationCard() {
   const [confirmDisconnect, setConfirmDisconnect] = useState(false)
   const [oauthResult, setOauthResult] = useState(null)
   const [oauthReference, setOauthReference] = useState(null)
+  const [cloudNameInput, setCloudNameInput] = useState('')
 
   const oauthMessage = useMemo(() => {
     if (!oauthResult) return null
@@ -113,6 +117,17 @@ export default function CloudinaryIntegrationCard() {
     }
   }
 
+  const connect = (event) => {
+    event.preventDefault()
+    const cloudName = cloudNameInput.trim()
+    if (!/^[a-z0-9][a-z0-9_-]{1,254}$/i.test(cloudName)) {
+      setError('Enter the cloud name shown on your Cloudinary dashboard.')
+      return
+    }
+    setError('')
+    window.location.href = `/api/integrations/cloudinary/connect?cloud_name=${encodeURIComponent(cloudName)}`
+  }
+
   return (
     <section id="integrations" className="rounded-2xl border border-[#8B88E8]/25 bg-[#8B88E8]/[0.045] p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -145,15 +160,26 @@ export default function CloudinaryIntegrationCard() {
       {loading ? (
         <div className="mt-4 h-16 animate-pulse rounded-xl bg-white/[0.035]" />
       ) : !status?.connected ? (
-        <div className="mt-4 flex flex-col gap-3 border-t border-white/[0.07] pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <form onSubmit={connect} className="mt-4 flex flex-col gap-3 border-t border-white/[0.07] pt-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs text-text-secondary">Authorize upload and asset management access</p>
             <p className="mt-1 text-[10px] text-text-dim">Uses OpenID and offline access so the server can refresh encrypted tokens. Your API secret is never requested.</p>
+            <label className="mt-3 block text-[10px] uppercase tracking-wider text-text-dim" htmlFor="cloudinary-cloud-name">Cloud name</label>
+            <input
+              id="cloudinary-cloud-name"
+              value={cloudNameInput}
+              onChange={(event) => setCloudNameInput(event.target.value)}
+              placeholder="Shown on your Cloudinary dashboard"
+              autoComplete="off"
+              spellCheck="false"
+              className="mt-1 w-full min-w-0 rounded-lg border border-[#8B88E8]/25 bg-black/15 px-3 py-2 text-xs text-text-primary outline-none placeholder:text-text-dim focus:border-[#8B88E8]/60 sm:w-72"
+            />
+            <p className="mt-1 text-[9px] text-text-dim">The cloud name is a public product-environment identifier.</p>
           </div>
-          <a href="/api/integrations/cloudinary/connect" className="cursor-pointer rounded-lg bg-[#8B88E8] px-4 py-2 text-center text-xs text-white transition-colors hover:bg-[#9E91EE]">
+          <button type="submit" className="cursor-pointer rounded-lg bg-[#8B88E8] px-4 py-2 text-center text-xs text-white transition-colors hover:bg-[#9E91EE]">
             Connect Cloudinary
-          </a>
-        </div>
+          </button>
+        </form>
       ) : (
         <div className="mt-4 border-t border-white/[0.07] pt-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
