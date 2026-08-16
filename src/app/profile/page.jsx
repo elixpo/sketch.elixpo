@@ -433,13 +433,6 @@ export default function ProfilePage() {
                   </h2>
 
                   <UsageBar
-                    label="AI Requests (today)"
-                    used={quotaData?.ai?.used || 0}
-                    limit={quotaData?.ai?.limit === 'unlimited' ? 999 : (quotaData?.ai?.limit || (isAuthenticated ? 10 : 5))}
-                    color="#8B88E8"
-                  />
-
-                  <UsageBar
                     label="Workspaces"
                     used={workspaces.length}
                     limit={workspaceLimit}
@@ -544,12 +537,6 @@ export default function ProfilePage() {
                           {workspaceLimit}
                         </p>
                       </div>
-                      <div>
-                        <span className="text-text-dim">AI requests / day</span>
-                        <p className="text-text-secondary">
-                          {quotaData?.ai?.limit === 'unlimited' ? 'Unlimited' : (quotaData?.ai?.limit || 10)}
-                        </p>
-                      </div>
                     </div>
                   </div>
                 </RoughCard>
@@ -577,10 +564,6 @@ export default function ProfilePage() {
                         <li className="flex items-center gap-2">
                           <i className="bx bx-check text-green-400" />
                           <span className="text-text-secondary">1 workspace</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <i className="bx bx-check text-green-400" />
-                          <span className="text-text-secondary">5 AI requests / day</span>
                         </li>
                         <li className="flex items-center gap-2">
                           <i className="bx bx-check text-green-400" />

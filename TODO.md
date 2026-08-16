@@ -72,3 +72,4 @@
 - [x] Correct the Teams page around current encrypted live sessions and remove future-roadmap and self-hosting sections.
 - [x] Add signed-in personal Cloudinary OAuth storage for canvas and document media, with encrypted refresh tokens and platform-quota bypass.
 - [x] Show remaining account-wide managed storage and connected Cloudinary storage in profiles.
+- [x] Hide AI request allowances from profiles until the Pollinations integration ships.
