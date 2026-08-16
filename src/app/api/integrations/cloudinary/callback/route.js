@@ -1,0 +1,63 @@
+import { NextResponse } from 'next/server'
+import { getCloudflareBindings } from '@/lib/cloudflare'
+import { getAuthenticatedUser } from '@/lib/serverAuth'
+import {
+  exchangeCloudinaryCode,
+  isValidCloudinaryCloudName,
+  resolveCloudinaryCloudName,
+  revokeCloudinaryToken,
+} from '@/lib/cloudinaryOAuth'
+import { saveCloudinaryConnection } from '@/lib/cloudinaryConnections'
+import { testCloudinaryOAuthConnection } from '@/lib/personalCloudinary'
+
+export const runtime = 'edge'
+
+function finish(request, result, reference = '') {
+  const destination = new URL('/settings?tab=integrations', request.url)
+  destination.searchParams.set('cloudinary', result)
+  if (reference) destination.searchParams.set('cloudinary_ref', reference)
+  const response = NextResponse.redirect(destination)
+  response.cookies.delete('cloudinary_oauth_state')
+  return response
+}
+
+export async function GET(request) {
+  const user = await getAuthenticatedUser(request)
+  if (!user) return NextResponse.redirect(new URL('/?signin=required', request.url))
+  const callbackUrl = new URL(request.url)
+  const authorizationError = callbackUrl.searchParams.get('error')
+  if (authorizationError) return finish(request, authorizationError === 'access_denied' ? 'denied' : 'authorization_failed')
+
+  const code = callbackUrl.searchParams.get('code')
+  const state = callbackUrl.searchParams.get('state')
+  const savedState = request.cookies.get('cloudinary_oauth_state')?.value
+  if (!code || !state || !savedState || state !== savedState) return finish(request, 'invalid_state')
+
+  let tokens
+  let stage = 'token_exchange'
+  const reference = crypto.randomUUID().slice(0, 8)
+  try {
+    tokens = await exchangeCloudinaryCode({ code, origin: callbackUrl.origin })
+    stage = 'offline_access'
+    if (!tokens.refresh_token) throw new Error('Offline access did not issue a refresh token')
+    stage = 'environment'
+    const cloudName = await resolveCloudinaryCloudName(tokens, callbackUrl)
+    if (!isValidCloudinaryCloudName(cloudName)) throw new Error('Cloudinary did not identify the product environment')
+    stage = 'validation'
+    await testCloudinaryOAuthConnection({ cloudName, oauthToken: tokens.access_token })
+    stage = 'persistence'
+    const { DB } = getCloudflareBindings()
+    await saveCloudinaryConnection(DB, user.id, {
+      cloudName,
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      expiresIn: tokens.expires_in,
+      scope: tokens.scope,
+    })
+    return finish(request, 'connected')
+  } catch (error) {
+    console.error(`[cloudinary/oauth] Callback failed stage=${stage} ref=${reference}:`, error?.message || error)
+    if (tokens?.refresh_token) await revokeCloudinaryToken(tokens.refresh_token).catch(() => {})
+    return finish(request, `failed_${stage}`, reference)
+  }
+}

@@ -62,7 +62,8 @@ export async function GET(request) {
       `SELECT COALESCE(MAX(workspace_bytes), 0) AS total FROM (
          SELECT COALESCE(SUM(ia.size_bytes), 0) AS workspace_bytes
          FROM scenes s
-         LEFT JOIN image_assets ia ON ia.session_id = s.session_id AND ia.status = 'complete'
+         LEFT JOIN image_assets ia ON ia.session_id = s.session_id
+           AND ia.status = 'complete' AND ia.storage_provider = 'platform_cloudinary'
          WHERE s.created_by = ? AND s.owner_type = ?
          GROUP BY s.session_id
        )`
