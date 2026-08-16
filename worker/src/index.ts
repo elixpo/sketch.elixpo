@@ -23,6 +23,26 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
+const PLAN_LIMITS = {
+  guest: { workspaces: 1, imageBytesPerWorkspace: 2 * 1024 * 1024, collaborators: 1, pdfExport: false },
+  free: { workspaces: 2, imageBytesPerWorkspace: 5 * 1024 * 1024, collaborators: 3, pdfExport: false },
+  pro: { workspaces: 10, imageBytesPerWorkspace: 10 * 1024 * 1024, collaborators: 5, pdfExport: true },
+} as const;
+
+type PlanTier = keyof typeof PLAN_LIMITS;
+
+function normalizeTier(tier: string | null | undefined, authenticated = false): PlanTier {
+  if (tier === 'pro' || tier === 'team') return 'pro';
+  return authenticated ? 'free' : 'guest';
+}
+
+async function getUserTier(userId: string | null | undefined, env: Env): Promise<PlanTier> {
+  if (!userId) return 'guest';
+  const user = await env.DB.prepare(`SELECT tier FROM users WHERE id = ?`)
+    .bind(userId).first<{ tier: string }>();
+  return normalizeTier(user?.tier, true);
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -390,7 +410,8 @@ async function handleSceneSave(request: Request, env: Env): Promise<Response> {
     const workspaceName = String(body.workspaceName || 'Untitled').slice(0, MAX_WORKSPACE_NAME_LENGTH);
 
     const ownerType = body.createdBy && !body.createdBy.startsWith('guest-') ? 'user' : 'guest';
-    const maxWorkspaces = ownerType === 'user' ? 3 : 1;
+    const tier = ownerType === 'user' ? await getUserTier(body.createdBy, env) : 'guest';
+    const maxWorkspaces = PLAN_LIMITS[tier].workspaces;
 
     // Check if updating an existing workspace
     const existing = await env.DB.prepare(
@@ -485,16 +506,20 @@ async function handleSceneLoad(request: Request, env: Env): Promise<Response> {
       return json({ error: 'Scene not found or link expired' }, 404);
     }
 
-    // Increment view count
+    // Loading a workspace is a real access event. Keep the timestamp in the
+    // same UTC format used by saves so recency sorting and cleanup agree.
     await env.DB.prepare(
-      `UPDATE scenes SET view_count = view_count + 1 WHERE session_id = ?`
+      `UPDATE scenes SET view_count = view_count + 1, last_accessed_at = datetime('now') WHERE session_id = ?`
     ).bind(perm.session_id).run();
+
+    const lastAccessedAt = new Date().toISOString();
 
     return json({
       encryptedData: perm.encrypted_data,
       permission: perm.permission,
       workspaceName: perm.workspace_name,
       updatedAt: perm.updated_at,
+      lastAccessedAt,
     });
   } catch (err) {
     return json({ error: 'Failed to load scene' }, 500);
@@ -596,8 +621,8 @@ async function handleSceneList(request: Request, env: Env): Promise<Response> {
        ORDER BY s.last_accessed_at DESC`
     ).bind(identifier, ownerType).all();
 
-    // Workspace limit: guests=1, free authenticated=3
-    const maxWorkspaces = userId ? 3 : 1;
+    const tier = userId ? await getUserTier(userId, env) : 'guest';
+    const maxWorkspaces = PLAN_LIMITS[tier].workspaces;
 
     return json({
       workspaces: scenes.results || [],
@@ -933,7 +958,8 @@ async function handleQuotaSummary(request: Request, env: Env): Promise<Response>
        WHERE created_by = ? AND owner_type = ?`
     ).bind(identifier, ownerType).first<{ count: number }>();
     const workspaceCount = wsResult?.count || 0;
-    const workspaceLimit = userId ? 3 : 1;
+    const normalizedTier = normalizeTier(tier, Boolean(userId));
+    const workspaceLimit = PLAN_LIMITS[normalizedTier].workspaces;
 
     // Image storage (sum of size_bytes for user's scenes)
     const storageResult = await env.DB.prepare(
@@ -958,7 +984,14 @@ async function handleQuotaSummary(request: Request, env: Env): Promise<Response>
       },
       storage: {
         usedBytes: storageUsed,
-        limitBytes: 5 * 1024 * 1024, // 5MB per room
+        limitBytes: PLAN_LIMITS[normalizedTier].imageBytesPerWorkspace,
+        perWorkspace: true,
+      },
+      collaboration: {
+        maxParticipants: PLAN_LIMITS[normalizedTier].collaborators,
+      },
+      exports: {
+        pdf: PLAN_LIMITS[normalizedTier].pdfExport,
       },
     });
   } catch (err) {
