@@ -56,3 +56,9 @@
 - [x] Make placed graphs viewport-sized, selectable, movable, resizable, editable, and persistent.
 - [x] Let explicit logo clicks open the landing page without automatic canvas restoration.
 - [x] Make the E2E test verify the actual encrypted database save/load path and AES-GCM authentication.
+- [x] Focus icon search when the I shortcut opens the panel.
+- [x] Make icon search a single O(N) metadata pass with lower input latency.
+- [x] Make frame labels reliably editable by double-clicking their names.
+- [x] Keep framed SVG icons at a stable scale while their frame moves.
+- [x] Hide and guard Frame it when the selection contains a frame or framed object.
+- [x] Track frame creation and initial/fallback frame attachments in undo and redo.
