@@ -33,6 +33,17 @@ export default function PersonalDetailsCard() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
+  const completedFields = [
+    profile.displayName,
+    profile.bio,
+    profile.location,
+    profile.timezone,
+    profile.pronouns,
+    profile.website,
+    profile.company,
+    profile.links.some((link) => link.label && link.url),
+  ].filter(Boolean).length
+  const completion = Math.round((completedFields / 8) * 100)
 
   useEffect(() => {
     let cancelled = false
@@ -99,7 +110,31 @@ export default function PersonalDetailsCard() {
         </button>
       </div>
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-white/[0.07] bg-black/10 p-3 sm:col-span-2">
+          <div className="flex items-center justify-between gap-3 text-[10px]">
+            <span className="uppercase tracking-wider text-text-dim">Profile completeness</span>
+            <span className="font-mono text-[#A99CF1]">{completion}%</span>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
+            <div className="h-full rounded-full bg-[#8B88E8] transition-all duration-500" style={{ width: `${completion}%` }} />
+          </div>
+          <p className="mt-2 text-[9px] text-text-dim">Complete details help collaborators identify you in shared rooms.</p>
+        </div>
+        <div className="rounded-xl border border-white/[0.07] bg-black/10 p-3">
+          <p className="text-[9px] uppercase tracking-wider text-text-dim">Public links</p>
+          <p className="mt-1 text-lg text-text-primary">{profile.links.filter((link) => link.label && link.url).length} / 6</p>
+          <p className="mt-1 text-[9px] text-text-dim">Portfolio and social profiles</p>
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <h3 className="flex items-center gap-2 text-xs font-medium text-text-secondary">
+          <i className="bx bx-user-circle text-[#A99CF1]" /> Identity
+        </h3>
+        <p className="mt-1 text-[10px] text-text-dim">Core information visible to people collaborating with you.</p>
+      </div>
+      <div className="mt-3 grid gap-4 sm:grid-cols-2">
         <Field label="Display name">
           <input className={inputClass} value={profile.displayName} maxLength={80} required onChange={(event) => update('displayName', event.target.value)} placeholder="How people see you" />
         </Field>
@@ -109,23 +144,32 @@ export default function PersonalDetailsCard() {
         <Field label="Pronouns">
           <input className={inputClass} value={profile.pronouns} maxLength={40} onChange={(event) => update('pronouns', event.target.value)} placeholder="e.g. they/them" />
         </Field>
-        <Field label="Company or team">
-          <input className={inputClass} value={profile.company} maxLength={100} onChange={(event) => update('company', event.target.value)} placeholder="Where you work or create" />
-        </Field>
-        <Field label="Location">
-          <input className={inputClass} value={profile.location} maxLength={100} onChange={(event) => update('location', event.target.value)} placeholder="City, country" />
-        </Field>
         <Field label="Timezone">
           <input className={inputClass} value={profile.timezone} maxLength={80} onChange={(event) => update('timezone', event.target.value)} placeholder={Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata'} />
         </Field>
-        <Field label="Website">
-          <input className={inputClass} value={profile.website} maxLength={300} onChange={(event) => update('website', event.target.value)} placeholder="https://your-site.com" inputMode="url" />
-        </Field>
-        <div className="sm:col-span-2">
-          <Field label="Bio">
-            <textarea className={`${inputClass} min-h-24 resize-y`} value={profile.bio} maxLength={280} onChange={(event) => update('bio', event.target.value)} placeholder="A short introduction about you and what you use LixSketch for" />
+      </div>
+
+      <div className="mt-5 border-t border-white/[0.07] pt-4">
+        <h3 className="flex items-center gap-2 text-xs font-medium text-text-secondary">
+          <i className="bx bx-briefcase text-[#A99CF1]" /> About and presence
+        </h3>
+        <p className="mt-1 text-[10px] text-text-dim">Optional context for your profile and public links.</p>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          <Field label="Company or team">
+            <input className={inputClass} value={profile.company} maxLength={100} onChange={(event) => update('company', event.target.value)} placeholder="Where you work or create" />
           </Field>
-          <p className="mt-1 text-right text-[9px] text-text-dim">{profile.bio.length} / 280</p>
+          <Field label="Location">
+            <input className={inputClass} value={profile.location} maxLength={100} onChange={(event) => update('location', event.target.value)} placeholder="City, country" />
+          </Field>
+          <Field label="Website">
+            <input className={inputClass} value={profile.website} maxLength={300} onChange={(event) => update('website', event.target.value)} placeholder="https://your-site.com" inputMode="url" />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Bio">
+              <textarea className={`${inputClass} min-h-24 resize-y`} value={profile.bio} maxLength={280} onChange={(event) => update('bio', event.target.value)} placeholder="A short introduction about you and what you use LixSketch for" />
+            </Field>
+            <p className="mt-1 text-right text-[9px] text-text-dim">{profile.bio.length} / 280</p>
+          </div>
         </div>
       </div>
 

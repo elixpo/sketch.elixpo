@@ -139,6 +139,38 @@ function UsageBar({ used, limit, color = '#4A90D9', label, unit = '', showRemain
   )
 }
 
+function SectionIntro({ tab }) {
+  return (
+    <div className="flex flex-col gap-2 border-b border-white/[0.07] pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.2em] text-[#8B88E8]">Profile</p>
+        <h2 className="mt-1 flex items-center gap-2 text-lg font-medium font-[lixFont] text-text-primary">
+          <i className={`bx ${tab.icon} text-[#A99CF1]`} />
+          {tab.label}
+        </h2>
+        <p className="mt-1 max-w-xl text-xs leading-5 text-text-dim">{tab.description}</p>
+      </div>
+    </div>
+  )
+}
+
+function MetricCard({ icon, label, value, detail, color = '#8B88E8' }) {
+  return (
+    <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[9px] uppercase tracking-wider text-text-dim">{label}</p>
+          <p className="mt-1 text-lg font-medium text-text-primary">{value}</p>
+        </div>
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}18`, color }}>
+          <i className={`bx ${icon} text-base`} />
+        </span>
+      </div>
+      {detail && <p className="mt-2 text-[10px] leading-4 text-text-dim">{detail}</p>}
+    </div>
+  )
+}
+
 // ── Workspace card ───────────────────────────────────────────────────────────
 
 function WorkspaceCard({ workspace, index, onDelete }) {
@@ -152,6 +184,9 @@ function WorkspaceCard({ workspace, index, onDelete }) {
     : '—'
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const accessLabel = workspace.permission === 'edit'
+    ? 'Editable link'
+    : workspace.permission === 'view' ? 'View link' : 'Private'
 
   const handleDelete = async () => {
     if (!confirmDelete) {
@@ -199,14 +234,20 @@ function WorkspaceCard({ workspace, index, onDelete }) {
             </div>
             <div>
               <span className="text-text-dim">Session</span>
-              <p className="text-text-secondary font-mono truncate text-[10px]">{workspace.session_id?.slice(0, 12)}...</p>
+              <p className="text-text-secondary font-mono truncate text-[10px]" title={workspace.session_id}>{workspace.session_id?.slice(0, 12)}...</p>
             </div>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-1.5 border-t border-white/[0.06] pt-3 text-[9px]">
+            <span className="rounded-full bg-green-500/10 px-2 py-1 text-green-400"><i className="bx bx-shield-quarter mr-1" />E2E encrypted</span>
+            <span className="rounded-full bg-[#8B88E8]/10 px-2 py-1 text-[#A99CF1]"><i className="bx bx-link mr-1" />{accessLabel}</span>
+            <span className="rounded-full bg-white/[0.04] px-2 py-1 text-text-dim">Scene {sizeKB} KB</span>
           </div>
 
           <div className="flex gap-2 mt-3">
             <Link
               href={`/c/${workspace.session_id}`}
-              className="flex-1 text-center py-1.5 rounded-lg text-xs text-accent-blue border border-accent-blue/30 hover:bg-accent-blue/10 transition-all"
+              className="flex-1 cursor-pointer text-center py-1.5 rounded-lg text-xs text-accent-blue border border-accent-blue/30 hover:bg-accent-blue/10 transition-all"
             >
               Open
             </Link>
@@ -214,7 +255,7 @@ function WorkspaceCard({ workspace, index, onDelete }) {
               onClick={handleDelete}
               onMouseLeave={() => setConfirmDelete(false)}
               disabled={deleting}
-              className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+              className={`cursor-pointer px-3 py-1.5 rounded-lg text-xs transition-all ${
                 confirmDelete
                   ? 'text-red-400 border border-red-500/40 bg-red-500/10 hover:bg-red-500/20'
                   : 'text-text-dim border border-white/10 hover:border-red-500/30 hover:text-red-400'
@@ -246,11 +287,11 @@ const TIER_COLORS = {
 }
 
 const PROFILE_TABS = [
-  { id: 'personal', label: 'Personal', icon: 'bx-user' },
-  { id: 'workspaces', label: 'Workspaces', icon: 'bx-grid-alt' },
-  { id: 'integrations', label: 'Integrations', icon: 'bx-plug' },
-  { id: 'usage', label: 'Usage', icon: 'bx-bar-chart-alt-2' },
-  { id: 'billing', label: 'Billing', icon: 'bx-credit-card' },
+  { id: 'personal', label: 'Personal', icon: 'bx-user', description: 'Manage the identity and public details shown across LixSketch.' },
+  { id: 'workspaces', label: 'Workspaces', icon: 'bx-grid-alt', description: 'Open, review, and manage every canvas owned by this profile.' },
+  { id: 'integrations', label: 'Integrations', icon: 'bx-plug', description: 'Connect private storage providers and control where new media is uploaded.' },
+  { id: 'usage', label: 'Usage', icon: 'bx-bar-chart-alt-2', description: 'Track workspace capacity, managed media, collaboration, and export access.' },
+  { id: 'billing', label: 'Billing', icon: 'bx-credit-card', description: 'Review the current plan, included limits, and billing availability.' },
 ]
 
 function profileTabFromLocation() {
@@ -374,6 +415,17 @@ export default function ProfilePage() {
   const fallbackStorageLimit = (isAuthenticated ? 5 : 2) * 1024 * 1024 * workspaceLimit
   const managedStorageUsedMB = Number(((quotaData?.storage?.accountUsedBytes || 0) / (1024 * 1024)).toFixed(2))
   const managedStorageLimitMB = Number(((quotaData?.storage?.accountLimitBytes || fallbackStorageLimit) / (1024 * 1024)).toFixed(2))
+  const perWorkspaceImageLimitMB = Math.round((quotaData?.storage?.limitBytes || (isAuthenticated ? 5 : 2) * 1024 * 1024) / (1024 * 1024))
+  const managedStorageRemainingMB = Number(Math.max(0, managedStorageLimitMB - managedStorageUsedMB).toFixed(2))
+  const workspaceRemaining = Math.max(0, workspaceLimit - workspaces.length)
+  const maxCollaborators = quotaData?.collaboration?.maxParticipants || (isAuthenticated ? 3 : 1)
+  const pdfExport = Boolean(quotaData?.exports?.pdf)
+  const activeTabDetails = PROFILE_TABS.find((tab) => tab.id === activeTab) || PROFILE_TABS[0]
+  const latestWorkspace = [...workspaces].sort((left, right) => {
+    const leftTime = parseDatabaseDate(left.last_accessed_at)?.getTime() || 0
+    const rightTime = parseDatabaseDate(right.last_accessed_at)?.getTime() || 0
+    return rightTime - leftTime
+  })[0]
 
   return (
     <div className="relative min-h-screen bg-[#0a0a12] text-text-primary overflow-hidden">
@@ -471,12 +523,20 @@ export default function ProfilePage() {
           </div>
         ) : (
           <div className="space-y-8">
+            <SectionIntro tab={activeTabDetails} />
+
             {/* Usage overview */}
             {activeTab === 'usage' && <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
             >
+              <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <MetricCard icon="bx-grid-alt" label="Workspace slots" value={`${workspaceRemaining} left`} detail={`${workspaces.length} of ${workspaceLimit} currently used`} color="#8B88E8" />
+                <MetricCard icon="bx-data" label="Managed storage" value={`${managedStorageRemainingMB} MB`} detail={`${managedStorageUsedMB} MB used account-wide`} color="#2ECC71" />
+                <MetricCard icon="bx-group" label="Live collaboration" value={`${maxCollaborators} people`} detail="Maximum participants in one realtime room" color="#D99BF0" />
+                <MetricCard icon="bx-file" label="PDF export" value={pdfExport ? 'Included' : 'Pro only'} detail={pdfExport ? 'Available on the current plan' : 'Canvas image exports remain available'} color="#F2C94C" />
+              </div>
               <RoughCard color="#8B88E8">
                 <div className="p-5">
                   <h2 className="text-sm font-medium font-[lixFont] text-text-primary mb-4 flex items-center gap-2">
@@ -519,14 +579,16 @@ export default function ProfilePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.2 }}
             >
+              <div className="mb-5 grid gap-3 sm:grid-cols-3">
+                <MetricCard icon="bx-folder" label="Owned workspaces" value={`${workspaces.length} / ${workspaceLimit}`} detail={`${workspaceRemaining} slot${workspaceRemaining === 1 ? '' : 's'} available`} />
+                <MetricCard icon="bx-time-five" label="Most recent" value={latestWorkspace?.workspace_name || 'No activity'} detail={latestWorkspace ? 'Most recently accessed workspace' : 'Create a workspace to get started'} color="#D99BF0" />
+                <MetricCard icon="bx-group" label="Room capacity" value={`${maxCollaborators}`} detail="Maximum realtime participants per workspace" color="#2ECC71" />
+              </div>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-medium font-[lixFont] text-text-primary flex items-center gap-2">
-                  <i className="bx bx-grid-alt text-[#4A90D9]" />
-                  Workspaces
-                  <span className="text-text-dim text-[10px] font-normal ml-1">
-                    {workspaces.length} / {workspaceLimit}
-                  </span>
-                </h2>
+                <div>
+                  <h3 className="text-sm font-medium font-[lixFont] text-text-primary">Your canvases</h3>
+                  <p className="mt-1 text-[10px] text-text-dim">Workspace names, activity, scene size, and access history.</p>
+                </div>
                 {workspaces.length < workspaceLimit && (
                   <Link
                     href={`/c/${newSessionId}?new=1`}
@@ -639,6 +701,13 @@ export default function ProfilePage() {
             )}
 
             {activeTab === 'billing' && (
+              <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <MetricCard icon="bx-grid-alt" label="Workspaces" value={workspaceLimit} detail={`${workspaces.length} currently in use`} />
+                <MetricCard icon="bx-image" label="Images" value={`${perWorkspaceImageLimitMB} MB`} detail="Managed media per workspace" color="#2ECC71" />
+                <MetricCard icon="bx-group" label="Collaboration" value={maxCollaborators} detail="People per realtime room" color="#D99BF0" />
+                <MetricCard icon="bx-file" label="PDF export" value={pdfExport ? 'Included' : 'Not included'} detail="Lossless image export remains available" color="#F2C94C" />
+              </div>
               <RoughCard color="#8B88E8">
                 <div className="p-5">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -669,6 +738,16 @@ export default function ProfilePage() {
                       <p className="mt-1 text-text-secondary">{tier === 'pro' || tier === 'team' ? 'Early access' : 'No active subscription'}</p>
                     </div>
                   </div>
+                  <div className="mt-4 rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 text-xs">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-text-dim">Next charge</span>
+                      <span className="text-text-secondary">No scheduled charge</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-3 border-t border-white/[0.06] pt-2">
+                      <span className="text-text-dim">Invoices</span>
+                      <span className="text-text-secondary">No invoices yet</span>
+                    </div>
+                  </div>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Link href="/pricing" className="cursor-pointer rounded-lg bg-[#8B88E8] px-4 py-2 text-xs text-white hover:bg-[#9E91EE]">
                       View plans
@@ -681,6 +760,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </RoughCard>
+              </div>
             )}
           </div>
         )}

@@ -8,6 +8,12 @@ function formatBytes(bytes) {
   return `${mb < 10 ? mb.toFixed(2) : mb.toFixed(1)} MB`
 }
 
+function formatConnectionDate(value) {
+  if (!value) return 'Not connected'
+  const date = new Date(Number(value) * 1000)
+  return Number.isNaN(date.getTime()) ? 'date unavailable' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
 function PersonalStorageMeter({ usage }) {
   if (!usage) return null
   const percentage = Math.max(0, Math.min(100, Number(usage.usedPercent) || 0))
@@ -17,6 +23,7 @@ function PersonalStorageMeter({ usage }) {
         <span className="uppercase tracking-wider text-text-dim">Cloudinary storage</span>
         <span className="font-mono text-text-secondary">{formatBytes(usage.remainingBytes)} remaining</span>
       </div>
+
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
         <div className="h-full rounded-full bg-[#9E91EE] transition-all duration-500" style={{ width: `${percentage}%` }} />
       </div>
@@ -151,6 +158,24 @@ export default function CloudinaryIntegrationCard() {
         </div>
       </div>
 
+      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+        <div className="rounded-xl border border-white/[0.07] bg-black/10 p-3">
+          <p className="text-[9px] uppercase tracking-wider text-text-dim">Provider</p>
+          <p className="mt-1 text-xs text-text-secondary">Cloudinary</p>
+          <p className="mt-1 text-[9px] text-text-dim">Personal product environment</p>
+        </div>
+        <div className="rounded-xl border border-white/[0.07] bg-black/10 p-3">
+          <p className="text-[9px] uppercase tracking-wider text-text-dim">Authorization</p>
+          <p className="mt-1 text-xs text-text-secondary">OAuth 2.0</p>
+          <p className="mt-1 text-[9px] text-text-dim">Encrypted refresh-token storage</p>
+        </div>
+        <div className="rounded-xl border border-white/[0.07] bg-black/10 p-3">
+          <p className="text-[9px] uppercase tracking-wider text-text-dim">Upload route</p>
+          <p className="mt-1 text-xs text-text-secondary">{status?.useForUploads ? 'Personal storage' : 'LixSketch managed'}</p>
+          <p className="mt-1 text-[9px] text-text-dim">Only new media follows this route</p>
+        </div>
+      </div>
+
       {oauthMessage && (
         <p className={`mt-4 rounded-lg px-3 py-2 text-xs ${oauthMessage.ok ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
           {oauthMessage.text}{oauthReference && !oauthMessage.ok ? ` Reference: ${oauthReference}` : ''}
@@ -187,6 +212,7 @@ export default function CloudinaryIntegrationCard() {
               <p className="text-[10px] uppercase tracking-wider text-text-dim">Product environment</p>
               <p className="mt-1 text-sm text-text-primary">{status.cloudName}</p>
               <p className="mt-1 text-[10px] text-text-dim">{formatBytes(status.trackedBytes)} across {status.mediaCount} tracked {status.mediaCount === 1 ? 'asset' : 'assets'}</p>
+              <p className="mt-1 text-[10px] text-text-dim">Connected {formatConnectionDate(status.connectedAt)} · {status.scope || 'OAuth scopes active'}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="button" disabled={busy} onClick={toggleStorage} className="cursor-pointer rounded-lg border border-[#8B88E8]/30 px-3 py-2 text-xs text-[#A99CF1] hover:bg-[#8B88E8]/10 disabled:opacity-50">
