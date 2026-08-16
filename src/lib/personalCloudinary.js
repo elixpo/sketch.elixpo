@@ -9,6 +9,34 @@ export async function testCloudinaryOAuthConnection({ cloudName, oauthToken }) {
   }
 }
 
+export async function getPersonalCloudinaryUsage({ cloudName, oauthToken }) {
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/usage`,
+    { headers: { Authorization: `Bearer ${oauthToken}`, Accept: 'application/json' } },
+  )
+  const data = await response.json().catch(() => null)
+  if (!response.ok || !data) {
+    throw new Error(data?.error?.message || `Cloudinary usage lookup failed (${response.status})`)
+  }
+
+  const usedBytes = Number(data.storage?.usage)
+  const limitBytes = Number(data.storage?.limit)
+  if (!Number.isFinite(usedBytes) || !Number.isFinite(limitBytes) || limitBytes <= 0) {
+    throw new Error('Cloudinary did not return a storage allowance')
+  }
+
+  return {
+    usedBytes,
+    limitBytes,
+    remainingBytes: Math.max(0, limitBytes - usedBytes),
+    usedPercent: Number.isFinite(Number(data.storage?.used_percent))
+      ? Number(data.storage.used_percent)
+      : Math.min(100, (usedBytes / limitBytes) * 100),
+    plan: data.plan || null,
+    lastUpdated: data.last_updated || null,
+  }
+}
+
 export async function uploadToPersonalCloudinary(file, { cloudName, oauthToken, folder, publicId }) {
   const formData = new FormData()
   formData.append('file', file)

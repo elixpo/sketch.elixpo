@@ -112,7 +112,7 @@ function RoughCard({ children, color = '#4A90D9', className = '' }) {
 
 // ── Progress bar ─────────────────────────────────────────────────────────────
 
-function UsageBar({ used, limit, color = '#4A90D9', label, unit = '' }) {
+function UsageBar({ used, limit, color = '#4A90D9', label, unit = '', showRemaining = false }) {
   const pct = limit === 0 ? 0 : Math.min(100, (used / limit) * 100)
   const isNearLimit = pct >= 80
 
@@ -121,6 +121,7 @@ function UsageBar({ used, limit, color = '#4A90D9', label, unit = '' }) {
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-text-secondary text-xs">{label}</span>
         <span className={`text-xs font-mono ${isNearLimit ? 'text-red-400' : 'text-text-dim'}`}>
+          {showRemaining && `${Math.max(0, limit - used).toFixed(2)}${unit} remaining · `}
           {used}{unit} / {limit}{unit}
         </span>
       </div>
@@ -338,10 +339,10 @@ export default function ProfilePage() {
   const tier = quotaData?.tier || (isAuthenticated ? 'free' : 'guest')
   const tierStyle = TIER_COLORS[tier] || TIER_COLORS.guest
 
-  // Current room image usage (from window global, set by imageTool)
-  const roomImageUsed = typeof window !== 'undefined' ? (window.__roomImageBytesUsed || 0) : 0
   const workspaceLimit = quotaData?.workspaces?.limit || (isAuthenticated ? 2 : 1)
-  const roomImageLimitMB = Math.round((quotaData?.storage?.limitBytes || (isAuthenticated ? 5 : 2) * 1024 * 1024) / (1024 * 1024))
+  const fallbackStorageLimit = (isAuthenticated ? 5 : 2) * 1024 * 1024 * workspaceLimit
+  const managedStorageUsedMB = Number(((quotaData?.storage?.accountUsedBytes || 0) / (1024 * 1024)).toFixed(2))
+  const managedStorageLimitMB = Number(((quotaData?.storage?.accountLimitBytes || fallbackStorageLimit) / (1024 * 1024)).toFixed(2))
 
   return (
     <div className="relative min-h-screen bg-[#0a0a12] text-text-primary overflow-hidden">
@@ -446,11 +447,12 @@ export default function ProfilePage() {
                   />
 
                   <UsageBar
-                    label="Current Room Images"
-                    used={parseFloat((roomImageUsed / (1024 * 1024)).toFixed(2))}
-                    limit={roomImageLimitMB}
+                    label="Managed storage (all workspaces)"
+                    used={managedStorageUsedMB}
+                    limit={managedStorageLimitMB}
                     color="#2ECC71"
                     unit=" MB"
+                    showRemaining
                   />
 
                   {tier !== 'pro' && tier !== 'team' && (

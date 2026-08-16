@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { getCloudflareBindings } from '@/lib/cloudflare'
 import { getAuthenticatedUser } from '@/lib/serverAuth'
-import { getCloudinaryConnectionStatus } from '@/lib/cloudinaryConnections'
+import { getCloudinaryConnection, getCloudinaryConnectionStatus } from '@/lib/cloudinaryConnections'
 import { decryptIntegrationSecret } from '@/lib/integrationSecrets'
 import { revokeCloudinaryToken } from '@/lib/cloudinaryOAuth'
+import { getPersonalCloudinaryUsage } from '@/lib/personalCloudinary'
 
 export const runtime = 'edge'
 
@@ -16,7 +17,21 @@ async function context(request) {
 export async function GET(request) {
   const ctx = await context(request)
   if (!ctx) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  return NextResponse.json(await getCloudinaryConnectionStatus(ctx.DB, ctx.user.id))
+  const status = await getCloudinaryConnectionStatus(ctx.DB, ctx.user.id)
+  const includeUsage = new URL(request.url).searchParams.get('includeUsage') === '1'
+  if (status.connected && includeUsage) {
+    try {
+      const connection = await getCloudinaryConnection(ctx.DB, ctx.user.id, { includeDisabled: true })
+      status.providerUsage = await getPersonalCloudinaryUsage({
+        cloudName: connection.cloudName,
+        oauthToken: connection.oauthToken,
+      })
+    } catch (error) {
+      console.warn('[cloudinary/integration] Usage lookup failed:', error?.message || error)
+      status.providerUsageUnavailable = true
+    }
+  }
+  return NextResponse.json(status)
 }
 
 export async function PATCH(request) {

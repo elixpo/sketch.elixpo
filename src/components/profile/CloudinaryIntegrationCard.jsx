@@ -8,6 +8,26 @@ function formatBytes(bytes) {
   return `${mb < 10 ? mb.toFixed(2) : mb.toFixed(1)} MB`
 }
 
+function PersonalStorageMeter({ usage }) {
+  if (!usage) return null
+  const percentage = Math.max(0, Math.min(100, Number(usage.usedPercent) || 0))
+  return (
+    <div className="mt-4 rounded-xl border border-[#8B88E8]/20 bg-black/10 p-3">
+      <div className="flex items-center justify-between gap-3 text-[10px]">
+        <span className="uppercase tracking-wider text-text-dim">Cloudinary storage</span>
+        <span className="font-mono text-text-secondary">{formatBytes(usage.remainingBytes)} remaining</span>
+      </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
+        <div className="h-full rounded-full bg-[#9E91EE] transition-all duration-500" style={{ width: `${percentage}%` }} />
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-3 text-[10px] text-text-dim">
+        <span>{formatBytes(usage.usedBytes)} used of {formatBytes(usage.limitBytes)}</span>
+        {usage.plan && <span>{usage.plan}</span>}
+      </div>
+    </div>
+  )
+}
+
 const RESULT_MESSAGES = {
   connected: { ok: true, text: 'Cloudinary connected. New media will use your product environment.' },
   disconnected: { ok: true, text: 'Cloudinary disconnected. Existing media remains in your Cloudinary account.' },
@@ -34,10 +54,10 @@ export default function CloudinaryIntegrationCard() {
   const load = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/integrations/cloudinary', { cache: 'no-store' })
+      const response = await fetch('/api/integrations/cloudinary?includeUsage=1', { cache: 'no-store' })
       if (!response.ok) throw new Error('Could not load Cloudinary status')
       const data = await response.json()
-      setStatus(data)
+      setStatus((current) => ({ ...current, ...data }))
       window.__personalCloudinary = data
     } catch (cause) {
       setError(cause.message)
@@ -64,7 +84,7 @@ export default function CloudinaryIntegrationCard() {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Could not update storage preference')
-      setStatus(data)
+      setStatus((current) => ({ ...current, ...data }))
       window.__personalCloudinary = data
     } catch (cause) {
       setError(cause.message)
@@ -151,6 +171,12 @@ export default function CloudinaryIntegrationCard() {
               </button>
             </div>
           </div>
+          <PersonalStorageMeter usage={status.providerUsage} />
+          {status.providerUsageUnavailable && (
+            <p className="mt-3 text-[10px] text-amber-300/80">
+              Cloudinary did not expose the product-environment allowance. LixSketch has tracked {formatBytes(status.trackedBytes)} of uploaded media.
+            </p>
+          )}
           <p className={`mt-4 rounded-lg px-3 py-2 text-xs ${status.useForUploads ? 'bg-green-500/10 text-green-400' : 'bg-white/[0.035] text-text-dim'}`}>
             New media will use {status.useForUploads ? status.cloudName : 'LixSketch managed storage'}. Existing images stay where they were uploaded.
           </p>
