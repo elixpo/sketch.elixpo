@@ -62,3 +62,9 @@
 - [x] Keep framed SVG icons at a stable scale while their frame moves.
 - [x] Hide and guard Frame it when the selection contains a frame or framed object.
 - [x] Track frame creation and initial/fallback frame attachments in undo and redo.
+- [x] Limit image storage per workspace to 2 MB for Guest, 5 MB for Free, and 10 MB for Pro.
+- [x] Keep workspace access timestamps current on both cloud load and save.
+- [x] Gate PDF export behind Pro.
+- [x] Enforce 1 Guest, 2 Free, and 10 Pro workspaces.
+- [x] Enforce live-room occupancy of 1 Guest, 3 Free, and 5 Pro participants.
+- [x] Reframe pricing around explicit Guest, Free, and Pro value limits.

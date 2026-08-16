@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getCloudflareBindings } from '@/lib/cloudflare'
+import { getPlanLimits, normalizePlanTier } from '@/lib/planLimits'
 
 export const runtime = 'edge'
 
@@ -51,7 +52,9 @@ export async function GET(request) {
        WHERE created_by = ? AND owner_type = ?`
     ).bind(identifier, ownerType).first()
     const workspaceCount = wsResult?.count || 0
-    const workspaceLimit = userId ? 3 : 1
+    const normalizedTier = normalizePlanTier(tier, Boolean(userId))
+    const limits = getPlanLimits(normalizedTier)
+    const workspaceLimit = limits.workspaces
 
     // Image storage
     const storageResult = await DB.prepare(
@@ -76,8 +79,11 @@ export async function GET(request) {
       },
       storage: {
         usedBytes: storageUsed,
-        limitBytes: 5 * 1024 * 1024,
+        limitBytes: limits.imageBytesPerWorkspace,
+        perWorkspace: true,
       },
+      collaboration: { maxParticipants: limits.collaborators },
+      exports: { pdf: limits.pdfExport },
     })
   } catch (err) {
     console.error('[api/user/quota-summary] Error:', err)

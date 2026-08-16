@@ -88,7 +88,10 @@ async function uploadImageToCloudinary(imageShape) {
             }),
             signal,
         });
-        if (!signRes.ok) throw new Error('Failed to get upload signature');
+        if (!signRes.ok) {
+            const errorBody = await signRes.json().catch(() => ({}));
+            throw new Error(errorBody.message || 'Failed to get upload signature');
+        }
         const signData = await signRes.json();
         if (signal.aborted) return;
 
@@ -109,6 +112,17 @@ async function uploadImageToCloudinary(imageShape) {
         const uploadData = await uploadRes.json();
         if (signal.aborted) return;
 
+        await fetch(`${workerUrl}/api/images/complete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                sessionId,
+                publicId: uploadData.public_id || signData.publicId,
+                sizeBytes: uploadData.bytes || compressed.compressedSize,
+            }),
+            signal,
+        }).catch(() => {});
+
         // Step 4: Replace base64 with Cloudinary URL
         const cloudUrl = uploadData.secure_url || uploadData.url;
         imageShape.element.setAttribute('href', cloudUrl);
@@ -118,6 +132,7 @@ async function uploadImageToCloudinary(imageShape) {
         // Update file size tracking with actual compressed size
         const newSize = uploadData.bytes || compressed.compressedSize;
         imageShape.element.__fileSize = newSize;
+        imageShape.element.setAttribute('data-file-size', String(newSize));
         window.__roomImageBytesUsed = Math.max(0, (window.__roomImageBytesUsed || 0) - oldSize + newSize);
 
         imageShape.uploadStatus = 'done';
@@ -479,6 +494,7 @@ const handleMouseDownImage = async (e) => {
         // Track image size for room limit
         const placedFileSize = window.__pendingImageFileSize || 0;
         finalImage.__fileSize = placedFileSize;
+        finalImage.setAttribute('data-file-size', String(placedFileSize));
         window.__roomImageBytesUsed = (window.__roomImageBytesUsed || 0) + placedFileSize;
         window.__pendingImageFileSize = 0;
 

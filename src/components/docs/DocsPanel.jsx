@@ -333,7 +333,10 @@ async function uploadDocumentImage(file) {
       sizeBytes: compressed.compressedSize,
     }),
   })
-  if (!signResponse.ok) throw new Error('Could not authorize document image upload')
+  if (!signResponse.ok) {
+    const body = await signResponse.json().catch(() => ({}))
+    throw new Error(body.message || 'Could not authorize document image upload')
+  }
   const signData = await signResponse.json()
 
   const formData = new FormData()
@@ -352,6 +355,15 @@ async function uploadDocumentImage(file) {
   const uploaded = await uploadResponse.json()
   const imageUrl = uploaded.secure_url || uploaded.url
   if (!imageUrl) throw new Error('Document image upload returned no URL')
+  await fetch(`${workerUrl}/api/images/complete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sessionId,
+      publicId: uploaded.public_id || signData.publicId,
+      sizeBytes: uploaded.bytes || compressed.compressedSize,
+    }),
+  }).catch(() => {})
   window.__roomImageBytesUsed = usedBytes + (uploaded.bytes || compressed.compressedSize)
   return imageUrl
 }

@@ -124,6 +124,10 @@ export default {
       return handleImageSign(request, env);
     }
 
+    if (url.pathname === '/api/images/complete' && request.method === 'POST') {
+      return handleImageComplete(request, env);
+    }
+
     if (url.pathname === '/api/images/delete' && request.method === 'DELETE') {
       return handleImageDelete(request, env);
     }
@@ -270,6 +274,8 @@ async function handleAuthCallback(request: Request, env: Env): Promise<Response>
     ip, userAgent, locale, country, timezone
   ).run();
 
+  const tier = await getUserTier(profile.id, env);
+
   // Create a LixSketch session token (stored in KV)
   const sessionToken = generateToken(48);
   const sessionData = {
@@ -278,6 +284,7 @@ async function handleAuthCallback(request: Request, env: Env): Promise<Response>
     displayName: profile.displayName,
     avatar: profile.avatar,
     isAdmin: profile.isAdmin,
+    tier,
     refreshToken: tokens.refresh_token,
   };
 
@@ -293,6 +300,7 @@ async function handleAuthCallback(request: Request, env: Env): Promise<Response>
     displayName: profile.displayName,
     avatar: profile.avatar,
     isAdmin: profile.isAdmin,
+    tier,
   }));
 
   return Response.redirect(
@@ -313,6 +321,7 @@ async function handleAuthMe(request: Request, env: Env): Promise<Response> {
     displayName: string;
     avatar: string | null;
     isAdmin: boolean;
+    tier?: string;
   } | null;
 
   if (!sessionData) {
@@ -331,6 +340,7 @@ async function handleAuthMe(request: Request, env: Env): Promise<Response> {
       displayName: sessionData.displayName,
       avatar: sessionData.avatar,
       isAdmin: sessionData.isAdmin,
+      tier: normalizeTier(sessionData.tier || await getUserTier(sessionData.userId, env), true),
     },
     activeRooms: roomCount?.count || 0,
     maxRooms: 1, // 1 room per user
@@ -475,6 +485,7 @@ async function handleSceneLoad(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const token = url.searchParams.get('token');
     const sessionId = url.searchParams.get('sessionId');
+    const shouldTouch = url.searchParams.get('touch') !== '0';
     const lookupValue = token || sessionId;
 
     if (!lookupValue) {
@@ -508,9 +519,11 @@ async function handleSceneLoad(request: Request, env: Env): Promise<Response> {
 
     // Loading a workspace is a real access event. Keep the timestamp in the
     // same UTC format used by saves so recency sorting and cleanup agree.
-    await env.DB.prepare(
-      `UPDATE scenes SET view_count = view_count + 1, last_accessed_at = datetime('now') WHERE session_id = ?`
-    ).bind(perm.session_id).run();
+    if (shouldTouch) {
+      await env.DB.prepare(
+        `UPDATE scenes SET view_count = view_count + 1, last_accessed_at = datetime('now') WHERE session_id = ?`
+      ).bind(perm.session_id).run();
+    }
 
     const lastAccessedAt = new Date().toISOString();
 
@@ -519,7 +532,7 @@ async function handleSceneLoad(request: Request, env: Env): Promise<Response> {
       permission: perm.permission,
       workspaceName: perm.workspace_name,
       updatedAt: perm.updated_at,
-      lastAccessedAt,
+      lastAccessedAt: shouldTouch ? lastAccessedAt : undefined,
     });
   } catch (err) {
     return json({ error: 'Failed to load scene' }, 500);
@@ -715,15 +728,45 @@ async function handleImageSign(request: Request, env: Env): Promise<Response> {
     const body = await request.json() as {
       sessionId: string;
       filename?: string;
+      sizeBytes?: number;
     };
 
     if (!body.sessionId) {
       return json({ error: 'Missing sessionId' }, 400);
     }
 
+    const requestedBytes = Math.max(0, Math.floor(Number(body.sizeBytes) || 0));
+    if (!requestedBytes) return json({ error: 'Missing image size' }, 400);
+
+    const scene = await env.DB.prepare(
+      `SELECT created_by, owner_type FROM scenes WHERE session_id = ?`
+    ).bind(body.sessionId).first<{ created_by: string | null; owner_type: string | null }>();
+    const tier = scene?.owner_type === 'user'
+      ? await getUserTier(scene.created_by, env)
+      : 'guest';
+    const limitBytes = PLAN_LIMITS[tier].imageBytesPerWorkspace;
+    const usage = await env.DB.prepare(
+      `SELECT COALESCE(SUM(size_bytes), 0) AS total FROM image_assets
+       WHERE session_id = ? AND (status = 'complete' OR created_at >= datetime('now', '-1 hour'))`
+    ).bind(body.sessionId).first<{ total: number }>();
+    if ((usage?.total || 0) + requestedBytes > limitBytes) {
+      return json({
+        error: 'IMAGE_LIMIT',
+        message: `This workspace allows ${Math.round(limitBytes / (1024 * 1024))} MB of images.`,
+        usedBytes: usage?.total || 0,
+        limitBytes,
+      }, 429);
+    }
+
     const timestamp = Math.floor(Date.now() / 1000);
     const folder = `lixsketch/${body.sessionId}`;
     const publicId = `${folder}/${body.filename || `img_${timestamp}`}`;
+
+    await env.DB.prepare(
+      `INSERT INTO image_assets (public_id, session_id, size_bytes, status)
+       VALUES (?, ?, ?, 'pending')
+       ON CONFLICT(public_id) DO UPDATE SET size_bytes = excluded.size_bytes, updated_at = datetime('now')`
+    ).bind(publicId, body.sessionId, requestedBytes).run();
 
     // Generate Cloudinary signature
     const paramsToSign = `folder=${folder}&public_id=${publicId}&timestamp=${timestamp}`;
@@ -739,6 +782,25 @@ async function handleImageSign(request: Request, env: Env): Promise<Response> {
     });
   } catch (err) {
     return json({ error: 'Failed to generate upload signature' }, 500);
+  }
+}
+
+async function handleImageComplete(request: Request, env: Env): Promise<Response> {
+  try {
+    const body = await request.json() as { sessionId?: string; publicId?: string; sizeBytes?: number };
+    if (!body.sessionId || !body.publicId) return json({ error: 'Missing image identity' }, 400);
+    const sizeBytes = Math.max(0, Math.floor(Number(body.sizeBytes) || 0));
+    const asset = await env.DB.prepare(
+      `SELECT public_id FROM image_assets WHERE public_id = ? AND session_id = ?`
+    ).bind(body.publicId, body.sessionId).first();
+    if (!asset) return json({ error: 'Unknown image reservation' }, 404);
+    await env.DB.prepare(
+      `UPDATE image_assets SET size_bytes = ?, status = 'complete', updated_at = datetime('now')
+       WHERE public_id = ? AND session_id = ?`
+    ).bind(sizeBytes, body.publicId, body.sessionId).run();
+    return json({ success: true });
+  } catch {
+    return json({ error: 'Failed to record image upload' }, 500);
   }
 }
 
@@ -780,12 +842,14 @@ async function handleImageDelete(request: Request, env: Env): Promise<Response> 
       );
 
       const result = await res.json() as { result: string };
+      await env.DB.prepare(`DELETE FROM image_assets WHERE public_id = ?`).bind(body.publicId).run();
       return json({ success: true, result: result.result });
     }
 
     if (body.sessionId) {
       // Delete all images for a session
       await deleteCloudinaryFolder(body.sessionId, env);
+      await env.DB.prepare(`DELETE FROM image_assets WHERE session_id = ?`).bind(body.sessionId).run();
       return json({ success: true });
     }
 
