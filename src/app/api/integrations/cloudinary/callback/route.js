@@ -47,6 +47,15 @@ export async function GET(request) {
     await testCloudinaryOAuthConnection({ cloudName, oauthToken: tokens.access_token })
     stage = 'persistence'
     const { DB } = getCloudflareBindings()
+    if (!user.email) throw new Error('The signed-in account did not provide an email address')
+    await DB.prepare(`
+      INSERT INTO users (id, email, display_name, provider, last_login_at, created_at)
+      VALUES (?, ?, ?, 'elixpo', datetime('now'), datetime('now'))
+      ON CONFLICT(id) DO UPDATE SET
+        email = excluded.email,
+        display_name = excluded.display_name,
+        last_login_at = datetime('now')
+    `).bind(user.id, user.email, user.displayName || user.email).run()
     await saveCloudinaryConnection(DB, user.id, {
       cloudName,
       accessToken: tokens.access_token,

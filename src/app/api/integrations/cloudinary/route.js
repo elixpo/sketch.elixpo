@@ -50,6 +50,6 @@ export async function DELETE(request) {
   await ctx.DB.prepare(`DELETE FROM cloudinary_connections WHERE user_id = ?`).bind(ctx.user.id).run()
   return NextResponse.json({
     ...(await getCloudinaryConnectionStatus(ctx.DB, ctx.user.id)),
-    postLogoutRedirect: '/settings?tab=integrations&cloudinary=disconnected',
+    postLogoutRedirect: '/settings?tab=integrations',
   })
 }

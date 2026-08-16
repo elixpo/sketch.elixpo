@@ -8,6 +8,7 @@ import useAuthStore from '@/store/useAuthStore'
 import { useProfileStore } from '@/hooks/useGuestProfile'
 import { WORKER_URL } from '@/lib/env'
 import { getRememberedCanvasId } from '@/utils/canvasSession'
+import CloudinaryIntegrationCard from '@/components/profile/CloudinaryIntegrationCard'
 
 function reconcileActiveWorkspaceName(workspaces) {
   if (typeof window === 'undefined' || !Array.isArray(workspaces)) return workspaces || []
@@ -552,6 +553,8 @@ export default function ProfilePage() {
                 </RoughCard>
               </motion.div>
             )}
+
+            {isAuthenticated && <CloudinaryIntegrationCard />}
 
             {/* Guest info card */}
             {!isAuthenticated && (

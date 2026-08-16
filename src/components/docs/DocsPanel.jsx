@@ -605,7 +605,7 @@ export default function DocsPanel() {
               features={{ equations: true, mermaid: true, code: true }}
               uploadFile={uploadDocumentImage}
               acceptImageTypes={DOC_IMAGE_TYPES}
-              maxFileSizeBytes={getDocumentImageLimitBytes()}
+              maxFileSizeBytes={20 * 1024 * 1024}
             >
               <FormattingToolbarController
                 formattingToolbar={DocumentFormattingToolbar}
