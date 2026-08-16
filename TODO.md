@@ -68,3 +68,4 @@
 - [x] Enforce 1 Guest, 2 Free, and 10 Pro workspaces.
 - [x] Enforce live-room occupancy of 1 Guest, 3 Free, and 5 Pro participants.
 - [x] Reframe pricing around explicit Guest, Free, and Pro value limits.
+- [x] Remove Roadmap from navigation and routing, promote Docs in the navbar, and trim Resources to onboarding, community, and security.
