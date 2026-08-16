@@ -10,6 +10,7 @@ import { WORKER_URL } from '@/lib/env'
 import { getRememberedCanvasId } from '@/utils/canvasSession'
 import CloudinaryIntegrationCard from '@/components/profile/CloudinaryIntegrationCard'
 import PersonalDetailsCard from '@/components/profile/PersonalDetailsCard'
+import LandingNav from '@/components/landing/LandingNav'
 
 function reconcileActiveWorkspaceName(workspaces) {
   if (typeof window === 'undefined' || !Array.isArray(workspaces)) return workspaces || []
@@ -429,10 +430,11 @@ export default function ProfilePage() {
 
   return (
     <div className="relative min-h-screen bg-[#0a0a12] text-text-primary overflow-hidden">
+      <LandingNav />
       <DotGrid />
       <AmbientGlow />
 
-      <div className="relative z-10 max-w-3xl mx-auto px-6 py-16">
+      <div className="relative z-10 max-w-3xl mx-auto px-6 pb-16 pt-28 sm:pt-32">
         {/* Back link */}
         <motion.div
           ref={headerRef}
