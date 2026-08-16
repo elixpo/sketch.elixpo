@@ -3,7 +3,12 @@ const ELIXPO_AUTH_URL = 'https://accounts.elixpo.com'
 function readAuthCookie(request) {
   try {
     const raw = request.cookies.get('lixsketch-session')?.value
-    return raw ? JSON.parse(raw) : null
+    if (!raw) return null
+    try {
+      return JSON.parse(raw)
+    } catch {
+      return JSON.parse(decodeURIComponent(raw))
+    }
   } catch {
     return null
   }

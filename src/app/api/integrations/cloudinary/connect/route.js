@@ -6,7 +6,9 @@ export const runtime = 'edge'
 
 export async function GET(request) {
   const user = await getAuthenticatedUser(request)
-  if (!user) return NextResponse.redirect(new URL('/?signin=required', request.url))
+  if (!user) {
+    return NextResponse.redirect(new URL('/profile?tab=integrations&cloudinary=not_authenticated', request.url))
+  }
   try {
     const state = crypto.randomUUID()
     const requestUrl = new URL(request.url)

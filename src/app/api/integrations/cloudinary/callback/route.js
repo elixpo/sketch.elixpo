@@ -23,7 +23,7 @@ function finish(request, result, reference = '') {
 
 export async function GET(request) {
   const user = await getAuthenticatedUser(request)
-  if (!user) return NextResponse.redirect(new URL('/?signin=required', request.url))
+  if (!user) return finish(request, 'not_authenticated')
   const callbackUrl = new URL(request.url)
   const authorizationError = callbackUrl.searchParams.get('error')
   if (authorizationError) return finish(request, authorizationError === 'access_denied' ? 'denied' : 'authorization_failed')

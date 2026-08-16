@@ -40,6 +40,7 @@ const RESULT_MESSAGES = {
   disconnected: { ok: true, text: 'Cloudinary disconnected. Existing media remains in your Cloudinary account.' },
   denied: { ok: false, text: 'Cloudinary authorization was cancelled.' },
   invalid_state: { ok: false, text: 'The authorization session expired. Please try again.' },
+  not_authenticated: { ok: false, text: 'Your LixSketch session could not be verified. Sign in again before connecting Cloudinary.' },
   failed_environment: { ok: false, text: 'Cloudinary did not identify the selected product environment. Reconnect and approve the OpenID scope.' },
   failed_validation: { ok: false, text: 'Cloudinary did not authorize access to the selected product environment. Confirm the account selection and requested permissions.' },
   config_error: { ok: false, text: 'Cloudinary OAuth is not configured on this deployment.' },
@@ -148,13 +149,13 @@ export default function CloudinaryIntegrationCard() {
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
         <div className="rounded-xl border border-white/[0.07] bg-black/10 p-3">
           <p className="text-[9px] uppercase tracking-wider text-text-dim">Provider</p>
-          <p className="mt-1 text-xs text-text-secondary">Cloudinary</p>
-          <p className="mt-1 text-[9px] text-text-dim">Personal product environment</p>
+          <p className="mt-1 text-xs text-text-secondary">{status?.connected ? 'Cloudinary' : 'Not connected'}</p>
+          <p className="mt-1 text-[9px] text-text-dim">{status?.connected ? status.cloudName : 'Connect a product environment'}</p>
         </div>
         <div className="rounded-xl border border-white/[0.07] bg-black/10 p-3">
           <p className="text-[9px] uppercase tracking-wider text-text-dim">Authorization</p>
-          <p className="mt-1 text-xs text-text-secondary">OAuth 2.0</p>
-          <p className="mt-1 text-[9px] text-text-dim">Encrypted refresh-token storage</p>
+          <p className="mt-1 text-xs text-text-secondary">{status?.connected ? 'OAuth 2.0 active' : 'Authorization required'}</p>
+          <p className="mt-1 text-[9px] text-text-dim">{status?.connected ? 'Encrypted refresh-token storage' : 'No Cloudinary access granted'}</p>
         </div>
         <div className="rounded-xl border border-white/[0.07] bg-black/10 p-3">
           <p className="text-[9px] uppercase tracking-wider text-text-dim">Upload route</p>
