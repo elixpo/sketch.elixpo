@@ -6,12 +6,8 @@ import useAuthStore from '@/store/useAuthStore'
 import { WORKER_URL } from '@/lib/env'
 
 const MODELS = [
-  { id: 'gptimage', label: 'GPT Image', desc: 'Photorealistic' },
   { id: 'flux', label: 'Flux', desc: 'Detailed, artistic' },
-  { id: 'zimage', label: 'ZImage', desc: 'Fast, high quality' },
-  { id: 'dirtberry', label: 'Dirtberry', desc: 'Creative, stylized' },
-  { id: 'grok-imagine', label: 'Grok Imagine', desc: 'Expressive, bold' },
-  { id: 'klien', label: 'Klien', desc: 'Clean, precise' },
+  { id: 'klein', label: 'Klein', desc: 'Clean, precise' },
 ]
 
 const SIZES = [
@@ -119,7 +115,7 @@ export default function ImageGenerateModal() {
 
   const [prompt, setPrompt] = useState('')
   const [negativePrompt, setNegativePrompt] = useState('')
-  const [model, setModel] = useState('gptimage')
+  const [model, setModel] = useState('flux')
   const [sizeIdx, setSizeIdx] = useState(0)
   const [enhance, setEnhance] = useState(true)
   const [seed, setSeed] = useState(-1)
@@ -255,7 +251,7 @@ export default function ImageGenerateModal() {
         return
       }
 
-      setGeneratedImage({ imageUrl: data.imageUrl, width: data.width, height: data.height })
+      setGeneratedImage({ imageUrl: data.imageUrl, width: data.width, height: data.height, generationProvider: data.generationProvider })
       if (data.used !== undefined) {
         setGenQuota({
           used: data.used,

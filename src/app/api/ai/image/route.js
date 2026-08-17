@@ -2,6 +2,9 @@ export const runtime = 'edge'
 
 import { NextResponse } from 'next/server'
 import { getCloudflareBindings } from '@/lib/cloudflare'
+import { getAuthenticatedUser } from '@/lib/serverAuth'
+import { getPollinationsConnection } from '@/lib/pollinationsConnections'
+import { POLLINATIONS_MODELS } from '@/lib/pollinationsOAuth'
 
 const POLLINATIONS_GEN_URL = 'https://gen.pollinations.ai/v1/images/generations'
 const POLLINATIONS_EDIT_URL = 'https://gen.pollinations.ai/v1/images/edits'
@@ -38,25 +41,43 @@ export async function POST(request) {
     const {
       prompt, model = 'flux', width = 768, height = 768,
       enhance = true, negative_prompt, seed,
-      referenceImage, userId, guestId,
+      referenceImage, guestId,
     } = body
 
     if (!prompt || !prompt.trim()) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
     }
 
-    const apiKey = process.env.POLLINATIONS_IMAGE_API || 'anonymous'
-    // if (!apiKey) {
-    //   return NextResponse.json({ error: 'Image API not configured' }, { status: 500 })
-    // }
-
     // --- Quota check (skip if DB unavailable in local dev) ---
     const DB = tryGetDB()
+    const authenticatedUser = await getAuthenticatedUser(request)
+    const userId = authenticatedUser?.id || null
     const isEdit = !!referenceImage
     const quotaMode = isEdit ? 'image-edit' : 'image-gen'
     let used = 0
     let tier = 'guest'
     let limit = (isEdit ? IMAGE_EDIT_LIMITS : IMAGE_GEN_LIMITS).guest
+    let generationProvider = 'lixsketch'
+    let apiKey = process.env.POLLINATIONS_IMAGE_API
+
+    if (!isEdit && DB && userId) {
+      const connection = await getPollinationsConnection(DB, userId).catch((error) => {
+        console.warn('[AI Image] Pollinations connection unavailable:', error?.message || error)
+        return null
+      })
+      if (connection) {
+        if (!connection.allowedModels.includes(model) || !POLLINATIONS_MODELS.includes(model)) {
+          return NextResponse.json({ error: 'Personal Pollinations supports Flux and Klein only.' }, { status: 400 })
+        }
+        apiKey = connection.accessToken
+        generationProvider = 'personal_pollinations'
+        limit = -1
+      }
+    }
+
+    if (!apiKey || /^ENC\[/.test(apiKey)) {
+      return NextResponse.json({ error: 'Image generation is not configured' }, { status: 503 })
+    }
 
     if (DB) {
       if (userId) {
@@ -65,7 +86,7 @@ export async function POST(request) {
       }
 
       const limits = isEdit ? IMAGE_EDIT_LIMITS : IMAGE_GEN_LIMITS
-      limit = limits[tier] ?? 10
+      if (generationProvider !== 'personal_pollinations') limit = limits[tier] ?? 10
       const col = userId ? 'user_id' : 'guest_id'
       const identifier = userId || guestId
 
@@ -76,7 +97,7 @@ export async function POST(request) {
         ).bind(identifier, quotaMode).first()
         used = result?.count || 0
 
-        if (limit !== -1 && used >= limit) {
+        if (generationProvider !== 'personal_pollinations' && limit !== -1 && used >= limit) {
           return NextResponse.json({
             error: `Daily ${isEdit ? 'image edit' : 'image generation'} limit reached (${used}/${limit})`,
             quotaExceeded: true, used, limit,
@@ -154,7 +175,9 @@ export async function POST(request) {
       }
       if (negative_prompt) genBody.negative_prompt = negative_prompt
       if (seed !== undefined && seed !== -1) genBody.seed = seed
-      if (enhance !== undefined) genBody.enhance = enhance
+      // Personal BYOP keys are intentionally image-only. Disabling enhancement
+      // prevents an implicit text-model request outside the Flux/Klein policy.
+      genBody.enhance = generationProvider === 'personal_pollinations' ? false : Boolean(enhance)
 
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 120000)
@@ -215,6 +238,7 @@ export async function POST(request) {
       width: clampedW,
       height: clampedH,
       model,
+      generationProvider,
       used: used + 1,
       limit: limit === -1 ? 'unlimited' : limit,
       remaining: limit === -1 ? 'unlimited' : Math.max(0, limit - used - 1),
