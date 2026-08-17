@@ -81,3 +81,4 @@
 - [x] Let Cloudinary OAuth identify the selected product environment without asking users for a cloud name.
 - [x] Fix encoded server-session parsing for Cloudinary routes and show accurate disconnected integration status.
 - [x] Treat an absent or unavailable Cloudinary connection as a normal managed-storage state on profiles.
+- [x] Send signed-out Cloudinary connections through sign-in and return users to the Integrations tab.

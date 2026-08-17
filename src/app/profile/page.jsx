@@ -695,7 +695,7 @@ export default function ProfilePage() {
                   <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-text-dim">
                     Sign in to connect your own Cloudinary product environment and keep personal media outside the managed workspace allowance.
                   </p>
-                  <button type="button" onClick={login} className="mt-4 cursor-pointer rounded-lg bg-[#8B88E8] px-4 py-2 text-xs text-white hover:bg-[#9E91EE]">
+                  <button type="button" onClick={() => login('/profile?tab=integrations')} className="mt-4 cursor-pointer rounded-lg bg-[#8B88E8] px-4 py-2 text-xs text-white hover:bg-[#9E91EE]">
                     Sign in to connect
                   </button>
                 </div>
