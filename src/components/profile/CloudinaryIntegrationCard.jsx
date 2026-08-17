@@ -51,7 +51,7 @@ const RESULT_MESSAGES = {
   denied: { ok: false, text: 'Cloudinary authorization was cancelled.' },
   invalid_state: { ok: false, text: 'The authorization session expired. Please try again.' },
   not_authenticated: { ok: false, text: 'Your LixSketch session could not be verified. Sign in again before connecting Cloudinary.' },
-  failed_environment: { ok: false, text: 'Cloudinary did not identify the selected product environment. Reconnect and approve the OpenID scope.' },
+  failed_environment: { ok: false, text: 'Cloudinary authorized access but did not return the selected product-environment identifier. Please reconnect and select the environment again.' },
   failed_validation: { ok: false, text: 'Cloudinary did not authorize access to the selected product environment. Confirm the account selection and requested permissions.' },
   config_error: { ok: false, text: 'Cloudinary OAuth is not configured on this deployment.' },
 }

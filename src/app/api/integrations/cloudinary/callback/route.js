@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getCloudflareBindings } from '@/lib/cloudflare'
 import { getAuthenticatedUser } from '@/lib/serverAuth'
 import {
+  describeCloudinaryOAuthShape,
   exchangeCloudinaryCode,
   isValidCloudinaryCloudName,
   resolveCloudinaryCloudName,
@@ -42,7 +43,10 @@ export async function GET(request) {
     if (!tokens.refresh_token) throw new Error('Offline access did not issue a refresh token')
     stage = 'environment'
     const cloudName = await resolveCloudinaryCloudName(tokens, callbackUrl)
-    if (!isValidCloudinaryCloudName(cloudName)) throw new Error('Cloudinary did not identify the product environment')
+    if (!isValidCloudinaryCloudName(cloudName)) {
+      const shape = describeCloudinaryOAuthShape(tokens, callbackUrl)
+      throw new Error(`Cloudinary did not identify the product environment; response shape=${JSON.stringify(shape)}`)
+    }
     stage = 'validation'
     await testCloudinaryOAuthConnection({ cloudName, oauthToken: tokens.access_token })
     stage = 'persistence'

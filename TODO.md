@@ -83,3 +83,4 @@
 - [x] Treat an absent or unavailable Cloudinary connection as a normal managed-storage state on profiles.
 - [x] Send signed-out Cloudinary connections through sign-in and return users to the Integrations tab.
 - [x] Keep client and Edge-route auth sessions synchronized so Cloudinary connect does not re-authenticate signed-in users.
+- [x] Resolve Cloudinary beta OAuth product-environment identifiers across nested, namespaced, and resource-URL response variants.
