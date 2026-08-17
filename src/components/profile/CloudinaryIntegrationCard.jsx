@@ -146,6 +146,18 @@ export default function CloudinaryIntegrationCard({ managedUsage }) {
     load()
   }, [])
 
+  useEffect(() => {
+    if (!confirmDisconnect) return undefined
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape' && !busy) {
+        setConfirmDisconnect(false)
+        setError('')
+      }
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [busy, confirmDisconnect])
+
   const toggleStorage = async () => {
     setBusy(true)
     setError('')
@@ -167,10 +179,6 @@ export default function CloudinaryIntegrationCard({ managedUsage }) {
   }
 
   const disconnect = async () => {
-    if (!confirmDisconnect) {
-      setConfirmDisconnect(true)
-      return
-    }
     setBusy(true)
     setError('')
     try {
@@ -182,7 +190,6 @@ export default function CloudinaryIntegrationCard({ managedUsage }) {
     } catch (cause) {
       setError(cause.message)
       setBusy(false)
-      setConfirmDisconnect(false)
     }
   }
 
@@ -267,8 +274,8 @@ export default function CloudinaryIntegrationCard({ managedUsage }) {
               <button type="button" disabled={busy} onClick={toggleStorage} className="cursor-pointer rounded-lg border border-[#8B88E8]/30 px-3 py-2 text-xs text-[#A99CF1] hover:bg-[#8B88E8]/10 disabled:opacity-50">
                 {status.useForUploads ? 'Use LixSketch storage' : 'Use personal storage'}
               </button>
-              <button type="button" disabled={busy} onClick={disconnect} onMouseLeave={() => setConfirmDisconnect(false)} className="cursor-pointer rounded-lg border border-red-500/25 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 disabled:opacity-50">
-                {confirmDisconnect ? 'Disconnect and keep existing media' : 'Disconnect'}
+              <button type="button" disabled={busy} onClick={() => { setError(''); setConfirmDisconnect(true) }} className="cursor-pointer rounded-lg border border-red-500/25 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 disabled:opacity-50">
+                Disconnect
               </button>
             </div>
           </div>
@@ -283,6 +290,61 @@ export default function CloudinaryIntegrationCard({ managedUsage }) {
         </div>
       )}
       {error && <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">{error}</p>}
+
+      {confirmDisconnect && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !busy) {
+              setConfirmDisconnect(false)
+              setError('')
+            }
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-red-400/25 bg-[#1B1426] p-5 shadow-2xl shadow-black/50"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="cloudinary-disconnect-title"
+            aria-describedby="cloudinary-disconnect-description"
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500/10 text-red-400">
+                <i className="bx bx-unlink text-xl" />
+              </div>
+              <div>
+                <h3 id="cloudinary-disconnect-title" className="text-base font-medium text-text-primary">Disconnect personal Cloudinary?</h3>
+                <p id="cloudinary-disconnect-description" className="mt-2 text-xs leading-5 text-text-dim">
+                  New uploads will switch to LixSketch-managed storage. Existing media will remain in your Cloudinary account and will not be deleted.
+                </p>
+              </div>
+            </div>
+
+            {error && <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">{error}</p>}
+
+            <div className="mt-5 flex justify-end gap-2 border-t border-white/[0.07] pt-4">
+              <button
+                type="button"
+                disabled={busy}
+                autoFocus
+                onClick={() => { setConfirmDisconnect(false); setError('') }}
+                className="cursor-pointer rounded-lg border border-white/10 px-4 py-2 text-xs text-text-secondary hover:bg-white/[0.05] disabled:cursor-wait disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={disconnect}
+                className="cursor-pointer rounded-lg bg-red-500 px-4 py-2 text-xs text-white hover:bg-red-400 disabled:cursor-wait disabled:opacity-60"
+              >
+                {busy ? 'Disconnecting…' : 'Disconnect Cloudinary'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

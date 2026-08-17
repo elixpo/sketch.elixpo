@@ -91,3 +91,4 @@
 - [x] Resolve Cloudinary product environments from OAuth resource audiences without asking users for a cloud name.
 - [x] Support Cloudinary credit-based usage responses and improve profile typography legibility.
 - [x] Show storage usage ranges and limits for LixSketch-managed and personal Cloudinary storage.
+- [x] Replace hover-based Cloudinary disconnect confirmation with a persistent cancelable alert dialog.
