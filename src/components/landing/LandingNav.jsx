@@ -366,6 +366,8 @@ export default function LandingNav() {
           ) : (
             <OpenCanvasButton className="px-4 py-2 cursor-pointer bg-accent-blue hover:bg-accent-blue-hover text-white text-sm rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-accent-blue/20" />
           )}
+          <OpenCanvasButton className="px-4 py-2 cursor-pointer bg-accent-blue hover:bg-accent-blue-hover text-white text-sm rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-accent-blue/20" />
+          <AccountPill />
 
           {/* Mobile hamburger */}
           <button
