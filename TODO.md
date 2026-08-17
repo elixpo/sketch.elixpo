@@ -90,3 +90,4 @@
 - [x] Prevent React click events from becoming post-login routes such as `/[object Object]`.
 - [x] Resolve Cloudinary product environments from OAuth resource audiences without asking users for a cloud name.
 - [x] Support Cloudinary credit-based usage responses and improve profile typography legibility.
+- [x] Show storage usage ranges and limits for LixSketch-managed and personal Cloudinary storage.

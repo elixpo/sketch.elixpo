@@ -24,29 +24,55 @@ const DISCONNECTED_STATUS = {
   connectedAt: null,
 }
 
-function PersonalStorageMeter({ usage }) {
+function MeterTrack({ percentage, label }) {
+  return (
+    <div
+      className="mt-2 h-2 overflow-hidden rounded-full bg-white/[0.07]"
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow={Math.round(percentage)}
+    >
+      <div className="h-full rounded-full bg-[#9E91EE] transition-all duration-500" style={{ width: `${percentage}%` }} />
+    </div>
+  )
+}
+
+function ManagedStorageMeter({ usage, active }) {
+  const usedBytes = Math.max(0, Number(usage?.usedBytes) || 0)
+  const limitBytes = Math.max(0, Number(usage?.limitBytes) || 0)
+  const remainingBytes = Math.max(0, limitBytes - usedBytes)
+  const percentage = limitBytes > 0 ? Math.min(100, (usedBytes / limitBytes) * 100) : 0
+
+  return (
+    <div className={`rounded-xl border p-3 ${active ? 'border-[#8B88E8]/45 bg-[#8B88E8]/10' : 'border-white/[0.07] bg-black/10'}`}>
+      <div className="flex items-center justify-between gap-3 text-[10px]">
+        <span className="uppercase tracking-wider text-text-dim">LixSketch managed</span>
+        {active && <span className="rounded-full bg-[#8B88E8]/20 px-2 py-0.5 text-[#C4B8F8]">Active</span>}
+      </div>
+      <MeterTrack percentage={percentage} label="LixSketch managed storage usage" />
+      <div className="mt-2 flex items-center justify-between gap-3 text-[10px] text-text-dim">
+        <span>{formatBytes(usedBytes)} used of {formatBytes(limitBytes)}</span>
+        <span className="font-mono text-text-secondary">{formatBytes(remainingBytes)} left</span>
+      </div>
+    </div>
+  )
+}
+
+function PersonalStorageMeter({ usage, active }) {
   if (!usage) return null
   const percentage = Math.max(0, Math.min(100, Number(usage.usedPercent) || 0))
   const usesCredits = usage.mode === 'credits'
   const hasQuota = usesCredits || usage.mode === 'storage'
   return (
-    <div className="mt-4 rounded-xl border border-[#8B88E8]/20 bg-black/10 p-3">
+    <div className={`rounded-xl border p-3 ${active ? 'border-[#8B88E8]/45 bg-[#8B88E8]/10' : 'border-white/[0.07] bg-black/10'}`}>
       <div className="flex items-center justify-between gap-3 text-[10px]">
-        <span className="uppercase tracking-wider text-text-dim">Cloudinary storage</span>
-        <span className="font-mono text-text-secondary">
-          {usesCredits
-            ? `${usage.remainingCredits.toFixed(2)} credits remaining`
-            : usage.mode === 'storage'
-              ? `${formatBytes(usage.remainingBytes)} remaining`
-              : `${formatBytes(usage.usedBytes)} stored`}
-        </span>
+        <span className="uppercase tracking-wider text-text-dim">Personal Cloudinary</span>
+        {active && <span className="rounded-full bg-[#8B88E8]/20 px-2 py-0.5 text-[#C4B8F8]">Active</span>}
       </div>
 
-      {hasQuota && (
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
-          <div className="h-full rounded-full bg-[#9E91EE] transition-all duration-500" style={{ width: `${percentage}%` }} />
-        </div>
-      )}
+      {hasQuota && <MeterTrack percentage={percentage} label="Personal Cloudinary storage usage" />}
       <div className="mt-2 flex items-center justify-between gap-3 text-[10px] text-text-dim">
         <span>
           {usesCredits
@@ -55,8 +81,15 @@ function PersonalStorageMeter({ usage }) {
               ? `${formatBytes(usage.usedBytes)} used of ${formatBytes(usage.limitBytes)}`
               : 'Storage allowance is managed by Cloudinary'}
         </span>
-        {usage.plan && <span>{usage.plan}</span>}
+        <span className="font-mono text-text-secondary">
+          {usesCredits
+            ? `${usage.remainingCredits.toFixed(2)} credits left`
+            : usage.mode === 'storage'
+              ? `${formatBytes(usage.remainingBytes)} left`
+              : usage.plan || 'Provider managed'}
+        </span>
       </div>
+      {usage.plan && usage.mode !== 'storage-used' && <p className="mt-1 text-[9px] text-text-dim">{usage.plan} plan</p>}
     </div>
   )
 }
@@ -72,7 +105,7 @@ const RESULT_MESSAGES = {
   config_error: { ok: false, text: 'Cloudinary OAuth is not configured on this deployment.' },
 }
 
-export default function CloudinaryIntegrationCard() {
+export default function CloudinaryIntegrationCard({ managedUsage }) {
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -200,6 +233,15 @@ export default function CloudinaryIntegrationCard() {
         </p>
       )}
 
+      {!loading && (
+        <div className={`mt-4 grid gap-2 ${status?.connected && status.providerUsage ? 'sm:grid-cols-2' : ''}`}>
+          <ManagedStorageMeter usage={managedUsage} active={!status?.connected || !status.useForUploads} />
+          {status?.connected && status.providerUsage && (
+            <PersonalStorageMeter usage={status.providerUsage} active={status.useForUploads} />
+          )}
+        </div>
+      )}
+
       {loading ? (
         <div className="mt-4 h-16 animate-pulse rounded-xl bg-white/[0.035]" />
       ) : !status?.connected ? (
@@ -230,7 +272,6 @@ export default function CloudinaryIntegrationCard() {
               </button>
             </div>
           </div>
-          <PersonalStorageMeter usage={status.providerUsage} />
           {status.providerUsageUnavailable && (
             <p className="mt-3 text-[10px] text-amber-300/80">
               Cloudinary usage details are available in its dashboard. LixSketch has tracked {formatBytes(status.trackedBytes)} of uploaded media.

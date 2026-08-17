@@ -414,8 +414,10 @@ export default function ProfilePage() {
 
   const workspaceLimit = quotaData?.workspaces?.limit || (isAuthenticated ? 2 : 1)
   const fallbackStorageLimit = (isAuthenticated ? 5 : 2) * 1024 * 1024 * workspaceLimit
-  const managedStorageUsedMB = Number(((quotaData?.storage?.accountUsedBytes || 0) / (1024 * 1024)).toFixed(2))
-  const managedStorageLimitMB = Number(((quotaData?.storage?.accountLimitBytes || fallbackStorageLimit) / (1024 * 1024)).toFixed(2))
+  const managedStorageUsedBytes = Number(quotaData?.storage?.accountUsedBytes || 0)
+  const managedStorageLimitBytes = Number(quotaData?.storage?.accountLimitBytes || fallbackStorageLimit)
+  const managedStorageUsedMB = Number((managedStorageUsedBytes / (1024 * 1024)).toFixed(2))
+  const managedStorageLimitMB = Number((managedStorageLimitBytes / (1024 * 1024)).toFixed(2))
   const perWorkspaceImageLimitMB = Math.round((quotaData?.storage?.limitBytes || (isAuthenticated ? 5 : 2) * 1024 * 1024) / (1024 * 1024))
   const managedStorageRemainingMB = Number(Math.max(0, managedStorageLimitMB - managedStorageUsedMB).toFixed(2))
   const workspaceRemaining = Math.max(0, workspaceLimit - workspaces.length)
@@ -636,7 +638,14 @@ export default function ProfilePage() {
               </motion.div>
             )}
 
-            {activeTab === 'integrations' && isAuthenticated && <CloudinaryIntegrationCard />}
+            {activeTab === 'integrations' && isAuthenticated && (
+              <CloudinaryIntegrationCard
+                managedUsage={{
+                  usedBytes: managedStorageUsedBytes,
+                  limitBytes: managedStorageLimitBytes,
+                }}
+              />
+            )}
 
             {/* Guest info card */}
             {activeTab === 'personal' && !isAuthenticated && (
