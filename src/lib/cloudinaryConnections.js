@@ -115,17 +115,28 @@ export async function getCloudinaryConnection(db, userId, { includeDisabled = fa
 
 export async function getCloudinaryConnectionStatus(db, userId) {
   const connection = await loadConnection(db, userId)
+  if (!connection) {
+    return {
+      connected: false,
+      useForUploads: false,
+      cloudName: null,
+      scope: '',
+      mediaCount: 0,
+      trackedBytes: 0,
+      connectedAt: null,
+    }
+  }
   const usage = await db.prepare(`
     SELECT COUNT(*) AS count, COALESCE(SUM(size_bytes), 0) AS bytes
     FROM image_assets WHERE uploaded_by = ? AND storage_provider = 'user_cloudinary'
   `).bind(userId).first()
   return {
-    connected: Boolean(connection),
-    useForUploads: Boolean(connection?.enabled),
-    cloudName: connection?.cloud_name || null,
-    scope: connection?.oauth_scope || '',
+    connected: true,
+    useForUploads: Boolean(connection.enabled),
+    cloudName: connection.cloud_name,
+    scope: connection.oauth_scope || '',
     mediaCount: Number(usage?.count || 0),
     trackedBytes: Number(usage?.bytes || 0),
-    connectedAt: connection?.created_at || null,
+    connectedAt: connection.created_at || null,
   }
 }

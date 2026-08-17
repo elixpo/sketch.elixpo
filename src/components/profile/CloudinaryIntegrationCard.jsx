@@ -14,6 +14,16 @@ function formatConnectionDate(value) {
   return Number.isNaN(date.getTime()) ? 'date unavailable' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+const DISCONNECTED_STATUS = {
+  connected: false,
+  useForUploads: false,
+  cloudName: null,
+  scope: '',
+  mediaCount: 0,
+  trackedBytes: 0,
+  connectedAt: null,
+}
+
 function PersonalStorageMeter({ usage }) {
   if (!usage) return null
   const percentage = Math.max(0, Math.min(100, Number(usage.usedPercent) || 0))
@@ -63,14 +73,18 @@ export default function CloudinaryIntegrationCard() {
 
   const load = async () => {
     setLoading(true)
+    setError('')
     try {
       const response = await fetch('/api/integrations/cloudinary?includeUsage=1', { cache: 'no-store' })
       if (!response.ok) throw new Error('Could not load Cloudinary status')
       const data = await response.json()
       setStatus((current) => ({ ...current, ...data }))
       window.__personalCloudinary = data
-    } catch (cause) {
-      setError(cause.message)
+    } catch {
+      // Cloudinary is optional. A failed status probe must leave uploads on
+      // managed storage without presenting the disconnected state as an error.
+      setStatus(DISCONNECTED_STATUS)
+      window.__personalCloudinary = DISCONNECTED_STATUS
     } finally {
       setLoading(false)
     }

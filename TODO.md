@@ -80,3 +80,4 @@
 - [x] Keep the standard site navbar visible on the profile route.
 - [x] Let Cloudinary OAuth identify the selected product environment without asking users for a cloud name.
 - [x] Fix encoded server-session parsing for Cloudinary routes and show accurate disconnected integration status.
+- [x] Treat an absent or unavailable Cloudinary connection as a normal managed-storage state on profiles.
