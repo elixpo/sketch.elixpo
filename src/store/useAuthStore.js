@@ -69,6 +69,9 @@ const useAuthStore = create((set, get) => ({
   init: () => {
     const saved = loadAuth()
     if (saved?.sessionToken && saved?.user) {
+      // Older sessions may exist only in localStorage. Keep the same session
+      // available to Edge routes before integrations initiate navigation.
+      saveAuth(saved)
       console.log('[Auth] Restored session:', saved.user.displayName || saved.user.email)
       set({
         user: saved.user,

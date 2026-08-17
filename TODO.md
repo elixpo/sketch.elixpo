@@ -82,3 +82,4 @@
 - [x] Fix encoded server-session parsing for Cloudinary routes and show accurate disconnected integration status.
 - [x] Treat an absent or unavailable Cloudinary connection as a normal managed-storage state on profiles.
 - [x] Send signed-out Cloudinary connections through sign-in and return users to the Integrations tab.
+- [x] Keep client and Edge-route auth sessions synchronized so Cloudinary connect does not re-authenticate signed-in users.
