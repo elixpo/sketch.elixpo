@@ -18,12 +18,12 @@ function rowsFrom(value) {
   return []
 }
 
-function numberFrom(value, keys) {
+function numberFrom(value, keys, fallback = 0) {
   for (const key of keys) {
     const number = Number(value?.[key])
     if (Number.isFinite(number)) return number
   }
-  return 0
+  return fallback
 }
 
 export async function getPollinationsAccountSnapshot(accessToken) {
@@ -35,7 +35,7 @@ export async function getPollinationsAccountSnapshot(accessToken) {
 
   if (balanceResult.status === 'rejected') throw balanceResult.reason
   const balanceData = balanceResult.value
-  const balance = numberFrom(balanceData, ['pollen', 'balance', 'available', 'remaining', 'total'])
+  const balance = numberFrom(balanceData, ['pollen', 'balance', 'available', 'remaining', 'total'], undefined)
   const usageRows = usageResult.status === 'fulfilled' ? rowsFrom(usageResult.value) : []
   const imageRows = usageRows.filter((row) => ['flux', 'klein'].includes(String(row.model || row.model_id || '').toLowerCase()))
   const usage = imageRows.reduce((total, row) => ({
@@ -51,13 +51,13 @@ export async function getPollinationsAccountSnapshot(accessToken) {
   const health = ['flux', 'klein'].map((model) => {
     const row = healthRows.find((entry) => String(entry.model || entry.model_id || '').toLowerCase() === model)
     const success = numberFrom(row, ['status_2xx', 'success_count', 'successes', 'ok'])
-    const serverErrors = numberFrom(row, ['status_5xx', 'server_error_count', 'errors'])
+    const serverErrors = numberFrom(row, ['errors_5xx', 'status_5xx', 'server_error_count', 'errors'])
     const total = success + serverErrors
     return {
       model,
       available: Boolean(row) && (total === 0 || success > 0),
       successRate: total ? Math.round((success / total) * 1000) / 10 : null,
-      latencyMs: numberFrom(row, ['latency_p50', 'p50_latency', 'latency_ms', 'avg_latency_ms']) || null,
+      latencyMs: numberFrom(row, ['latency_p50_ms', 'latency_p50', 'p50_latency', 'latency_ms', 'avg_latency_ms']) || null,
     }
   })
 

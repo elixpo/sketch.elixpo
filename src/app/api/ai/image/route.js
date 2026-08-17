@@ -35,6 +35,23 @@ function tryGetDB() {
   }
 }
 
+async function imageProviderError(response, generationProvider, operation) {
+  const detail = await response.text().catch(() => '')
+  console.error(`[AI Image] ${operation} failed:`, response.status, detail.slice(0, 500))
+  if (generationProvider === 'personal_pollinations') {
+    if (response.status === 401) {
+      return NextResponse.json({ error: 'Your Pollinations authorization expired or was revoked. Reconnect it from Profile → Integrations.' }, { status: 401 })
+    }
+    if (response.status === 402) {
+      return NextResponse.json({ error: 'Your Pollinations key has insufficient Pollen or has reached its approved budget.' }, { status: 402 })
+    }
+    if (response.status === 403) {
+      return NextResponse.json({ error: 'This Pollinations key does not allow the selected image model. Reconnect to authorize Flux and Klein.' }, { status: 403 })
+    }
+  }
+  return NextResponse.json({ error: `Image ${operation.toLowerCase()} failed. Try a different prompt or model.` }, { status: 502 })
+}
+
 export async function POST(request) {
   try {
     const body = await request.json()
@@ -140,12 +157,7 @@ export async function POST(request) {
       clearTimeout(timeout)
 
       if (!res.ok) {
-        const errText = await res.text().catch(() => '')
-        console.error('[AI Image] Edit failed:', res.status, errText)
-        return NextResponse.json(
-          { error: 'Image edit failed. Try a different prompt.' },
-          { status: 502 }
-        )
+        return imageProviderError(res, generationProvider, 'Edit')
       }
 
       const data = await res.json()
@@ -195,12 +207,7 @@ export async function POST(request) {
       clearTimeout(timeout)
 
       if (!res.ok) {
-        const errText = await res.text().catch(() => '')
-        console.error('[AI Image] Generation failed:', res.status, errText)
-        return NextResponse.json(
-          { error: 'Image generation failed. Try a different prompt or model.' },
-          { status: 502 }
-        )
+        return imageProviderError(res, generationProvider, 'Generation')
       }
 
       const data = await res.json()
