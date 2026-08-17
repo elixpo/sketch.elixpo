@@ -92,3 +92,4 @@
 - [x] Support Cloudinary credit-based usage responses and improve profile typography legibility.
 - [x] Show storage usage ranges and limits for LixSketch-managed and personal Cloudinary storage.
 - [x] Replace hover-based Cloudinary disconnect confirmation with a persistent cancelable alert dialog.
+- [x] Increase typography across non-canvas routes while preserving the compact canvas workspace scale.

@@ -97,23 +97,35 @@ body {
   font-size: 16px;
 }
 
-/* lixFont has a compact x-height. Profile copy needs a slightly larger
- * optical size than Tailwind's defaults to remain comfortable to scan. */
-.profile-page .text-\[9px\] {
+/* lixFont has a compact x-height. Non-canvas routes use a slightly larger
+ * optical scale while the workspace keeps its dense control layout. */
+body:not(.canvas-mode) .text-\[6px\] {
+  font-size: 8px !important;
+}
+
+body:not(.canvas-mode) .text-\[8px\] {
+  font-size: 10px !important;
+}
+
+body:not(.canvas-mode) .text-\[9px\] {
   font-size: 11px !important;
 }
 
-.profile-page .text-\[10px\] {
+body:not(.canvas-mode) .text-\[10px\] {
   font-size: 12px !important;
 }
 
-.profile-page .text-\[11px\],
-.profile-page .text-xs {
+body:not(.canvas-mode) .text-\[11px\],
+body:not(.canvas-mode) .text-xs {
   font-size: 13px !important;
   line-height: 1.25rem !important;
 }
 
-.profile-page .text-sm {
+body:not(.canvas-mode) .text-\[13px\] {
+  font-size: 14px !important;
+}
+
+body:not(.canvas-mode) .text-sm {
   font-size: 15px !important;
   line-height: 1.4rem !important;
 }
