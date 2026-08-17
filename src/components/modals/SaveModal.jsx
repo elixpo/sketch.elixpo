@@ -16,6 +16,34 @@ import {
   renderExportCanvas,
 } from '@/utils/canvasExport'
 
+async function validatePublicSceneMedia(sceneData) {
+  const sources = [...new Set((sceneData?.shapes || [])
+    .filter((shape) => shape?.type === 'image')
+    .map((shape) => String(shape.href || ''))
+    .filter(Boolean))]
+  const invalid = sources.filter((source) => source.startsWith('blob:') || (!source.startsWith('data:image/') && !/^https?:\/\//i.test(source)))
+  if (invalid.length) throw new Error('Replace local or unsupported images before publishing')
+  const remote = sources.filter((source) => /^https?:\/\//i.test(source))
+  const results = await Promise.all(remote.map((source) => new Promise((resolve) => {
+    const image = new Image()
+    const timer = setTimeout(() => { image.src = ''; resolve(false) }, 5000)
+    image.onload = () => { clearTimeout(timer); resolve(true) }
+    image.onerror = () => { clearTimeout(timer); resolve(false) }
+    image.src = source
+  })))
+  if (results.some((available) => !available)) {
+    throw new Error('One or more workspace images are private or unavailable. Make them public or remove them before publishing.')
+  }
+}
+
+async function validatePublicDocumentMedia(blocks) {
+  const sceneLike = {
+    shapes: (blocks || []).filter((block) => block?.type === 'image' && block?.props?.url)
+      .map((block) => ({ type: 'image', href: block.props.url })),
+  }
+  return validatePublicSceneMedia(sceneLike)
+}
+
 // ── Component ────────────────────────────────────────────────
 
 export default function SaveModal() {
@@ -52,6 +80,7 @@ export default function SaveModal() {
   const [publishing, setPublishing] = useState(false)
   const [publishError, setPublishError] = useState('')
   const [publishedUrl, setPublishedUrl] = useState('')
+  const [publishedSlug, setPublishedSlug] = useState('')
 
   // Export state
   const [bgMode, setBgMode] = useState('dark')
@@ -71,7 +100,7 @@ export default function SaveModal() {
       if (!clone) return
       const canvas = await renderExportCanvas(clone, 1)
       if (cancelled || !canvas) return
-      setPreviewUrl(canvas.toDataURL('image/png'))
+      setPreviewUrl(canvas.toDataURL('image/webp', 0.78))
     }
     generate()
     return () => { cancelled = true }
@@ -173,7 +202,7 @@ export default function SaveModal() {
     }).catch(() => {})
   }
 
-  const handlePublishTemplate = async () => {
+  const handlePublishTemplate = async (updateExisting = false) => {
     if (!isAuthenticated) {
       login(`${window.location.pathname}${window.location.search}`)
       return
@@ -190,18 +219,20 @@ export default function SaveModal() {
       if (!publishTitle.trim()) throw new Error('Add a public template title')
       const publicKey = await generateKey()
       const sceneData = serializer.save(workspaceName || 'Untitled')
+      await validatePublicSceneMedia(sceneData)
       const encryptedData = await encrypt(JSON.stringify(sceneData), publicKey)
       let encryptedDocData = null
       try {
         const savedDoc = localStorage.getItem(`lixsketch-doc-autosave-${sessionId}`)
         const blocks = savedDoc ? JSON.parse(savedDoc)?.blocks : null
         if (Array.isArray(blocks) && blocks.length) {
+          await validatePublicDocumentMedia(blocks)
           encryptedDocData = await encrypt(JSON.stringify(blocks), publicKey)
         }
       } catch {}
-      const coverDataUrl = previewUrl && new Blob([previewUrl]).size <= 500_000 ? previewUrl : null
-      const response = await fetch('/api/templates', {
-        method: 'POST',
+      const coverDataUrl = previewUrl && new Blob([previewUrl]).size <= 200_000 ? previewUrl : null
+      const response = await fetch(updateExisting && publishedSlug ? `/api/templates/${encodeURIComponent(publishedSlug)}` : '/api/templates', {
+        method: updateExisting && publishedSlug ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sourceSessionId: sessionId,
@@ -216,7 +247,10 @@ export default function SaveModal() {
       })
       const body = await response.json()
       if (!response.ok) throw new Error(body.error || 'Could not publish workspace')
-      setPublishedUrl(`${window.location.origin}${body.url}`)
+      if (body.url) {
+        setPublishedSlug(body.slug)
+        setPublishedUrl(`${window.location.origin}${body.url}`)
+      }
     } catch (reason) {
       setPublishError(reason.message || 'Could not publish workspace')
     } finally {
@@ -567,6 +601,7 @@ export default function SaveModal() {
                   <button onClick={() => navigator.clipboard.writeText(publishedUrl)} className="cursor-pointer rounded-lg bg-accent-blue px-3 text-xs text-white hover:bg-accent-blue-hover">Copy</button>
                 </div>
                 <a href={publishedUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-[10px] text-accent-blue hover:underline">Open published template <i className="bx bx-link-external" /></a>
+                <button onClick={() => handlePublishTemplate(true)} disabled={publishing} className="mt-2 ml-4 cursor-pointer text-[10px] text-text-dim hover:text-accent-blue disabled:opacity-50"><i className="bx bx-refresh mr-1" />{publishing ? 'Updating…' : 'Update public snapshot'}</button>
               </div>
             ) : (
               <div className="space-y-2.5">
@@ -576,7 +611,7 @@ export default function SaveModal() {
                 <div className="rounded-lg border border-yellow-400/20 bg-yellow-400/5 p-2.5 text-[10px] leading-4 text-yellow-200/80">
                   <i className="bx bx-info-circle mr-1" />Everything in this snapshot becomes public. Private or access-controlled media may not work for other users.
                 </div>
-                <button onClick={handlePublishTemplate} disabled={publishing} className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-accent-blue py-2.5 text-sm text-white hover:bg-accent-blue-hover disabled:opacity-50">
+                <button onClick={() => handlePublishTemplate(false)} disabled={publishing} className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-accent-blue py-2.5 text-sm text-white hover:bg-accent-blue-hover disabled:opacity-50">
                   <i className="bx bx-upload" />{!isAuthenticated ? 'Sign in to publish' : publishing ? 'Publishing…' : 'Publish workspace'}
                 </button>
               </div>

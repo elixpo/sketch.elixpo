@@ -6,6 +6,9 @@ import {
   normalizeTemplateTags,
   normalizeTemplateTitle,
   serializeTemplate,
+  TEMPLATE_COVER_MAX_BYTES,
+  TEMPLATE_DOC_MAX_BYTES,
+  TEMPLATE_SCENE_MAX_BYTES,
 } from '@/lib/workspaceTemplates'
 
 export const runtime = 'edge'
@@ -18,11 +21,16 @@ export async function GET(request, context) {
     const { slug } = await context.params
     const { DB } = getCloudflareBindings()
     const row = await DB.prepare(SELECT_TEMPLATE).bind(slug).first()
-    if (!row || row.status !== 'published') return NextResponse.json({ error: 'Template not found' }, { status: 404 })
     const viewer = await getAuthenticatedUser(request)
-    await DB.prepare('UPDATE workspace_templates SET view_count = view_count + 1 WHERE id = ?').bind(row.id).run()
-    row.view_count = Number(row.view_count || 0) + 1
-    return NextResponse.json({ template: serializeTemplate(row, { includeSnapshot: true, viewerId: viewer?.id }) })
+    if (!row || (row.status !== 'published' && viewer?.id !== row.publisher_user_id)) {
+      return NextResponse.json({ error: 'Template not found' }, { status: 404 })
+    }
+    const includeSnapshot = new URL(request.url).searchParams.get('snapshot') === '1'
+    if (row.status === 'published' && !includeSnapshot) {
+      await DB.prepare('UPDATE workspace_templates SET view_count = view_count + 1 WHERE id = ?').bind(row.id).run()
+      row.view_count = Number(row.view_count || 0) + 1
+    }
+    return NextResponse.json({ template: serializeTemplate(row, { includeSnapshot, viewerId: viewer?.id }) })
   } catch (error) {
     console.error('[api/templates/slug] load failed:', error)
     return NextResponse.json({ error: 'Could not load template' }, { status: 500 })
@@ -39,7 +47,15 @@ export async function PATCH(request, context) {
     if (!existing) return NextResponse.json({ error: 'Template not found' }, { status: 404 })
     if (existing.publisher_user_id !== user.id) return NextResponse.json({ error: 'Only the publisher can change this template' }, { status: 403 })
     const body = await request.json()
-    const status = body.status === 'unpublished' ? 'unpublished' : existing.status
+    if ((body.encryptedData && new Blob([body.encryptedData]).size > TEMPLATE_SCENE_MAX_BYTES) ||
+        (body.encryptedDocData && new Blob([body.encryptedDocData]).size > TEMPLATE_DOC_MAX_BYTES) ||
+        (body.coverDataUrl && new Blob([body.coverDataUrl]).size > TEMPLATE_COVER_MAX_BYTES)) {
+      return NextResponse.json({ error: 'The updated public snapshot is too large' }, { status: 413 })
+    }
+    if (body.publicKey && (typeof body.publicKey !== 'string' || body.publicKey.length < 32 || body.publicKey.length > 128)) {
+      return NextResponse.json({ error: 'The public snapshot key is invalid' }, { status: 400 })
+    }
+    const status = body.status === 'unpublished' || body.status === 'published' ? body.status : existing.status
     const title = body.title === undefined ? existing.title : normalizeTemplateTitle(body.title)
     if (!title) return NextResponse.json({ error: 'A template title is required' }, { status: 400 })
     const description = body.description === undefined ? existing.description : normalizeTemplateDescription(body.description)

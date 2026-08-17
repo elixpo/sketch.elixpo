@@ -8,6 +8,8 @@ import {
   serializeTemplate,
   templateSlug,
   TEMPLATE_COVER_MAX_BYTES,
+  TEMPLATE_DOC_MAX_BYTES,
+  TEMPLATE_SCENE_MAX_BYTES,
 } from '@/lib/workspaceTemplates'
 
 export const runtime = 'edge'
@@ -21,11 +23,15 @@ export async function GET(request) {
   try {
     const { DB } = getCloudflareBindings()
     const url = new URL(request.url)
+    const mine = url.searchParams.get('mine') === '1'
+    const viewer = mine ? await getAuthenticatedUser(request) : null
+    if (mine && !viewer) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
     const query = String(url.searchParams.get('q') || '').trim().slice(0, 80)
     const tag = String(url.searchParams.get('tag') || '').trim().toLowerCase().slice(0, 24)
     const limit = Math.min(48, Math.max(1, Number(url.searchParams.get('limit')) || 24))
-    const clauses = [`t.status = 'published'`]
+    const clauses = mine ? ['t.publisher_user_id = ?'] : [`t.status = 'published'`]
     const bindings = []
+    if (mine) bindings.push(viewer.id)
     if (query) {
       clauses.push('(t.title LIKE ? OR t.description LIKE ? OR t.tags_json LIKE ?)')
       const like = `%${query}%`
@@ -39,7 +45,7 @@ export async function GET(request) {
     const rows = await DB.prepare(`${SELECT_TEMPLATE}
       WHERE ${clauses.join(' AND ')}
       ORDER BY t.published_at DESC LIMIT ?`).bind(...bindings).all()
-    return NextResponse.json({ templates: (rows.results || []).map((row) => serializeTemplate(row)) })
+    return NextResponse.json({ templates: (rows.results || []).map((row) => serializeTemplate(row, { includeCover: !mine })) })
   } catch (error) {
     console.error('[api/templates] list failed:', error)
     return NextResponse.json({ error: 'Could not load templates' }, { status: 500 })
@@ -59,11 +65,18 @@ export async function POST(request) {
     if (!body.encryptedData || !body.publicKey) {
       return NextResponse.json({ error: 'The public workspace snapshot is missing' }, { status: 400 })
     }
+    if (typeof body.publicKey !== 'string' || body.publicKey.length < 32 || body.publicKey.length > 128) {
+      return NextResponse.json({ error: 'The public snapshot key is invalid' }, { status: 400 })
+    }
+    if (new Blob([body.encryptedData]).size > TEMPLATE_SCENE_MAX_BYTES ||
+        (body.encryptedDocData && new Blob([body.encryptedDocData]).size > TEMPLATE_DOC_MAX_BYTES)) {
+      return NextResponse.json({ error: 'The workspace snapshot is too large to publish' }, { status: 413 })
+    }
     const cover = typeof body.coverDataUrl === 'string' && body.coverDataUrl.startsWith('data:image/')
       ? body.coverDataUrl
       : null
     if (cover && new Blob([cover]).size > TEMPLATE_COVER_MAX_BYTES) {
-      return NextResponse.json({ error: 'Template cover must be smaller than 500 KB' }, { status: 413 })
+      return NextResponse.json({ error: 'Template cover must be smaller than 200 KB' }, { status: 413 })
     }
     const id = crypto.randomUUID()
     let slug = templateSlug(title)

@@ -2,7 +2,9 @@ export const TEMPLATE_TITLE_MAX = 72
 export const TEMPLATE_DESCRIPTION_MAX = 600
 export const TEMPLATE_TAG_MAX = 24
 export const TEMPLATE_TAGS_MAX = 6
-export const TEMPLATE_COVER_MAX_BYTES = 500_000
+export const TEMPLATE_COVER_MAX_BYTES = 200_000
+export const TEMPLATE_SCENE_MAX_BYTES = 12 * 1024 * 1024
+export const TEMPLATE_DOC_MAX_BYTES = 5 * 1024 * 1024
 
 export function normalizeTemplateTitle(value) {
   return String(value || '').trim().replace(/\s+/g, ' ').slice(0, TEMPLATE_TITLE_MAX)
@@ -51,7 +53,7 @@ export function serializeTemplate(row, options = {}) {
     title: row.title,
     description: row.description || '',
     tags: safeTemplateJson(row.tags_json),
-    coverDataUrl: row.cover_data_url || null,
+    coverDataUrl: options.includeCover === false ? null : row.cover_data_url || null,
     publisher: {
       id: row.publisher_user_id,
       name: row.publisher_name || 'LixSketch creator',
@@ -62,6 +64,7 @@ export function serializeTemplate(row, options = {}) {
     clones: Number(row.clone_count || 0),
     publishedAt: row.published_at,
     updatedAt: row.updated_at,
+    status: row.status || 'published',
   }
   if (options.includeSnapshot) {
     template.encryptedData = row.encrypted_data
