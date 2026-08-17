@@ -95,3 +95,4 @@
 - [x] Increase typography across non-canvas routes while preserving the compact canvas workspace scale.
 - [x] Make the D1 migration runner read history correctly with Wrangler 4.87 command output.
 - [x] Configure the `/settings` compatibility redirect for the Cloudflare Edge runtime.
+- [x] Reduce the top gap between the landing navbar and `/profile` content.
