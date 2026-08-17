@@ -10,7 +10,7 @@ const ELIXPO_AUTH_URL = 'https://accounts.elixpo.com'
 const AUTH_RETURN_TO_KEY = 'lixsketch-auth-return-to'
 
 function normalizeAuthReturnTo(value) {
-  if (typeof window === 'undefined' || !value) return null
+  if (typeof window === 'undefined' || typeof value !== 'string' || !value) return null
   try {
     const target = new URL(value, window.location.origin)
     if (target.origin !== window.location.origin) return null
@@ -93,8 +93,9 @@ const useAuthStore = create((set, get) => ({
 
     sessionStorage.setItem('lixsketch-oauth-state', state)
 
+    const currentLocation = `${window.location.pathname}${window.location.search}${window.location.hash}`
     const authReturnTo = normalizeAuthReturnTo(
-      returnTo || `${window.location.pathname}${window.location.search}${window.location.hash}`,
+      typeof returnTo === 'string' ? returnTo : currentLocation,
     )
     try {
       if (authReturnTo && authReturnTo !== '/') {

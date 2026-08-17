@@ -485,7 +485,7 @@ export default function ProfilePage() {
                 </button>
               ) : (
                 <button
-                  onClick={login}
+                  onClick={() => login()}
                   className="px-4 py-1.5 rounded-lg text-xs text-white bg-accent-blue hover:bg-accent-blue/80 transition-all"
                 >
                   Sign in
@@ -669,7 +669,7 @@ export default function ProfilePage() {
                       </ul>
                       <div className="flex gap-2 mt-4">
                         <button
-                          onClick={login}
+                          onClick={() => login()}
                           className="px-4 py-2 rounded-lg text-xs text-white bg-accent-blue hover:bg-accent-blue/80 transition-all"
                         >
                           Sign in for free
@@ -755,7 +755,7 @@ export default function ProfilePage() {
                       View plans
                     </Link>
                     {!isAuthenticated && (
-                      <button type="button" onClick={login} className="cursor-pointer rounded-lg border border-[#8B88E8]/30 px-4 py-2 text-xs text-[#A99CF1] hover:bg-[#8B88E8]/10">
+                      <button type="button" onClick={() => login()} className="cursor-pointer rounded-lg border border-[#8B88E8]/30 px-4 py-2 text-xs text-[#A99CF1] hover:bg-[#8B88E8]/10">
                         Sign in
                       </button>
                     )}
