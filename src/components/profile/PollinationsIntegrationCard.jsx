@@ -127,6 +127,7 @@ export default function PollinationsIntegrationCard() {
           <p className="mt-1 max-w-xl text-xs leading-5 text-text-dim">
             Bring your own Pollen for image generation. The issued key is limited to Flux and Klein, stored encrypted, and never exposed to the browser.
           </p>
+          <a href="/docs/connectors#pollinations" className="mt-1.5 inline-flex items-center gap-1 text-[10px] text-[#A99CF1] hover:text-white">Connector docs <i className="bx bx-right-arrow-alt" /></a>
         </div>
       </div>
 
@@ -172,13 +173,13 @@ export default function PollinationsIntegrationCard() {
           <div className="mt-4 flex flex-col gap-3 border-t border-white/[0.07] pt-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs text-text-secondary">{status.providerUsername ? `Connected as ${status.providerUsername}` : 'Pollinations account connected'}</p>
-              <p className="mt-1 text-[10px] text-text-dim">Models: Flux and Klein · {status.usePersonalPollen ? 'Personal Pollen active' : 'LixSketch-managed generation active'}</p>
+              <p className="mt-1 text-[10px] text-text-dim">Models: Flux and Klein · {status.usePersonalPollen ? 'AI image generation active' : 'AI image generation paused'}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               {status.expired ? (
                 <a href="/api/integrations/pollinations/connect" className="cursor-pointer rounded-lg bg-[#8B88E8] px-3 py-2 text-xs text-white hover:bg-[#9E91EE]">Reconnect</a>
               ) : (
-                <button type="button" disabled={busy} onClick={toggle} className="cursor-pointer rounded-lg border border-[#8B88E8]/30 px-3 py-2 text-xs text-[#A99CF1] hover:bg-[#8B88E8]/10 disabled:opacity-50">{status.usePersonalPollen ? 'Use LixSketch allowance' : 'Use personal Pollen'}</button>
+                <button type="button" disabled={busy} onClick={toggle} className="cursor-pointer rounded-lg border border-[#8B88E8]/30 px-3 py-2 text-xs text-[#A99CF1] hover:bg-[#8B88E8]/10 disabled:opacity-50">{status.usePersonalPollen ? 'Pause AI images' : 'Enable AI images'}</button>
               )}
               <button type="button" disabled={busy} onClick={() => setConfirmDisconnect(true)} className="cursor-pointer rounded-lg border border-red-500/25 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 disabled:opacity-50">Disconnect</button>
             </div>
@@ -191,7 +192,7 @@ export default function PollinationsIntegrationCard() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && !busy && setConfirmDisconnect(false)}>
           <div role="alertdialog" aria-modal="true" className="w-full max-w-md rounded-2xl border border-red-400/25 bg-[#1B1426] p-5 shadow-2xl">
             <h3 className="text-base text-text-primary">Disconnect Pollinations?</h3>
-            <p className="mt-2 text-xs leading-5 text-text-dim">LixSketch will delete its encrypted key and return to managed image-generation limits. Revoke the issued key in Pollinations if you also want to invalidate it there.</p>
+            <p className="mt-2 text-xs leading-5 text-text-dim">LixSketch will delete its encrypted key and AI image generation will stop working. Revoke the issued key in Pollinations if you also want to invalidate it there.</p>
             <div className="mt-5 flex justify-end gap-2 border-t border-white/[0.07] pt-4">
               <button type="button" disabled={busy} onClick={() => setConfirmDisconnect(false)} className="cursor-pointer rounded-lg border border-white/10 px-4 py-2 text-xs text-text-secondary hover:bg-white/[0.05]">Cancel</button>
               <button type="button" disabled={busy} onClick={disconnect} className="cursor-pointer rounded-lg bg-red-500 px-4 py-2 text-xs text-white hover:bg-red-400 disabled:opacity-60">{busy ? 'Disconnecting…' : 'Disconnect'}</button>
