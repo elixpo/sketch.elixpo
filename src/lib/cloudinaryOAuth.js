@@ -157,11 +157,29 @@ export async function resolveCloudinaryCloudName(tokens, callbackUrl) {
 }
 
 export function describeCloudinaryOAuthShape(tokens, callbackUrl) {
+  const describeFields = (value, prefix = '', depth = 0) => {
+    if (!value || typeof value !== 'object' || depth > 3) return []
+    const entries = Object.entries(value)
+    if (!entries.length) return prefix ? [`${prefix}:empty-object`] : []
+    return entries.flatMap(([key, nestedValue]) => {
+      const path = prefix ? `${prefix}.${key}` : key
+      if (nestedValue === null) return [`${path}:null`]
+      if (Array.isArray(nestedValue)) {
+        return [`${path}:array`, ...describeFields(nestedValue, path, depth + 1)]
+      }
+      if (typeof nestedValue === 'object') {
+        return [`${path}:object`, ...describeFields(nestedValue, path, depth + 1)]
+      }
+      return [`${path}:${typeof nestedValue}`]
+    })
+  }
+  const accessTokenClaims = decodeJwtPayload(tokens?.access_token) || {}
+  const idTokenClaims = decodeJwtPayload(tokens?.id_token) || {}
   return {
     tokenFields: Object.keys(tokens || {}).sort(),
     callbackFields: [...callbackUrl.searchParams.keys()].sort(),
-    accessTokenClaimFields: Object.keys(decodeJwtPayload(tokens?.access_token) || {}).sort(),
-    idTokenClaimFields: Object.keys(decodeJwtPayload(tokens?.id_token) || {}).sort(),
+    accessTokenClaimShape: describeFields(accessTokenClaims).sort(),
+    idTokenClaimShape: describeFields(idTokenClaims).sort(),
   }
 }
 
