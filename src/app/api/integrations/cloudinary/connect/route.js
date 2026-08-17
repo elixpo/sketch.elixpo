@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { getAuthenticatedUser } from '@/lib/serverAuth'
 import {
   buildCloudinaryAuthorizationUrl,
-  isValidCloudinaryCloudName,
   sealCloudinaryOAuthUser,
 } from '@/lib/cloudinaryOAuth'
 
@@ -18,10 +17,6 @@ export async function GET(request) {
   try {
     const state = crypto.randomUUID()
     const requestUrl = new URL(request.url)
-    const requestedCloudName = requestUrl.searchParams.get('cloud_name')?.trim() || ''
-    if (requestedCloudName && !isValidCloudinaryCloudName(requestedCloudName)) {
-      return NextResponse.redirect(new URL('/profile?tab=integrations&cloudinary=invalid_environment', request.url))
-    }
     const response = NextResponse.redirect(buildCloudinaryAuthorizationUrl({
       origin: requestUrl.origin,
       state,
@@ -35,11 +30,7 @@ export async function GET(request) {
     }
     response.cookies.set('cloudinary_oauth_state', state, options)
     response.cookies.set('cloudinary_oauth_user', await sealCloudinaryOAuthUser(user, state), options)
-    if (requestedCloudName) {
-      response.cookies.set('cloudinary_oauth_cloud_name', requestedCloudName, options)
-    } else {
-      response.cookies.delete('cloudinary_oauth_cloud_name')
-    }
+    response.cookies.delete('cloudinary_oauth_cloud_name')
     return response
   } catch (error) {
     console.error('[cloudinary/oauth] Could not start authorization:', error?.message || error)

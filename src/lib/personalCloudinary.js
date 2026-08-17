@@ -21,17 +21,32 @@ export async function getPersonalCloudinaryUsage({ cloudName, oauthToken }) {
 
   const usedBytes = Number(data.storage?.usage)
   const limitBytes = Number(data.storage?.limit)
-  if (!Number.isFinite(usedBytes) || !Number.isFinite(limitBytes) || limitBytes <= 0) {
-    throw new Error('Cloudinary did not return a storage allowance')
-  }
+  const creditUsage = Number(data.credits?.usage)
+  const creditLimit = Number(data.credits?.limit)
+  const hasStorageUsage = Number.isFinite(usedBytes) && usedBytes >= 0
+  const hasStorageLimit = Number.isFinite(limitBytes) && limitBytes > 0
+  const hasCreditLimit = Number.isFinite(creditUsage) && creditUsage >= 0
+    && Number.isFinite(creditLimit) && creditLimit > 0
+
+  if (!hasStorageUsage && !hasCreditLimit) throw new Error('Cloudinary did not return usage data')
 
   return {
-    usedBytes,
-    limitBytes,
-    remainingBytes: Math.max(0, limitBytes - usedBytes),
-    usedPercent: Number.isFinite(Number(data.storage?.used_percent))
-      ? Number(data.storage.used_percent)
-      : Math.min(100, (usedBytes / limitBytes) * 100),
+    mode: hasStorageLimit ? 'storage' : hasCreditLimit ? 'credits' : 'storage-used',
+    usedBytes: hasStorageUsage ? usedBytes : 0,
+    limitBytes: hasStorageLimit ? limitBytes : null,
+    remainingBytes: hasStorageLimit ? Math.max(0, limitBytes - usedBytes) : null,
+    creditUsage: hasCreditLimit ? creditUsage : null,
+    creditLimit: hasCreditLimit ? creditLimit : null,
+    remainingCredits: hasCreditLimit ? Math.max(0, creditLimit - creditUsage) : null,
+    usedPercent: hasStorageLimit
+      ? (Number.isFinite(Number(data.storage?.used_percent))
+          ? Number(data.storage.used_percent)
+          : Math.min(100, (usedBytes / limitBytes) * 100))
+      : hasCreditLimit
+        ? (Number.isFinite(Number(data.credits?.used_percent))
+            ? Number(data.credits.used_percent)
+            : Math.min(100, (creditUsage / creditLimit) * 100))
+        : null,
     plan: data.plan || null,
     lastUpdated: data.last_updated || null,
   }

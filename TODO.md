@@ -88,3 +88,5 @@
 - [x] Match Blogs with a verified cloud-name fallback only when Cloudinary beta OAuth omits the product environment.
 - [x] Bind Cloudinary OAuth callbacks to the already-verified LixSketch user without repeating remote session verification.
 - [x] Prevent React click events from becoming post-login routes such as `/[object Object]`.
+- [x] Resolve Cloudinary product environments from OAuth resource audiences without asking users for a cloud name.
+- [x] Support Cloudinary credit-based usage responses and improve profile typography legibility.

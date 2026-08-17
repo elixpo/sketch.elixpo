@@ -49,9 +49,7 @@ export async function GET(request) {
     stage = 'offline_access'
     if (!tokens.refresh_token) throw new Error('Offline access did not issue a refresh token')
     stage = 'environment'
-    const resolvedCloudName = await resolveCloudinaryCloudName(tokens, callbackUrl)
-    const requestedCloudName = request.cookies.get('cloudinary_oauth_cloud_name')?.value || ''
-    const cloudName = resolvedCloudName || requestedCloudName
+    const cloudName = await resolveCloudinaryCloudName(tokens, callbackUrl)
     if (!isValidCloudinaryCloudName(cloudName)) {
       const shape = describeCloudinaryOAuthShape(tokens, callbackUrl)
       throw new Error(`Cloudinary did not identify the product environment; response shape=${JSON.stringify(shape)}`)

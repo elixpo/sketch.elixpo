@@ -27,18 +27,34 @@ const DISCONNECTED_STATUS = {
 function PersonalStorageMeter({ usage }) {
   if (!usage) return null
   const percentage = Math.max(0, Math.min(100, Number(usage.usedPercent) || 0))
+  const usesCredits = usage.mode === 'credits'
+  const hasQuota = usesCredits || usage.mode === 'storage'
   return (
     <div className="mt-4 rounded-xl border border-[#8B88E8]/20 bg-black/10 p-3">
       <div className="flex items-center justify-between gap-3 text-[10px]">
         <span className="uppercase tracking-wider text-text-dim">Cloudinary storage</span>
-        <span className="font-mono text-text-secondary">{formatBytes(usage.remainingBytes)} remaining</span>
+        <span className="font-mono text-text-secondary">
+          {usesCredits
+            ? `${usage.remainingCredits.toFixed(2)} credits remaining`
+            : usage.mode === 'storage'
+              ? `${formatBytes(usage.remainingBytes)} remaining`
+              : `${formatBytes(usage.usedBytes)} stored`}
+        </span>
       </div>
 
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
-        <div className="h-full rounded-full bg-[#9E91EE] transition-all duration-500" style={{ width: `${percentage}%` }} />
-      </div>
+      {hasQuota && (
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
+          <div className="h-full rounded-full bg-[#9E91EE] transition-all duration-500" style={{ width: `${percentage}%` }} />
+        </div>
+      )}
       <div className="mt-2 flex items-center justify-between gap-3 text-[10px] text-text-dim">
-        <span>{formatBytes(usage.usedBytes)} used of {formatBytes(usage.limitBytes)}</span>
+        <span>
+          {usesCredits
+            ? `${formatBytes(usage.usedBytes)} stored · ${usage.creditUsage.toFixed(2)} of ${usage.creditLimit.toFixed(2)} credits used`
+            : usage.mode === 'storage'
+              ? `${formatBytes(usage.usedBytes)} used of ${formatBytes(usage.limitBytes)}`
+              : 'Storage allowance is managed by Cloudinary'}
+        </span>
         {usage.plan && <span>{usage.plan}</span>}
       </div>
     </div>
@@ -51,8 +67,7 @@ const RESULT_MESSAGES = {
   denied: { ok: false, text: 'Cloudinary authorization was cancelled.' },
   invalid_state: { ok: false, text: 'The authorization session expired. Please try again.' },
   not_authenticated: { ok: false, text: 'Your LixSketch session could not be verified. Sign in again before connecting Cloudinary.' },
-  invalid_environment: { ok: false, text: 'Enter a valid Cloudinary cloud name from your dashboard.' },
-  failed_environment: { ok: false, text: 'Cloudinary authorized access but omitted the product-environment identifier. Enter its public cloud name below to verify and finish connecting.' },
+  failed_environment: { ok: false, text: 'Cloudinary did not identify the product environment selected during authorization. Reconnect and select it again.' },
   failed_validation: { ok: false, text: 'Cloudinary did not authorize access to the selected product environment. Confirm the account selection and requested permissions.' },
   config_error: { ok: false, text: 'Cloudinary OAuth is not configured on this deployment.' },
 }
@@ -65,7 +80,6 @@ export default function CloudinaryIntegrationCard() {
   const [confirmDisconnect, setConfirmDisconnect] = useState(false)
   const [oauthResult, setOauthResult] = useState(null)
   const [oauthReference, setOauthReference] = useState(null)
-  const [cloudNameInput, setCloudNameInput] = useState('')
 
   const oauthMessage = useMemo(() => {
     if (!oauthResult) return null
@@ -139,17 +153,6 @@ export default function CloudinaryIntegrationCard() {
     }
   }
 
-  const verifyEnvironment = (event) => {
-    event.preventDefault()
-    const cloudName = cloudNameInput.trim()
-    if (!/^[a-z0-9][a-z0-9_-]{1,254}$/i.test(cloudName)) {
-      setError('Enter the cloud name shown on your Cloudinary dashboard.')
-      return
-    }
-    setError('')
-    window.location.href = `/api/integrations/cloudinary/connect?cloud_name=${encodeURIComponent(cloudName)}`
-  }
-
   return (
     <section id="integrations" className="rounded-2xl border border-[#8B88E8]/25 bg-[#8B88E8]/[0.045] p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -200,36 +203,15 @@ export default function CloudinaryIntegrationCard() {
       {loading ? (
         <div className="mt-4 h-16 animate-pulse rounded-xl bg-white/[0.035]" />
       ) : !status?.connected ? (
-        <form onSubmit={verifyEnvironment} className="mt-4 flex flex-col gap-3 border-t border-white/[0.07] pt-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mt-4 flex flex-col gap-3 border-t border-white/[0.07] pt-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs text-text-secondary">Authorize upload and asset management access</p>
             <p className="mt-1 text-[10px] text-text-dim">Choose your product environment on Cloudinary. OAuth authorizes access and offline access lets the server refresh encrypted tokens. Your API secret is never requested.</p>
-            {oauthResult === 'failed_environment' && (
-              <div className="mt-3">
-                <label className="block text-[10px] uppercase tracking-wider text-text-dim" htmlFor="cloudinary-cloud-name">Cloud name</label>
-                <input
-                  id="cloudinary-cloud-name"
-                  value={cloudNameInput}
-                  onChange={(event) => setCloudNameInput(event.target.value)}
-                  placeholder="Shown on your Cloudinary dashboard"
-                  autoComplete="off"
-                  spellCheck="false"
-                  className="mt-1 w-full min-w-0 rounded-lg border border-[#8B88E8]/25 bg-black/15 px-3 py-2 text-xs text-text-primary outline-none placeholder:text-text-dim focus:border-[#8B88E8]/60 sm:w-72"
-                />
-                <p className="mt-1 text-[9px] text-text-dim">Used only to verify which environment owns the OAuth grant.</p>
-              </div>
-            )}
           </div>
-          {oauthResult === 'failed_environment' ? (
-            <button type="submit" className="shrink-0 cursor-pointer rounded-lg bg-[#8B88E8] px-4 py-2 text-center text-xs text-white transition-colors hover:bg-[#9E91EE]">
-              Verify &amp; connect
-            </button>
-          ) : (
-            <a href="/api/integrations/cloudinary/connect" className="shrink-0 cursor-pointer rounded-lg bg-[#8B88E8] px-4 py-2 text-center text-xs text-white transition-colors hover:bg-[#9E91EE]">
-              Connect Cloudinary
-            </a>
-          )}
-        </form>
+          <a href="/api/integrations/cloudinary/connect" className="shrink-0 cursor-pointer rounded-lg bg-[#8B88E8] px-4 py-2 text-center text-xs text-white transition-colors hover:bg-[#9E91EE]">
+            {oauthResult === 'failed_environment' ? 'Reconnect Cloudinary' : 'Connect Cloudinary'}
+          </a>
+        </div>
       ) : (
         <div className="mt-4 border-t border-white/[0.07] pt-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -251,7 +233,7 @@ export default function CloudinaryIntegrationCard() {
           <PersonalStorageMeter usage={status.providerUsage} />
           {status.providerUsageUnavailable && (
             <p className="mt-3 text-[10px] text-amber-300/80">
-              Cloudinary did not expose the product-environment allowance. LixSketch has tracked {formatBytes(status.trackedBytes)} of uploaded media.
+              Cloudinary usage details are available in its dashboard. LixSketch has tracked {formatBytes(status.trackedBytes)} of uploaded media.
             </p>
           )}
           <p className={`mt-4 rounded-lg px-3 py-2 text-xs ${status.useForUploads ? 'bg-green-500/10 text-green-400' : 'bg-white/[0.035] text-text-dim'}`}>

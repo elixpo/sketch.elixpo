@@ -159,6 +159,17 @@ function cloudNameFromResource(value) {
   return isValidCloudinaryCloudName(value) ? value : ''
 }
 
+function cloudNameFromAudience(value) {
+  if (Array.isArray(value)) {
+    for (const audience of value) {
+      const cloudName = cloudNameFromAudience(audience)
+      if (cloudName) return cloudName
+    }
+    return ''
+  }
+  return cloudNameFromResource(value)
+}
+
 function parseEmbeddedObject(value) {
   if (typeof value !== 'string' || !/^[{[]/.test(value.trim())) return null
   try {
@@ -185,6 +196,10 @@ export function extractCloudinaryCloudName(value, depth = 0, seen = new Set()) {
     if (['resource', 'resourceuri', 'apiurl', 'uploadurl'].includes(normalizedKey)) {
       const fromResource = cloudNameFromResource(rawValue)
       if (fromResource) return fromResource
+    }
+    if (normalizedKey === 'aud' || normalizedKey === 'audience') {
+      const fromAudience = cloudNameFromAudience(rawValue)
+      if (fromAudience) return fromAudience
     }
 
     const nestedValue = parseEmbeddedObject(rawValue) || rawValue
@@ -243,7 +258,7 @@ export function describeCloudinaryOAuthShape(tokens, callbackUrl) {
 }
 
 export function isValidCloudinaryCloudName(value) {
-  return typeof value === 'string' && value.length <= 255 && /^[a-z0-9][a-z0-9_-]*$/i.test(value)
+  return typeof value === 'string' && value.length <= 128 && /^[a-z][a-z0-9_-]*$/i.test(value)
 }
 
 export function tokenExpiry(expiresIn, now = Math.floor(Date.now() / 1000)) {

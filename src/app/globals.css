@@ -94,7 +94,28 @@ body {
   background: #120e1a;
   color: #fcf9ff;
   font-family: "lixFont", sans-serif;
-  font-size: 14px;
+  font-size: 16px;
+}
+
+/* lixFont has a compact x-height. Profile copy needs a slightly larger
+ * optical size than Tailwind's defaults to remain comfortable to scan. */
+.profile-page .text-\[9px\] {
+  font-size: 11px !important;
+}
+
+.profile-page .text-\[10px\] {
+  font-size: 12px !important;
+}
+
+.profile-page .text-\[11px\],
+.profile-page .text-xs {
+  font-size: 13px !important;
+  line-height: 1.25rem !important;
+}
+
+.profile-page .text-sm {
+  font-size: 15px !important;
+  line-height: 1.4rem !important;
 }
 
 body.canvas-mode {

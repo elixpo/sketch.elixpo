@@ -429,7 +429,7 @@ export default function ProfilePage() {
   })[0]
 
   return (
-    <div className="relative min-h-screen bg-[#0a0a12] text-text-primary overflow-hidden">
+    <div className="profile-page relative min-h-screen bg-[#0a0a12] text-text-primary overflow-hidden">
       <LandingNav />
       <DotGrid />
       <AmbientGlow />
