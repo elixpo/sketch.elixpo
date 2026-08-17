@@ -86,3 +86,4 @@
 - [x] Resolve Cloudinary beta OAuth product-environment identifiers across nested, namespaced, and resource-URL response variants.
 - [x] Add value-free nested OAuth response diagnostics for Cloudinary beta claim changes.
 - [x] Match Blogs with a verified cloud-name fallback only when Cloudinary beta OAuth omits the product environment.
+- [x] Bind Cloudinary OAuth callbacks to the already-verified LixSketch user without repeating remote session verification.

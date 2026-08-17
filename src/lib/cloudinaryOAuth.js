@@ -2,6 +2,8 @@ const AUTHORIZE_URL = 'https://oauth.cloudinary.com/oauth2/auth'
 const TOKEN_URL = 'https://oauth.cloudinary.com/oauth2/token'
 const REVOKE_URL = 'https://oauth.cloudinary.com/oauth2/revoke'
 const USERINFO_URL = 'https://oauth.cloudinary.com/userinfo'
+const encoder = new TextEncoder()
+const decoder = new TextDecoder()
 
 export const CLOUDINARY_OAUTH_SCOPE = 'openid offline_access asset_management upload'
 
@@ -17,6 +19,63 @@ function oauthConfig() {
 function basicCredentials() {
   const { clientId, clientSecret } = oauthConfig()
   return `Basic ${btoa(`${clientId}:${clientSecret}`)}`
+}
+
+function bytesToBase64Url(bytes) {
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+function base64UrlToBytes(value) {
+  const padded = value.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(value.length / 4) * 4, '=')
+  const binary = atob(padded)
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0))
+}
+
+async function oauthContextKey() {
+  const { clientSecret } = oauthConfig()
+  const digest = await crypto.subtle.digest('SHA-256', encoder.encode(clientSecret))
+  return crypto.subtle.importKey('raw', digest, 'AES-GCM', false, ['encrypt', 'decrypt'])
+}
+
+export async function sealCloudinaryOAuthUser(user, state, now = Math.floor(Date.now() / 1000)) {
+  if (!user?.id || !state) throw new Error('Cannot bind Cloudinary OAuth without a user and state')
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const payload = JSON.stringify({
+    id: user.id,
+    email: user.email || null,
+    displayName: user.displayName || null,
+    state,
+    expiresAt: now + 600,
+  })
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv, additionalData: encoder.encode('lixsketch:cloudinary:oauth-user:v1') },
+    await oauthContextKey(),
+    encoder.encode(payload),
+  )
+  return `v1.${bytesToBase64Url(iv)}.${bytesToBase64Url(new Uint8Array(ciphertext))}`
+}
+
+export async function openCloudinaryOAuthUser(value, expectedState, now = Math.floor(Date.now() / 1000)) {
+  const [version, ivValue, ciphertextValue] = String(value || '').split('.')
+  if (version !== 'v1' || !ivValue || !ciphertextValue) return null
+  try {
+    const plaintext = await crypto.subtle.decrypt(
+      {
+        name: 'AES-GCM',
+        iv: base64UrlToBytes(ivValue),
+        additionalData: encoder.encode('lixsketch:cloudinary:oauth-user:v1'),
+      },
+      await oauthContextKey(),
+      base64UrlToBytes(ciphertextValue),
+    )
+    const user = JSON.parse(decoder.decode(plaintext))
+    if (!user?.id || !expectedState || user.state !== expectedState || Number(user.expiresAt || 0) < now) return null
+    return { id: user.id, email: user.email || null, displayName: user.displayName || null }
+  } catch {
+    return null
+  }
 }
 
 export function cloudinaryOAuthRedirectUri(origin) {

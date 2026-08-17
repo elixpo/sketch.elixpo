@@ -5,6 +5,7 @@ import {
   describeCloudinaryOAuthShape,
   exchangeCloudinaryCode,
   isValidCloudinaryCloudName,
+  openCloudinaryOAuthUser,
   resolveCloudinaryCloudName,
   revokeCloudinaryToken,
 } from '@/lib/cloudinaryOAuth'
@@ -20,12 +21,11 @@ function finish(request, result, reference = '') {
   const response = NextResponse.redirect(destination)
   response.cookies.delete('cloudinary_oauth_state')
   response.cookies.delete('cloudinary_oauth_cloud_name')
+  response.cookies.delete('cloudinary_oauth_user')
   return response
 }
 
 export async function GET(request) {
-  const user = await getAuthenticatedUser(request)
-  if (!user) return finish(request, 'not_authenticated')
   const callbackUrl = new URL(request.url)
   const authorizationError = callbackUrl.searchParams.get('error')
   if (authorizationError) return finish(request, authorizationError === 'access_denied' ? 'denied' : 'authorization_failed')
@@ -34,6 +34,12 @@ export async function GET(request) {
   const state = callbackUrl.searchParams.get('state')
   const savedState = request.cookies.get('cloudinary_oauth_state')?.value
   if (!code || !state || !savedState || state !== savedState) return finish(request, 'invalid_state')
+  const boundUser = await openCloudinaryOAuthUser(
+    request.cookies.get('cloudinary_oauth_user')?.value,
+    state,
+  )
+  const user = boundUser || await getAuthenticatedUser(request)
+  if (!user) return finish(request, 'not_authenticated')
 
   let tokens
   let stage = 'token_exchange'

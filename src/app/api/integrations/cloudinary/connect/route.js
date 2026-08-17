@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { getAuthenticatedUser } from '@/lib/serverAuth'
-import { buildCloudinaryAuthorizationUrl, isValidCloudinaryCloudName } from '@/lib/cloudinaryOAuth'
+import {
+  buildCloudinaryAuthorizationUrl,
+  isValidCloudinaryCloudName,
+  sealCloudinaryOAuthUser,
+} from '@/lib/cloudinaryOAuth'
 
 export const runtime = 'edge'
 
@@ -30,6 +34,7 @@ export async function GET(request) {
       path: '/',
     }
     response.cookies.set('cloudinary_oauth_state', state, options)
+    response.cookies.set('cloudinary_oauth_user', await sealCloudinaryOAuthUser(user, state), options)
     if (requestedCloudName) {
       response.cookies.set('cloudinary_oauth_cloud_name', requestedCloudName, options)
     } else {
