@@ -130,3 +130,5 @@
 - [x] Scale AI provenance badges with images and collapse them to hoverable dots at small sizes.
 - [x] Clear successful AI image prompts and show live Flux and Klein costs in their model buttons.
 - [x] Clarify that Pollinations AI image generation has no extra LixSketch charge on the Free plan.
+- [x] Add a bounded freehand lasso for selecting shapes fully enclosed by a gesture.
+- [x] Add one-site web embed frames with HTTPS allowlisting and restore-time URL validation.

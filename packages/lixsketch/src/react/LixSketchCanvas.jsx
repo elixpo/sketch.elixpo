@@ -36,6 +36,7 @@ import CommandPalette from './components/modals/CommandPalette.jsx';
 import ExportImageModal from './components/modals/ExportImageModal.jsx';
 import LixScriptModal from './components/modals/LixScriptModal.jsx';
 import GraphModal from './components/modals/GraphModal.jsx';
+import WebEmbedModal from './components/modals/WebEmbedModal.jsx';
 
 const SAVE_DEBOUNCE_MS = 1500;
 
@@ -235,6 +236,7 @@ export default function LixSketchCanvas({
       <ExportImageModal />
       <LixScriptModal />
       <GraphModal />
+      <WebEmbedModal />
       <ContextMenu />
       <FindBar />
       <ImageSourcePicker />

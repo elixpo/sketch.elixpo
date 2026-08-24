@@ -27,8 +27,9 @@ export function handleWebEmbedMove(e) {
 export function handleWebEmbedUp() {
     if (!frame) return;
     if (frame.width < 40 || frame.height < 30) { frame.width = 560; frame.height = 315; }
-    frame.draw(); pushCreateAction(frame); frame.selectFrame(); currentShape = frame;
+    frame.draw(); pushCreateAction(frame);
+    const placedFrame = frame;
     window.__pendingWebEmbedURL = null; frame = null; start = null;
     window.__sketchStoreApi?.setActiveTool('select', { afterDraw: true });
+    currentShape = placedFrame; placedFrame.selectFrame();
 }
-

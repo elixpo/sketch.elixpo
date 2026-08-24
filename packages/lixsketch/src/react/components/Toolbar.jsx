@@ -18,6 +18,8 @@ function getMoreToolItems() {
     { tool: TOOLS.PAINT_BUCKET, icon: 'bxs-color-fill', title: 'Paint bucket', key: 'B' },
     { tool: TOOLS.FRAME, icon: 'bx-crop', title: 'Frame', key: 'F' },
     { tool: TOOLS.LASER, icon: 'bxs-magic-wand', title: 'Laser', key: 'K' },
+    { tool: TOOLS.LASSO, icon: 'bx-shape-polygon', title: 'Lasso selection', key: 'S' },
+    { tool: TOOLS.WEB_EMBED, icon: 'bx-globe', title: 'Web embed', key: 'W' },
   ]
 }
 

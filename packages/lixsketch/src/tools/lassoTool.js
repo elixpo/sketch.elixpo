@@ -69,7 +69,10 @@ export function handleLassoUp() {
     if (polygon.length >= 3 && Array.isArray(window.shapes)) {
         const selected = window.shapes.filter((shape) => boundsPoints(shape).every((p) => pointInPolygon(p, polygon)));
         const filtered = selected.filter((shape) => !shape.parentFrame || !selected.includes(shape.parentFrame));
-        filtered.forEach((shape) => multiSelection.addShape(shape));
+        // Apply the batch once; addShape() rebuilds controls per item and becomes
+        // unnecessarily quadratic for a large lasso selection.
+        filtered.forEach((shape) => { multiSelection.selectedShapes.add(shape); shape.isSelected = true; });
+        if (filtered.length) multiSelection.updateControls();
         window.currentShape = filtered.length === 1 ? filtered[0] : null;
     }
     window.__sketchStoreApi?.setActiveTool('select', { afterDraw: true });
@@ -77,4 +80,3 @@ export function handleLassoUp() {
 
 export function cancelLasso() { cleanup(); }
 window.__cancelLasso = cancelLasso;
-
