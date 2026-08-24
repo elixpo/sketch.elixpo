@@ -27,6 +27,9 @@ export default function WebEmbedModal() {
   }, [open])
 
   if (!open) return null
+  let requestedHostname = ''
+  try { requestedHostname = new URL(url).hostname } catch {}
+  const whitelistRequestUrl = `https://github.com/elixpo/sketch.elixpo/issues/new?template=web-embed-whitelist.yml&title=${encodeURIComponent(`[Web embed whitelist] ${requestedHostname || 'New hostname'}`)}`
   const submit = (event) => {
     event.preventDefault()
     const normalized = normalizeWebEmbedUrl(url)
@@ -48,7 +51,12 @@ export default function WebEmbedModal() {
         </div>
         <label className="text-xs text-text-muted" htmlFor="web-embed-url">HTTPS URL</label>
         <input ref={inputRef} id="web-embed-url" value={url} onChange={(e) => { setUrl(e.target.value); setError('') }} placeholder="https://www.youtube.com/watch?v=..." className="mt-2 w-full rounded-xl border border-border-light bg-surface px-4 py-3 text-sm text-text-primary outline-none focus:border-accent" />
-        {error && <p className="mt-2 text-xs text-text-muted"><i className="bx bx-info-circle mr-1" />{error}</p>}
+        {error && (
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-border-light bg-surface/60 px-3 py-2.5">
+            <p className="text-xs text-text-muted"><i className="bx bx-info-circle mr-1" />{error}</p>
+            <a href={whitelistRequestUrl} target="_blank" rel="noreferrer" className="shrink-0 cursor-pointer rounded-lg border border-accent/50 px-3 py-1.5 text-xs text-accent hover:bg-accent/10">Request whitelist</a>
+          </div>
+        )}
         <button type="submit" className="mt-5 w-full cursor-pointer rounded-xl bg-accent px-4 py-3 text-sm text-white hover:brightness-110">Place on canvas</button>
       </form>
     </div>

@@ -132,3 +132,5 @@
 - [x] Clarify that Pollinations AI image generation has no extra LixSketch charge on the Free plan.
 - [x] Add a bounded freehand lasso for selecting shapes fully enclosed by a gesture.
 - [x] Add one-site web embed frames with HTTPS allowlisting and restore-time URL validation.
+- [x] Keep the last selected secondary tool visible on the More toolbar trigger.
+- [x] Add an unsupported-embed whitelist request action and structured GitHub issue form.

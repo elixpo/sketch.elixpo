@@ -59,10 +59,13 @@ export default function Toolbar() {
   const toggleToolLock = useSketchStore((s) => s.toggleToolLock)
   const toggleAIModal = useUIStore((s) => s.toggleAIModal)
   const [moreOpen, setMoreOpen] = useState(false)
+  const [lastMoreItem, setLastMoreItem] = useState(null)
   const moreRef = useRef(null)
 
   const items = viewMode ? VIEW_MODE_ITEMS : TOOL_ITEMS
-  const moreActive = MORE_TOOL_ITEMS.some((item) => item.tool === activeTool)
+  const activeMoreItem = MORE_TOOL_ITEMS.find((item) => item.tool === activeTool)
+  const moreActive = Boolean(activeMoreItem)
+  const shownMoreItem = activeMoreItem || lastMoreItem
 
   useEffect(() => {
     if (!moreOpen) return undefined
@@ -120,13 +123,13 @@ export default function Toolbar() {
             <div key="more" ref={moreRef} className="relative">
               <button
                 type="button"
-                title="More tools"
+                title={shownMoreItem ? `${shownMoreItem.title} — More tools` : 'More tools'}
                 aria-label="More tools"
                 aria-expanded={moreOpen}
                 onClick={() => setMoreOpen((open) => !open)}
                 className={`relative flex h-[31px] w-[33px] cursor-pointer items-center justify-center rounded-lg transition-all duration-200 ${moreOpen || moreActive ? 'bg-accent/20 text-accent' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'}`}
               >
-                <i className="bx bx-dots-horizontal-rounded text-xl" />
+                {shownMoreItem ? <ToolIcon item={shownMoreItem} className="h-[18px] w-[18px]" /> : <i className="bx bx-dots-horizontal-rounded text-xl" />}
               </button>
 
               {moreOpen && (
@@ -139,7 +142,7 @@ export default function Toolbar() {
                         key={moreItem.tool}
                         type="button"
                         title={`${moreItem.title} (${moreItem.key})`}
-                        onClick={() => { setActiveTool(moreItem.tool); setMoreOpen(false) }}
+                        onClick={() => { setLastMoreItem(moreItem); setActiveTool(moreItem.tool); setMoreOpen(false) }}
                         className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2 text-left text-xs transition ${selected ? 'bg-accent/20 text-accent' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'}`}
                       >
                         <span className="flex h-5 w-5 items-center justify-center"><ToolIcon item={moreItem} className="h-[18px] w-[18px]" /></span>

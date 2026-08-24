@@ -21,6 +21,9 @@ export default function WebEmbedModal() {
     return () => window.removeEventListener('keydown', escape);
   }, [open]);
   if (!open) return null;
+  let requestedHostname = '';
+  try { requestedHostname = new URL(url).hostname; } catch {}
+  const whitelistRequestUrl = `https://github.com/elixpo/sketch.elixpo/issues/new?template=web-embed-whitelist.yml&title=${encodeURIComponent(`[Web embed whitelist] ${requestedHostname || 'New hostname'}`)}`;
   const submit = (e) => {
     e.preventDefault(); const normalized = normalizeWebEmbedUrl(url);
     if (!normalized) { setError('This site is not currently supported for web embeds.'); return; }
@@ -30,7 +33,7 @@ export default function WebEmbedModal() {
     <form onSubmit={submit} className="w-full max-w-xl rounded-2xl border border-border-light bg-surface-card p-6 font-[lixFont] shadow-2xl">
       <div className="mb-5 flex justify-between"><div><h2 className="text-lg text-text-primary">Embed a website</h2><p className="mt-1 text-xs text-text-muted">One secure embed in a movable, resizable frame.</p></div><button type="button" onClick={() => { setOpen(false); useSketchStore.getState().setActiveTool(TOOLS.SELECT); }}><i className="bx bx-x text-2xl" /></button></div>
       <input ref={inputRef} value={url} onChange={(e) => { setUrl(e.target.value); setError(''); }} placeholder="https://www.youtube.com/watch?v=..." className="w-full rounded-xl border border-border-light bg-surface px-4 py-3 text-sm text-text-primary outline-none focus:border-accent" />
-      {error && <p className="mt-2 text-xs text-text-muted"><i className="bx bx-info-circle mr-1" />{error}</p>}
+      {error && <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-border-light bg-surface/60 px-3 py-2.5"><p className="text-xs text-text-muted"><i className="bx bx-info-circle mr-1" />{error}</p><a href={whitelistRequestUrl} target="_blank" rel="noreferrer" className="shrink-0 rounded-lg border border-accent/50 px-3 py-1.5 text-xs text-accent">Request whitelist</a></div>}
       <button type="submit" className="mt-5 w-full rounded-xl bg-accent px-4 py-3 text-sm text-white">Place on canvas</button>
     </form>
   </div>;
