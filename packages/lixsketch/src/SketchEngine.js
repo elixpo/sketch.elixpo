@@ -479,6 +479,9 @@ class SketchEngine {
     }
 
     cleanup() {
+        if (typeof window.__cancelShapeRecognition === 'function') {
+            window.__cancelShapeRecognition();
+        }
         // Remove event listeners from the SVG element
         if (this._modules.core?.eventDispatcher?.cleanupEventDispatcher) {
             this._modules.core.eventDispatcher.cleanupEventDispatcher();

@@ -269,8 +269,8 @@ function normalizedFillStyle(value) {
 
 function currentStyle() {
     const settings = window.rectToolSettings || {};
-    const fill = settings.bgColor || 'transparent';
     const fillStyle = normalizedFillStyle(settings.fillStyle);
+    const fill = fillStyle === 'none' ? 'transparent' : (settings.bgColor || 'transparent');
     const outline = settings.outlineStyle || 'solid';
     return {
         stroke: settings.strokeColor || getThemeStroke(),
@@ -367,8 +367,11 @@ export function handleShapeRecognitionMove(event) {
 export function handleShapeRecognitionUp(event) {
     if (!drawing) return;
     drawing = false;
-    const point = getSVGPoint(event);
-    if (distance(points[points.length - 1], point) > 0) points.push(point);
+    const rect = svg.getBoundingClientRect();
+    if (event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom) {
+        const point = getSVGPoint(event);
+        if (distance(points[points.length - 1], point) > 0) points.push(point);
+    }
     latestPrediction = predictDrawnShape(points);
     cleanupPreview();
 
@@ -393,4 +396,3 @@ export function cancelShapeRecognition() {
 }
 
 window.__cancelShapeRecognition = cancelShapeRecognition;
-

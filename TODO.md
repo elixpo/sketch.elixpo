@@ -1,5 +1,8 @@
 # Implementation TODO
 
+- [x] Add a client-only draw-to-shape tool with live dotted rectangle, ellipse, line, and arrow prediction.
+- [x] Keep gesture recognition O(N) over a capped sample buffer with one requestAnimationFrame preview.
+- [x] Add an undoable paint bucket with existing fill colors and styles for closed rectangle and circle shapes.
 - [x] Consolidate Canvas and Document shortcuts under `Ctrl + /`.
 - [x] Remove the standalone Help and Shortcuts modals.
 - [x] Replace the profile name with a save-status border on the avatar.

@@ -925,7 +925,15 @@ export function undo() {
     
     if (action.type === 'optionsChange') {
         if (!action.newOptions && action.shape?.options) {
-            action.newOptions = { ...action.shape.options };
+            action.newOptions = action.shape.shapeName === 'arrow'
+                ? {
+                    ...action.shape.options,
+                    arrowOutlineStyle: action.shape.arrowOutlineStyle,
+                    arrowHeadStyle: action.shape.arrowHeadStyle,
+                    arrowCurved: action.shape.arrowCurved,
+                    arrowCurveAmount: action.shape.arrowCurveAmount,
+                }
+                : { ...action.shape.options };
         }
         if (action.shape.type === 'text') {
             // Handle text options change undo
