@@ -13,6 +13,8 @@ import { handleMouseDownFrame, handleMouseMoveFrame, handleMouseUpFrame } from '
 import { handleMultiSelectionMouseDown, handleMultiSelectionMouseMove, handleMultiSelectionMouseUp, removeMultiSelectionRect, multiSelection, isMultiSelecting} from './Selection.js';
 import { handleMouseDownIcon, handleMouseMoveIcon, handleMouseUpIcon } from '../tools/iconTool.js';
 import { handleCodeMouseDown, handleCodeMouseMove, handleCodeMouseUp } from '../tools/codeTool.js';
+import { handleShapeRecognitionDown, handleShapeRecognitionMove, handleShapeRecognitionUp } from '../tools/shapeRecognitionTool.js';
+import { handlePaintBucketDown } from '../tools/paintBucketTool.js';
 
 // === Auto-scroll when dragging near viewport edges ===
 const EDGE_THRESHOLD = 40; // px from edge to start scrolling
@@ -130,7 +132,11 @@ const handleMainMouseDown = (e) => {
         }
     }
 
-    if (isSquareToolActive) {
+    if (window.isShapeRecognitionToolActive) {
+        handleShapeRecognitionDown(e);
+    } else if (window.isPaintBucketToolActive) {
+        handlePaintBucketDown(e);
+    } else if (isSquareToolActive) {
         handleMouseDownRect(e);
     } else if (isArrowToolActive) {
         handleMouseDownArrow(e);
@@ -260,7 +266,11 @@ const handleMainMouseMove = (e) => {
         _stopAutoScroll();
     }
 
-    if (isSquareToolActive) {
+    if (window.isShapeRecognitionToolActive) {
+        handleShapeRecognitionMove(e);
+    } else if (window.isPaintBucketToolActive) {
+        return;
+    } else if (isSquareToolActive) {
         handleMouseMoveRect(e);
     } else if (isArrowToolActive) {
         handleMouseMoveArrow(e);
@@ -345,7 +355,11 @@ const handleMainMouseMove = (e) => {
 const handleMainMouseUp = (e) => {
     if (window.__spacePanPointerActive) return;
     _stopAutoScroll();
-    if (isSquareToolActive) {
+    if (window.isShapeRecognitionToolActive) {
+        handleShapeRecognitionUp(e);
+    } else if (window.isPaintBucketToolActive) {
+        return;
+    } else if (isSquareToolActive) {
         handleMouseUpRect(e);
     } else if (isArrowToolActive) {
         handleMouseUpArrow(e);

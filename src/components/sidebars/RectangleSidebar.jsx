@@ -64,7 +64,7 @@ export default function RectangleSidebar() {
   const updateFill = useCallback((v) => { setFillStyle(v); if (window.updateSelectedRectStyle) window.updateSelectedRectStyle({ fillStyle: v }) }, [])
 
   return (
-    <ShapeSidebar visible={activeTool === TOOLS.RECTANGLE || selectedShapeSidebar === 'rectangle'}>
+    <ShapeSidebar visible={activeTool === TOOLS.RECTANGLE || activeTool === TOOLS.DRAW_SHAPE || selectedShapeSidebar === 'rectangle'}>
       {/* Stroke color */}
       <ToolbarButton
         tooltip={t('sidebar.strokeColor')}

@@ -98,6 +98,8 @@ class SketchEngine {
         window.isFrameToolActive = false;
         window.isIconToolActive = false;
         window.isCodeToolActive = false;
+        window.isShapeRecognitionToolActive = false;
+        window.isPaintBucketToolActive = false;
         window.isTextInCodeMode = false;
 
         // Pan state
@@ -400,6 +402,9 @@ class SketchEngine {
         if (typeof window.__cleanupIconTool === 'function') {
             window.__cleanupIconTool();
         }
+        if (typeof window.__cancelShapeRecognition === 'function') {
+            window.__cancelShapeRecognition();
+        }
 
         window.isPaintToolActive = false;
         window.isSquareToolActive = false;
@@ -415,6 +420,8 @@ class SketchEngine {
         window.isFrameToolActive = false;
         window.isIconToolActive = false;
         window.isCodeToolActive = false;
+        window.isShapeRecognitionToolActive = false;
+        window.isPaintBucketToolActive = false;
 
         const flagMap = {
             select: 'isSelectionToolActive',
@@ -431,6 +438,8 @@ class SketchEngine {
             image: 'isImageToolActive',
             frame: 'isFrameToolActive',
             icon: 'isIconToolActive',
+            'draw-shape': 'isShapeRecognitionToolActive',
+            'paint-bucket': 'isPaintBucketToolActive',
         };
 
         const flag = flagMap[toolName];
@@ -461,6 +470,8 @@ class SketchEngine {
             image: 'crosshair',
             frame: 'crosshair',
             icon: 'crosshair',
+            'draw-shape': 'crosshair',
+            'paint-bucket': 'cell',
         };
         if (this.svg) {
             this.svg.style.cursor = cursorMap[toolName] || 'default';

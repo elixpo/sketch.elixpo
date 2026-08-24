@@ -19,6 +19,7 @@ import Footer from './components/Footer.jsx';
 import AppMenu from './components/AppMenu.jsx';
 import RectangleSidebar from './components/sidebars/RectangleSidebar.jsx';
 import CircleSidebar from './components/sidebars/CircleSidebar.jsx';
+import PaintBucketSidebar from './components/sidebars/PaintBucketSidebar.jsx';
 import LineSidebar from './components/sidebars/LineSidebar.jsx';
 import ArrowSidebar from './components/sidebars/ArrowSidebar.jsx';
 import PaintbrushSidebar from './components/sidebars/PaintbrushSidebar.jsx';
@@ -221,6 +222,7 @@ export default function LixSketchCanvas({
       <AppMenu />
       <RectangleSidebar />
       <CircleSidebar />
+      <PaintBucketSidebar />
       <LineSidebar />
       <ArrowSidebar />
       <PaintbrushSidebar />

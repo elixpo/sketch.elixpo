@@ -17,6 +17,8 @@ const TOOL_ITEMS = [
   { tool: TOOLS.ARROW, icon: 'bx-right-arrow-alt', title: 'Arrow (A)', rotate: true, key: 'A' },
   { tool: TOOLS.TEXT, icon: 'bx-text', title: 'Text (T)', key: 'T' },
   { tool: TOOLS.FREEHAND, icon: 'bx-pen', title: 'Freehand (P)', key: 'P' },
+  { tool: TOOLS.DRAW_SHAPE, icon: 'bx-shape-square', title: 'Draw to shape (D)', key: 'D' },
+  { tool: TOOLS.PAINT_BUCKET, icon: 'bxs-color-fill', title: 'Paint bucket (B)', key: 'B' },
   { tool: TOOLS.IMAGE, icon: 'bx-image-alt', title: 'Image (9)', key: '9' },
   { tool: TOOLS.ICON, icon: 'bx-wink-smile', title: 'Icon (I)', key: 'I' },
   'spacer',
