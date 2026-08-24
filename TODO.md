@@ -113,3 +113,5 @@
 - [x] Add publisher controls to update, unpublish, and inspect public workspace templates.
 - [x] Warn publishers about public content and handle unavailable or private media before publishing.
 - [x] Organize workspace actions into Save, Export, Share, and Publish tabs with concise guidance for each workflow.
+- [x] Keep the grabbed text resize handle locked to the pointer across canvas zoom, pan, and rotation.
+- [x] Port the Blogs production CI deployment flow for the collaboration Worker and Cloudflare Pages.
