@@ -43,7 +43,7 @@ const CANVAS_COMMANDS = [
   { label: 'Arrow', icon: 'bx-right-arrow-alt', section: 'Tools', shortcut: 'A / 5', action: 'tool:arrow' },
   { label: 'Line', icon: 'bx-minus', section: 'Tools', shortcut: 'L / 6', action: 'tool:line' },
   { label: 'Freehand', icon: 'bx-pencil', section: 'Tools', shortcut: 'P / 7', action: 'tool:freehand' },
-  { label: 'Draw to shape', icon: 'bx-shape-square', section: 'Tools', shortcut: 'D', action: 'tool:drawShape' },
+  { label: 'Draw to shape', icon: 'bx-vector', section: 'Tools', shortcut: 'D', action: 'tool:drawShape' },
   { label: 'Paint bucket', icon: 'bxs-color-fill', section: 'Tools', shortcut: 'B', action: 'tool:paintBucket' },
   { label: 'Text', icon: 'bx-text', section: 'Tools', shortcut: 'T / 8', action: 'tool:text' },
   { label: 'Insert image', icon: 'bx-image-add', section: 'Tools', shortcut: '9', action: 'tool:image' },

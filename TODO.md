@@ -1,5 +1,6 @@
 # Implementation TODO
 
+- [x] Move Draw to shape, Paint bucket, Frame, and Laser into a right-opening More tools flyout while preserving global shortcuts.
 - [x] Add a client-only draw-to-shape tool with live dotted rectangle, ellipse, line, and arrow prediction.
 - [x] Preserve unrecognized draw-to-shape gestures as normal editable freehand strokes.
 - [x] Keep gesture recognition O(N) over a capped sample buffer with one requestAnimationFrame preview.
