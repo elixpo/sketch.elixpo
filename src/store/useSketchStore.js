@@ -21,6 +21,8 @@ export const TOOLS = {
   ICON: 'icon',
   DRAW_SHAPE: 'draw-shape',
   PAINT_BUCKET: 'paint-bucket',
+  LASSO: 'lasso',
+  WEB_EMBED: 'web-embed',
 }
 
 // Action types for undo/redo
@@ -48,6 +50,8 @@ const TOOL_CURSORS = {
   [TOOLS.ICON]: 'crosshair',
   [TOOLS.DRAW_SHAPE]: 'crosshair',
   [TOOLS.PAINT_BUCKET]: 'cell',
+  [TOOLS.LASSO]: 'crosshair',
+  [TOOLS.WEB_EMBED]: 'crosshair',
 }
 
 // Tool -> sidebar mapping
@@ -88,6 +92,8 @@ export const SHORTCUT_MAP = {
   k: TOOLS.LASER,
   d: TOOLS.DRAW_SHAPE,
   b: TOOLS.PAINT_BUCKET,
+  s: TOOLS.LASSO,
+  w: TOOLS.WEB_EMBED,
 }
 
 const useSketchStore = create((set, get) => ({
