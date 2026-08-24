@@ -121,3 +121,5 @@
 - [x] Remove the redundant Integrations action from the Pollinations image-generation gate.
 - [x] Route the signed-in My Canvases navbar action directly to the profile Workspaces tab.
 - [x] Keep AI image generation running and preserve modal state while the generator is closed.
+- [x] Explain AI-generated canvas media when users hover its provenance badge.
+- [x] Scale AI provenance badges with images and collapse them to hoverable dots at small sizes.
