@@ -123,3 +123,4 @@
 - [x] Keep AI image generation running and preserve modal state while the generator is closed.
 - [x] Explain AI-generated canvas media when users hover its provenance badge.
 - [x] Scale AI provenance badges with images and collapse them to hoverable dots at small sizes.
+- [x] Clear successful AI image prompts and show live Flux and Klein costs in their model buttons.
