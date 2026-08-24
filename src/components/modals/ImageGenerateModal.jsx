@@ -76,9 +76,6 @@ function ConnectorGate({ status, loading, isAuthenticated, onSignIn, onEnable, e
               {expired ? 'Reconnect Pollinations' : 'Connect Pollinations'}
             </a>
           )}
-          {isAuthenticated && (
-            <a href="/profile?tab=integrations" className="cursor-pointer rounded-xl border border-border-light px-4 py-2.5 text-sm text-text-muted transition hover:bg-surface-hover hover:text-text-primary">Integrations</a>
-          )}
         </div>
       </div>
     </div>

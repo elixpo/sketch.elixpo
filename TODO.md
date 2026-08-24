@@ -118,3 +118,4 @@
 - [x] Cancel an active marquee before Ctrl/Cmd+A selects every canvas shape.
 - [x] Prioritize Space + primary-button dragging as temporary canvas panning.
 - [x] Inject the repository auth client ID secret into Actions Pages builds.
+- [x] Remove the redundant Integrations action from the Pollinations image-generation gate.
