@@ -125,11 +125,11 @@ export default function ImageGenerateModal() {
     if (isOpen) loadConnector()
   }, [isOpen, loadConnector])
 
-  const handleClose = useCallback(() => {
+  useEffect(() => () => {
     abortRef.current?.abort()
-    abortRef.current = null
-    setIsGenerating(false)
-    setError('')
+  }, [])
+
+  const handleClose = useCallback(() => {
     closeModal()
   }, [closeModal])
 

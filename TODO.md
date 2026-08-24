@@ -120,3 +120,4 @@
 - [x] Inject the repository auth client ID secret into Actions Pages builds.
 - [x] Remove the redundant Integrations action from the Pollinations image-generation gate.
 - [x] Route the signed-in My Canvases navbar action directly to the profile Workspaces tab.
+- [x] Keep AI image generation running and preserve modal state while the generator is closed.
