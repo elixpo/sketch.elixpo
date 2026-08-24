@@ -22,6 +22,7 @@ function getSVGPoint(event) {
     return {
         x: viewBox.x + ((event.clientX - rect.left) / rect.width) * viewBox.width,
         y: viewBox.y + ((event.clientY - rect.top) / rect.height) * viewBox.height,
+        pressure: event.pressure || 0.5,
     };
 }
 
@@ -130,9 +131,14 @@ function closedShapePrediction(sample, pathLength) {
 
     rectangleError /= sample.length;
     ellipseError /= sample.length;
-    const bounds = rectangleError <= ellipseError * 1.08 ? rectBounds : ellipseBounds;
+    const rectangle = rectangleError <= ellipseError * 1.08;
+    const bestError = rectangle ? rectangleError : ellipseError;
+    if (bestError > 0.24) {
+        return { type: 'freehand', points: sample.map((point) => ({ ...point })), pathLength };
+    }
+    const bounds = rectangle ? rectBounds : ellipseBounds;
     return {
-        type: rectangleError <= ellipseError * 1.08 ? 'rectangle' : 'circle',
+        type: rectangle ? 'rectangle' : 'circle',
         ...bounds,
         pathLength,
     };
@@ -172,10 +178,22 @@ export function predictDrawnShape(sample) {
     for (let index = farthestIndex + 1; index < sample.length; index += 1) {
         afterTipLength += distance(sample[index - 1], sample[index]);
     }
+    let shaftLength = 0;
+    for (let index = 1; index <= farthestIndex; index += 1) {
+        shaftLength += distance(sample[index - 1], sample[index]);
+    }
     const arrow = farthestIndex >= Math.floor(sample.length * 0.45)
         && farthestIndex < sample.length - 2
         && afterTipLength >= diagonal * 0.18
-        && distance(end, tip) <= diagonal * 0.48;
+        && distance(end, tip) <= diagonal * 0.48
+        && farthestDistance / Math.max(shaftLength, 1) >= 0.86;
+
+    const directDistance = distance(start, end);
+    const line = !arrow && directDistance / Math.max(pathLength, 1) >= 0.92;
+
+    if (!arrow && !line) {
+        return { type: 'freehand', points: sample.map((point) => ({ ...point })), pathLength };
+    }
 
     return {
         type: arrow ? 'arrow' : 'line',
@@ -213,6 +231,10 @@ function pathForPrediction(prediction) {
         const opposite = rotatedPoint(prediction.center, -rx, 0, prediction.angle);
         const rotation = prediction.angle * 180 / Math.PI;
         return `M ${start.x} ${start.y} A ${rx} ${ry} ${rotation} 1 0 ${opposite.x} ${opposite.y} A ${rx} ${ry} ${rotation} 1 0 ${start.x} ${start.y}`;
+    }
+    if (prediction.type === 'freehand') {
+        if (!prediction.points.length) return '';
+        return prediction.points.reduce((path, point, index) => `${path}${index === 0 ? 'M' : ' L'} ${point.x} ${point.y}`, '');
     }
     const { start, end } = prediction;
     let path = `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
@@ -263,19 +285,13 @@ function cleanupPreview() {
     previewPath = null;
 }
 
-function normalizedFillStyle(value) {
-    return value === 'transparent' || value === 'none' ? 'none' : (value || 'none');
-}
-
 function currentStyle() {
-    const settings = window.rectToolSettings || {};
-    const fillStyle = normalizedFillStyle(settings.fillStyle);
-    const fill = fillStyle === 'none' ? 'transparent' : (settings.bgColor || 'transparent');
-    const outline = settings.outlineStyle || 'solid';
+    const settings = window.freehandToolSettings || {};
+    const outline = settings.strokeStyle || 'solid';
     return {
         stroke: settings.strokeColor || getThemeStroke(),
-        fill,
-        fillStyle,
+        fill: 'transparent',
+        fillStyle: 'none',
         strokeWidth: settings.strokeWidth || 2,
         strokeDasharray: outline === 'dashed' ? '10,10' : (outline === 'dotted' ? '2,8' : ''),
         outline,
@@ -317,6 +333,19 @@ function createPredictedShape(prediction) {
         );
         shape.rotation = prediction.angle * 180 / Math.PI;
         shape.draw();
+    } else if (prediction.type === 'freehand') {
+        const brush = window.freehandToolSettings || {};
+        shape = new window.FreehandStroke(
+            prediction.points.map((point) => [point.x, point.y, point.pressure || 0.5]),
+            {
+                stroke: style.stroke,
+                strokeWidth: style.strokeWidth,
+                strokeStyle: style.outline,
+                thinning: brush.thinning ?? 0.5,
+                roughness: brush.roughness || 'smooth',
+                strokeOpacity: brush.opacity ?? 1,
+            },
+        );
     } else if (prediction.type === 'arrow') {
         shape = new window.Arrow(prediction.start, prediction.end, {
             stroke: style.stroke,
@@ -384,8 +413,12 @@ export function handleShapeRecognitionUp(event) {
     if (!shape) return;
     if (window.__sketchStoreApi) window.__sketchStoreApi.setActiveTool('select', { afterDraw: true });
     currentShape = shape;
-    shape.isSelected = true;
-    if (typeof shape.addAnchors === 'function') shape.addAnchors();
+    if (shape.shapeName === 'freehandStroke' && typeof shape.selectStroke === 'function') {
+        shape.selectStroke();
+    } else {
+        shape.isSelected = true;
+        if (typeof shape.addAnchors === 'function') shape.addAnchors();
+    }
 }
 
 export function cancelShapeRecognition() {

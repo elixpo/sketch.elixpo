@@ -60,7 +60,7 @@ const TOOL_SIDEBARS = {
   [TOOLS.TEXT]: 'text',
   [TOOLS.CODE]: 'text',
   [TOOLS.FRAME]: 'frame',
-  [TOOLS.DRAW_SHAPE]: 'rectangle',
+  [TOOLS.DRAW_SHAPE]: 'paintbrush',
 }
 
 // Keyboard shortcut -> tool mapping

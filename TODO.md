@@ -1,6 +1,7 @@
 # Implementation TODO
 
 - [x] Add a client-only draw-to-shape tool with live dotted rectangle, ellipse, line, and arrow prediction.
+- [x] Preserve unrecognized draw-to-shape gestures as normal editable freehand strokes.
 - [x] Keep gesture recognition O(N) over a capped sample buffer with one requestAnimationFrame preview.
 - [x] Add an undoable paint bucket with existing fill colors and styles for closed rectangle and circle shapes.
 - [x] Consolidate Canvas and Document shortcuts under `Ctrl + /`.
