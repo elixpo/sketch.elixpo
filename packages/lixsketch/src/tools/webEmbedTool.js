@@ -10,6 +10,30 @@ function coords(e) {
     return { x: vb.x + ((e.clientX - rect.left) / rect.width) * vb.width, y: vb.y + ((e.clientY - rect.top) / rect.height) * vb.height };
 }
 
+export function placeWebEmbed(urlValue) {
+    const url = normalizeWebEmbedUrl(urlValue);
+    if (!url || typeof svg === 'undefined') return null;
+
+    // Complete the tool transition first because setActiveTool clears the
+    // previous selection. The newly inserted frame should remain selected.
+    window.__sketchStoreApi?.setActiveTool('select');
+    const viewBox = svg.viewBox.baseVal;
+    const width = Math.min(640, Math.max(320, viewBox.width * 0.56));
+    const height = width * 9 / 16;
+    const x = viewBox.x + (viewBox.width - width) / 2;
+    const y = viewBox.y + (viewBox.height - height) / 2;
+    const placedFrame = new Frame(x, y, width, height, {
+        frameName: 'Web embed', frameType: 'web-embed', webEmbedURL: url,
+        stroke: '#8b76d6', strokeWidth: 2,
+    });
+    shapes.push(placedFrame);
+    pushCreateAction(placedFrame);
+    currentShape = placedFrame;
+    placedFrame.selectFrame();
+    window.__pendingWebEmbedURL = null;
+    return placedFrame;
+}
+
 export function handleWebEmbedDown(e) {
     const url = normalizeWebEmbedUrl(window.__pendingWebEmbedURL);
     if (!window.isWebEmbedToolActive || !url) { window.__showWebEmbedModal?.(); return; }
@@ -33,3 +57,5 @@ export function handleWebEmbedUp() {
     window.__sketchStoreApi?.setActiveTool('select', { afterDraw: true });
     currentShape = placedFrame; placedFrame.selectFrame();
 }
+
+window.__placeWebEmbed = placeWebEmbed;

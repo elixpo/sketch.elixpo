@@ -31,12 +31,12 @@ export default function WebEmbedModal() {
     event.preventDefault()
     const normalized = normalizeWebEmbedUrl(url)
     if (!normalized) {
-      const message = 'This URL is not allowed for embeds yet. Raise an issue to request support.'
-      setError(message); showToast(message, { tone: 'error', duration: 4000 }); return
+      const message = 'This site is not currently supported for web embeds.'
+      setError(message); showToast(message, { tone: 'info', duration: 3500 }); return
     }
-    window.__pendingWebEmbedURL = normalized
+    window.__placeWebEmbed?.(normalized)
     setOpen(false); setUrl(''); setError('')
-    showToast('Drag on the canvas to place the web embed')
+    showToast('Web embed placed. Drag or resize its frame.')
   }
 
   return (
@@ -48,9 +48,8 @@ export default function WebEmbedModal() {
         </div>
         <label className="text-xs text-text-muted" htmlFor="web-embed-url">HTTPS URL</label>
         <input ref={inputRef} id="web-embed-url" value={url} onChange={(e) => { setUrl(e.target.value); setError('') }} placeholder="https://www.youtube.com/watch?v=..." className="mt-2 w-full rounded-xl border border-border-light bg-surface px-4 py-3 text-sm text-text-primary outline-none focus:border-accent" />
-        {error && <p className="mt-2 text-xs text-red-400">{error} <a className="underline" href="https://github.com/elixpo/sketch.elixpo/issues/new" target="_blank" rel="noreferrer">Raise an issue</a></p>}
-        <p className="mt-3 text-[11px] text-text-dim">Allowed: Elixpo, YouTube, Vimeo, Figma, CodePen, CodeSandbox, StackBlitz, Google Docs, GitHub and Gists.</p>
-        <button type="submit" className="mt-5 w-full cursor-pointer rounded-xl bg-accent px-4 py-3 text-sm text-white hover:brightness-110">Continue to canvas</button>
+        {error && <p className="mt-2 text-xs text-text-muted"><i className="bx bx-info-circle mr-1" />{error}</p>}
+        <button type="submit" className="mt-5 w-full cursor-pointer rounded-xl bg-accent px-4 py-3 text-sm text-white hover:brightness-110">Place on canvas</button>
       </form>
     </div>
   )

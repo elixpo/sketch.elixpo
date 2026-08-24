@@ -66,6 +66,9 @@ export function handleLassoMove(e) {
 export function handleLassoUp() {
     if (!drawing) return;
     const polygon = points.slice(); cleanup();
+    // Switching tools clears selection state. Do that before applying the
+    // lasso result so the newly selected shapes survive the tool transition.
+    window.__sketchStoreApi?.setActiveTool('select', { afterDraw: true });
     if (polygon.length >= 3 && Array.isArray(window.shapes)) {
         const selected = window.shapes.filter((shape) => boundsPoints(shape).every((p) => pointInPolygon(p, polygon)));
         const filtered = selected.filter((shape) => !shape.parentFrame || !selected.includes(shape.parentFrame));
@@ -75,7 +78,6 @@ export function handleLassoUp() {
         if (filtered.length) multiSelection.updateControls();
         window.currentShape = filtered.length === 1 ? filtered[0] : null;
     }
-    window.__sketchStoreApi?.setActiveTool('select', { afterDraw: true });
 }
 
 export function cancelLasso() { cleanup(); }
