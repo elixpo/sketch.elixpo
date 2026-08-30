@@ -51,14 +51,14 @@ function IconCell({ icon, onClick }) {
     >
       {normalizedSvg ? (
         <div
-          style={{ width: '24px', height: '24px', overflow: 'visible', flexShrink: 0, pointerEvents: 'none', filter: 'brightness(0) invert(1)' }}
+          style={{ width: '24px', height: '24px', overflow: 'visible', flexShrink: 0, pointerEvents: 'none', filter: 'var(--lix-icon-filter, brightness(0) invert(1))' }}
           dangerouslySetInnerHTML={{ __html: normalizedSvg }}
         />
       ) : (
         <img
           src={`/icons/${encodeURIComponent(icon.filename)}`}
           alt=""
-          style={{ width: '24px', height: '24px', pointerEvents: 'none', filter: 'invert(1)' }}
+          style={{ width: '24px', height: '24px', pointerEvents: 'none', filter: 'var(--lix-icon-filter, brightness(0) invert(1))' }}
           loading="lazy"
         />
       )}
@@ -76,6 +76,14 @@ export default function IconSidebar() {
   const [icons, setIcons] = useState([])
   const [loading, setLoading] = useState(false)
   const debounceRef = useRef(null)
+  const searchInputRef = useRef(null)
+  const requestSequenceRef = useRef(0)
+
+  useEffect(() => {
+    if (!visible) return
+    const frame = requestAnimationFrame(() => searchInputRef.current?.focus())
+    return () => cancelAnimationFrame(frame)
+  }, [visible])
 
   // Close on Escape
   useEffect(() => {
@@ -101,6 +109,7 @@ export default function IconSidebar() {
   }, [visible, setActiveTool])
 
   const fetchIcons = useCallback(async (searchQuery, cat) => {
+    const requestSequence = ++requestSequenceRef.current
     const params = new URLSearchParams()
     if (searchQuery) params.set('q', searchQuery)
     if (cat) params.set('category', cat)
@@ -110,6 +119,7 @@ export default function IconSidebar() {
     // Return cached results instantly if available
     if (iconResultCache.has(cacheKey)) {
       setIcons(iconResultCache.get(cacheKey))
+      setLoading(false)
       return
     }
 
@@ -120,12 +130,12 @@ export default function IconSidebar() {
         const data = await res.json()
         const results = data.results || []
         iconResultCache.set(cacheKey, results)
-        setIcons(results)
+        if (requestSequence === requestSequenceRef.current) setIcons(results)
       }
     } catch (err) {
       console.error('Icon fetch failed:', err)
     }
-    setLoading(false)
+    if (requestSequence === requestSequenceRef.current) setLoading(false)
   }, [])
 
   // Fetch icons when visibility, query, or category changes (debounced for query typing)
@@ -134,29 +144,9 @@ export default function IconSidebar() {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       fetchIcons(query, category)
-    }, query ? 300 : 0)
+    }, query ? 80 : 0)
     return () => clearTimeout(debounceRef.current)
   }, [query, visible, category, fetchIcons])
-
-  // Preload all categories in background on first sidebar open
-  const hasPreloaded = useRef(false)
-  useEffect(() => {
-    if (!visible || hasPreloaded.current) return
-    hasPreloaded.current = true
-    // Fire-and-forget: preload each category so switching is instant
-    CATEGORIES.forEach((cat) => {
-      const params = new URLSearchParams()
-      if (cat.value) params.set('category', cat.value)
-      params.set('inline', '1')
-      const key = params.toString()
-      if (!iconResultCache.has(key)) {
-        fetch(`/api/icons/search?${key}`)
-          .then((r) => r.ok ? r.json() : null)
-          .then((data) => { if (data?.results) iconResultCache.set(key, data.results) })
-          .catch(() => {})
-      }
-    })
-  }, [visible])
 
   const handleIconClick = useCallback((icon) => {
     if (typeof window === 'undefined') return
@@ -182,7 +172,7 @@ export default function IconSidebar() {
   // picker follows the canvas theme (light by default, dark on toggle).
   return (
     <div
-      className={`absolute top-[60px] right-2 bottom-[56px] w-[300px] bg-surface-card border border-border-light rounded-2xl z-[999] font-[lixFont] flex flex-col transition-transform duration-200 ${
+      className={`absolute top-[60px] right-2 bottom-[112px] w-[300px] bg-surface-card border border-border-light rounded-2xl z-[999] font-[lixFont] flex flex-col transition-transform duration-200 ${
         visible ? 'translate-x-0' : 'translate-x-full'
       }`}
     >
@@ -192,7 +182,7 @@ export default function IconSidebar() {
           <h3 className="text-text-primary text-sm font-medium">Icons</h3>
           <button
             onClick={() => setActiveTool(TOOLS.SELECT)}
-            className="w-6 h-6 flex items-center justify-center rounded-md text-text-dim hover:text-text-primary hover:bg-surface-hover transition-colors duration-100"
+            className="w-6 h-6 flex items-center justify-center rounded-md text-text-dim hover:text-text-primary hover:bg-surface-hover transition-colors duration-100 cursor-pointer"
             title="Close (Esc)"
           >
             <i className="bx bx-x text-lg" />
@@ -203,6 +193,7 @@ export default function IconSidebar() {
         <div className="flex items-center gap-2 bg-surface-hover border border-border-light rounded-lg px-2.5 py-2">
           <i className="bx bxs-search text-text-dim text-sm" />
           <input
+            ref={searchInputRef}
             id="iconSearchInput"
             type="text"
             value={query}
@@ -212,7 +203,12 @@ export default function IconSidebar() {
             spellCheck={false}
           />
           {query && (
-            <button onClick={() => setQuery('')} className="text-text-dim hover:text-text-secondary">
+            <button
+              onClick={() => setQuery('')}
+              className="text-text-dim hover:text-text-secondary cursor-pointer"
+              title="Clear search"
+              aria-label="Clear icon search"
+            >
               <i className="bx bxs-x-circle text-sm" />
             </button>
           )}
@@ -220,19 +216,25 @@ export default function IconSidebar() {
       </div>
 
       {/* Categories */}
-      <div className="flex flex-wrap gap-1 px-3.5 pb-2.5 shrink-0">
+      <div
+        className="grid grid-cols-4 gap-1.5 px-3.5 pb-3 shrink-0"
+        role="group"
+        aria-label="Filter icons by category"
+      >
         {CATEGORIES.map((cat) => (
           <button
             key={cat.value || 'all'}
             onClick={() => setCategory(cat.value)}
-            className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs whitespace-nowrap transition-colors duration-100 ${
+            aria-pressed={category === cat.value}
+            title={`Show ${cat.label.toLowerCase()} icons`}
+            className={`h-8 min-w-0 flex items-center justify-center gap-1 rounded-lg border px-1.5 text-[10.5px] whitespace-nowrap transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue/50 ${
               category === cat.value
-                ? 'bg-accent-blue/20 text-accent-blue-hover'
-                : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
+                ? 'border-accent-blue/50 bg-accent-blue/20 text-accent-blue shadow-sm'
+                : 'border-border-light bg-surface/40 text-text-muted hover:border-accent-blue/30 hover:bg-surface-hover hover:text-text-primary'
             }`}
           >
-            <i className={`bx ${cat.icon} text-xs`} />
-            {cat.label}
+            <i className={`bx ${cat.icon} shrink-0 text-xs`} />
+            <span className="min-w-0 truncate">{cat.label}</span>
           </button>
         ))}
       </div>

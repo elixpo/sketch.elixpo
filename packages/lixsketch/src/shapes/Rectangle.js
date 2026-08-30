@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { registerRotationAnchor } from '../core/ScreenSpaceControls.js';
 // Rectangle shape class - extracted from drawSquare.js
 // Depends on globals: svg, shapes, rough, currentShape, currentZoom, rc
 
@@ -50,6 +51,7 @@ class Rectangle {
         this.labelElement = null;
         this.labelColor = options.labelColor || '#e0e0e0';
         this.labelFontSize = options.labelFontSize || 14;
+        this.labelBg = options.labelBg !== false; // set labelBg:false to render plain text with no pill backdrop
         this._isEditingLabel = false;
         this._hitArea = null;
         this._labelBg = null;
@@ -245,7 +247,19 @@ class Rectangle {
         this.labelElement.setAttribute('font-family', 'lixFont, sans-serif');
         this.labelElement.textContent = this.label;
 
-        // Background padding rect behind text (like arrows have)
+        // Background padding rect behind text (like arrows have) — skippable
+        // via labelBg:false for dense multi-row content (e.g. mermaid ER
+        // attribute rows) where a pill backdrop looks out of place and
+        // doesn't match the SVG preview.
+        if (!this.labelBg) {
+            if (this._labelBg && this._labelBg.parentNode === this.group) {
+                this.group.removeChild(this._labelBg);
+                this._labelBg = null;
+            }
+            if (this.labelElement.parentNode === this.group) this.group.removeChild(this.labelElement);
+            this.group.appendChild(this.labelElement);
+            return;
+        }
         const canvasBg = window.getComputedStyle(svg).backgroundColor || '#000';
         if (!this._labelBg) {
             this._labelBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -508,6 +522,7 @@ class Rectangle {
         this.rotationAnchor.setAttribute('vector-effect', 'non-scaling-stroke');
         this.rotationAnchor.setAttribute('style', 'pointer-events: all;');
         this.group.appendChild(this.rotationAnchor);
+        registerRotationAnchor(this.rotationAnchor, { radius: 8, edgeY: expandedY });
 
         this.rotationAnchor.addEventListener('mouseover', function () {
              if (!isResizingShapeSquare && !isDraggingShapeSquare && !isRotatingShapeSquare) {
@@ -542,7 +557,8 @@ class Rectangle {
     updateSelectionControls() {
         if (!this.selectionOutline || this.anchors.length === 0) return;
 
-        const anchorSize = 10;
+        const zoom = window.currentZoom || 1;
+        const anchorSize = 10 / zoom;
         const expandedX = -this.selectionPadding;
         const expandedY = -this.selectionPadding;
         const expandedWidth = this.width + 2 * this.selectionPadding;
@@ -580,7 +596,7 @@ class Rectangle {
         // Update rotation anchor
         if (this.rotationAnchor) {
             this.rotationAnchor.setAttribute('cx', expandedX + expandedWidth / 2);
-            this.rotationAnchor.setAttribute('cy', expandedY - 30);
+            this.rotationAnchor.setAttribute('cy', expandedY - 30 / zoom);
         }
     }
 
@@ -604,18 +620,21 @@ class Rectangle {
     }
 
     contains(x, y) {
-         if (!this.element) return false; 
-        const CTM = this.group.getCTM();
-        if (!CTM) return false; 
-        const inverseCTM = CTM.inverse();
-
-        const svgPoint = svg.createSVGPoint();
-        svgPoint.x = x;
-        svgPoint.y = y;
-        const transformedPoint = svgPoint.matrixTransform(inverseCTM);
+        if (!this.element) return false;
+        // x/y are already canvas (viewBox) coordinates. getCTM() operates in
+        // viewport coordinates and made hit testing drift after pan/zoom.
+        const centerX = this.width / 2;
+        const centerY = this.height / 2;
+        const angle = -(this.rotation || 0) * Math.PI / 180;
+        const translatedX = x - this.x;
+        const translatedY = y - this.y;
+        const dx = translatedX - centerX;
+        const dy = translatedY - centerY;
+        const localX = dx * Math.cos(angle) - dy * Math.sin(angle) + centerX;
+        const localY = dx * Math.sin(angle) + dy * Math.cos(angle) + centerY;
         const tolerance = 5;
-        return transformedPoint.x >= -tolerance && transformedPoint.x <= this.width + tolerance &&
-               transformedPoint.y >= -tolerance && transformedPoint.y <= this.height + tolerance;
+        return localX >= -tolerance && localX <= this.width + tolerance &&
+               localY >= -tolerance && localY <= this.height + tolerance;
     }
 
      // Helper to check if a point is near an anchor

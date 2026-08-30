@@ -2,16 +2,16 @@ import './globals.css'
 import 'highlight.js/styles/github-dark-dimmed.css'
 import InitHljs from '@/components/InitHljs'
 const SITE_URL = 'https://sketch.elixpo.com'
-const SITE_NAME = 'LixSketch'
+const SITE_NAME = 'Elixpo Sketch'
+const SITE_TAGLINE = 'Open Source Infinite Canvas, Hand Drawn Aesthetics, Built In Docs Editor'
 const SITE_DESCRIPTION =
-  'Open-source infinite canvas with hand-drawn aesthetics, real-time collaboration, docs editor, and LixScript diagram DSL. Free forever.'
-
+  'LixSketch is a free, open-source collaborative whiteboard for technical diagrams, wireframes, flowcharts, architecture drawings, and presentations. No login required — start drawing instantly as a guest. Features AI-powered smart editing (Beta), end-to-end encrypted sharing, real-time collaboration with live cursors, a Notion-style docs editor, LixScript DSL for scripted diagrams, 250K+ icons, and a VS Code extension. Runs entirely in the browser. Forever free.'
 export const metadata = {
   metadataBase: new URL(SITE_URL),
 
   title: {
-    default: SITE_NAME,
-    template: `%s · ${SITE_NAME}`,
+    default: `${SITE_NAME} | ${SITE_TAGLINE}`,
+    template: `%s | ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
 
@@ -22,46 +22,67 @@ export const metadata = {
   generator: 'Next.js',
 
   keywords: [
-    'LixSketch',
-    'open source',
-    'whiteboard',
+    'Elixpo Sketch',
+    'Elixpo',
+    'open source whiteboard',
     'infinite canvas',
+    'sketching tool',
+    'wireframing tool',
     'diagram tool',
     'eraser.io alternative',
     'excalidraw alternative',
-    'hand-drawn diagrams',
-    'RoughJS',
-    'real-time collaboration',
-    'docs editor',
+    'tldraw alternative',
+    'hand drawn diagrams',
+    'roughjs',
+    'perfect freehand',
+    'real time collaboration',
+    'end to end encrypted whiteboard',
+    'block editor',
+    'WYSIWYG docs editor',
     'LixScript',
+    'mermaid diagrams',
+    'graph plotting',
     'SVG canvas',
     'architecture diagrams',
-    'wireframes',
     'flowcharts',
+    'sequence diagrams',
     'developer tools',
+    'product design',
+    'system design',
+    'free whiteboard',
+    'no login whiteboard',
+    'collaborative canvas',
+    'AI diagram tool',
+    'VS Code whiteboard extension',
+    'LixSketch',
+    'technical presentation tool',
+    'online diagramming',
   ],
 
   icons: {
     icon: [
-      { url: '/Images/logo.png', type: 'image/png', sizes: '128x128' },
+      { url: '/icon.png', type: 'image/png', sizes: '1024x1024' },
     ],
-    apple: '/Images/logo.png',
-    shortcut: '/Images/logo.png',
+    apple: [
+      { url: '/icon.png', sizes: '1024x1024', type: 'image/png' },
+    ],
+    shortcut: '/icon.png',
   },
+  manifest: '/site.webmanifest',
 
   openGraph: {
     type: 'website',
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — Open-Source Infinite Canvas & Diagram Tool`,
+    title: `${SITE_NAME} | ${SITE_TAGLINE}`,
     description: SITE_DESCRIPTION,
     url: SITE_URL,
     locale: 'en_US',
     images: [
       {
-        url: '/Images/og-image.png',
-        width: 1322,
-        height: 612,
-        alt: 'LixSketch — hand-drawn infinite canvas with real-time collaboration',
+        url: '/og-image.png',
+        width: 1280,
+        height: 720,
+        alt: 'Elixpo Sketch, hand drawn infinite canvas with real time collaboration and built in docs editor',
         type: 'image/png',
       },
     ],
@@ -69,10 +90,11 @@ export const metadata = {
 
   twitter: {
     card: 'summary_large_image',
-    title: `${SITE_NAME} — Open-Source Infinite Canvas`,
+    title: `${SITE_NAME} | ${SITE_TAGLINE}`,
     description: SITE_DESCRIPTION,
-    images: ['/Images/og-image.png'],
+    images: ['/og-image.png'],
     creator: '@elixpo',
+    site: '@elixpo',
   },
 
   robots: {
@@ -95,7 +117,7 @@ export const metadata = {
 }
 
 export const viewport = {
-  themeColor: '#121212',
+  themeColor: '#120e1a',
   width: 'device-width',
   initialScale: 1,
   colorScheme: 'dark',
@@ -109,6 +131,7 @@ const jsonLd = {
   description: SITE_DESCRIPTION,
   applicationCategory: 'DesignApplication',
   operatingSystem: 'Web',
+  logo: `${SITE_URL}/icon.png`,
   offers: {
     '@type': 'Offer',
     price: '0',
@@ -119,8 +142,8 @@ const jsonLd = {
     name: 'Elixpo',
     url: 'https://elixpo.com',
   },
-  image: `${SITE_URL}/Images/og-image.png`,
-  screenshot: `${SITE_URL}/Images/og-image.png`,
+  image: `${SITE_URL}/og-image.png`,
+  screenshot: `${SITE_URL}/og-image.png`,
   featureList: [
     'Infinite canvas with hand-drawn aesthetics',
     'Real-time collaboration with live cursors',

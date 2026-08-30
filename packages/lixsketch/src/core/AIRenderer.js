@@ -43,6 +43,41 @@ export function parseMermaid(src) {
     const edges = [];
     const classDefs = new Map();   // classDef name -> { fill, stroke, strokeWidth }
     const classAssigns = [];        // { nodeIds: [...], className }
+    const nodeStyles = new Map();   // Mermaid `style A fill:...,stroke:...`
+    const darkTheme = typeof document === 'undefined'
+        || document.body?.classList.contains('theme-dark');
+    const palette = darkTheme
+        ? [
+            { fill: '#352b52', stroke: '#9d86df' },
+            { fill: '#403260', stroke: '#ad92ed' },
+            { fill: '#2f2948', stroke: '#927fd1' },
+            { fill: '#493568', stroke: '#b195e8' },
+            { fill: '#322747', stroke: '#9b83d7' },
+            { fill: '#3d2e58', stroke: '#a88add' },
+        ]
+        : [
+            { fill: '#eee9f7', stroke: '#7667a8' },
+            { fill: '#e6def2', stroke: '#8875b5' },
+            { fill: '#ddd2eb', stroke: '#6f5f9c' },
+            { fill: '#f2edf8', stroke: '#9a88bf' },
+            { fill: '#e2daf0', stroke: '#806cab' },
+            { fill: '#ebe4f5', stroke: '#705d9c' },
+        ];
+
+    function parseStyleProps(value) {
+        const props = {};
+        for (const part of value.split(',')) {
+            const separator = part.indexOf(':');
+            if (separator < 0) continue;
+            const key = part.slice(0, separator).trim().toLowerCase();
+            const val = part.slice(separator + 1).trim();
+            if (key === 'fill') props.fill = val;
+            else if (key === 'stroke') props.stroke = val;
+            else if (key === 'stroke-width') props.strokeWidth = parseFloat(val);
+            else if (key === 'color') props.labelColor = val;
+        }
+        return props;
+    }
 
     // Clean <br/> and <br> tags in labels → newline marker
     function cleanLabel(label) {
@@ -91,17 +126,23 @@ export function parseMermaid(src) {
         const classDefMatch = line.match(/^classDef\s+(\w+)\s+(.+)$/i);
         if (classDefMatch) {
             const name = classDefMatch[1];
-            const propsStr = classDefMatch[2].replace(/;$/, '');
-            const props = {};
-            for (const part of propsStr.split(',')) {
-                const [key, val] = part.split(':').map(s => s.trim());
-                if (key === 'fill') props.fill = val;
-                else if (key === 'stroke') props.stroke = val;
-                else if (key === 'stroke-width') props.strokeWidth = parseFloat(val);
-            }
-            classDefs.set(name, props);
+            classDefs.set(name, parseStyleProps(classDefMatch[2].replace(/;$/, '')));
             continue;
         }
+
+        // Direct node styling must be consumed before node/edge parsing.
+        // Previously these lines fell through to `parseNodeRef`, producing
+        // visible boxes containing the raw `style A fill:...` source.
+        const styleMatch = line.match(/^style\s+([\w,-]+)\s+(.+)$/i);
+        if (styleMatch) {
+            const props = parseStyleProps(styleMatch[2].replace(/;$/, ''));
+            styleMatch[1].split(',').map(id => id.trim()).filter(Boolean)
+                .forEach(id => nodeStyles.set(id, props));
+            continue;
+        }
+
+        // Presentation-only directives do not represent diagram nodes.
+        if (/^(linkStyle|click)\b/i.test(line)) continue;
 
         // class assignment: class sq,e green
         const classMatch = line.match(/^class\s+(.+?)\s+(\w+)$/i);
@@ -214,6 +255,12 @@ export function parseMermaid(src) {
         }
     }
 
+
+    for (const [nid, style] of nodeStyles) {
+        const node = nodesMap.get(nid);
+        if (node) Object.assign(node, style);
+    }
+
     // Topological BFS layering
     const nodeIds = Array.from(nodesMap.keys());
     const children = new Map();
@@ -247,6 +294,7 @@ export function parseMermaid(src) {
 
     // Compute dynamic node sizes based on label length
     const nodes = [];
+    let paletteIndex = 0;
     Array.from(layerGroups.keys()).sort((a, b) => a - b).forEach((layerIdx, li) => {
         const group = layerGroups.get(layerIdx);
         const startOffset = -(group.length * H_SPACING) / 2 + H_SPACING / 2;
@@ -262,8 +310,12 @@ export function parseMermaid(src) {
             nodes.push({
                 id: nd.id, type: nd.type, label: nd.label,
                 x, y, width: nw, height: nh,
-                fill: nd.fill, stroke: nd.stroke, strokeWidth: nd.strokeWidth,
+                fill: nd.fill || palette[paletteIndex % palette.length].fill,
+                stroke: nd.stroke || palette[paletteIndex % palette.length].stroke,
+                strokeWidth: nd.strokeWidth,
+                labelColor: nd.labelColor,
             });
+            paletteIndex += 1;
         });
     });
 
@@ -1309,6 +1361,104 @@ export function generateFramePreviewSVG(frame, width = 500, height = 350) {
 }
 
 // ============================================================
+// CANVAS BACKGROUND CONTRAST
+// ============================================================
+
+function colorRgb(value) {
+    if (!value || typeof value !== 'string') return null;
+    const rgbMatch = value.trim().match(/^rgba?\(\s*(\d+(?:\.\d+)?)\s*[, ]\s*(\d+(?:\.\d+)?)\s*[, ]\s*(\d+(?:\.\d+)?)/i);
+    if (rgbMatch) {
+        return {
+            r: Math.min(255, Number(rgbMatch[1])),
+            g: Math.min(255, Number(rgbMatch[2])),
+            b: Math.min(255, Number(rgbMatch[3])),
+        };
+    }
+    let hex = value.trim().replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(char => char + char).join('');
+    if (!/^[0-9a-f]{6}$/i.test(hex)) return null;
+    return {
+        r: parseInt(hex.slice(0, 2), 16),
+        g: parseInt(hex.slice(2, 4), 16),
+        b: parseInt(hex.slice(4, 6), 16),
+    };
+}
+
+function relativeLuminance(value) {
+    const rgb = colorRgb(value);
+    if (!rgb) return null;
+    const channel = component => {
+        const normalized = component / 255;
+        return normalized <= .03928 ? normalized / 12.92 : Math.pow((normalized + .055) / 1.055, 2.4);
+    };
+    return .2126 * channel(rgb.r) + .7152 * channel(rgb.g) + .0722 * channel(rgb.b);
+}
+
+function contrastRatio(a, b) {
+    const first = relativeLuminance(a);
+    const second = relativeLuminance(b);
+    if (first == null || second == null) return 1;
+    return (Math.max(first, second) + .05) / (Math.min(first, second) + .05);
+}
+
+function readableForeground(background) {
+    return contrastRatio('#34304a', background) >= contrastRatio('#f6f2fb', background)
+        ? '#34304a'
+        : '#f6f2fb';
+}
+
+function readableColor(color, background, minimum = 3) {
+    if (!colorRgb(color) || contrastRatio(color, background) >= minimum) return color;
+    return readableForeground(background);
+}
+
+export function adaptCanvasContrast(background) {
+    if (typeof window === 'undefined' || !Array.isArray(window.shapes)) return;
+    const foreground = readableForeground(background);
+    const muted = foreground === '#34304a' ? '#716a7d' : '#c8bddb';
+
+    window.__canvasContrastColor = foreground;
+    window.__ensureCanvasContrast = readableColor;
+
+    for (const shape of window.shapes) {
+        if (!shape) continue;
+        if (typeof shape.adaptToBackground === 'function') {
+            shape.adaptToBackground(background, foreground, muted);
+            continue;
+        }
+
+        const owner = shape.parentFrame;
+        const generated = !!(shape._diagramType || shape._frameType === 'graph' || owner?._diagramType || owner?._frameType === 'graph');
+        const fill = shape.options?.fill;
+        const solidFill = fill && fill !== 'transparent' && fill !== 'none';
+
+        if (shape.options?.closedFill) {
+            shape.options.outlineStroke = background;
+            if (typeof shape.draw === 'function') shape.draw();
+            continue;
+        }
+
+        if (shape.options?.stroke && (generated || ['#fff', '#ffffff', '#000', '#000000', '#1a1a2e'].includes(shape.options.stroke.toLowerCase()))) {
+            shape.options.stroke = readableColor(shape.options.stroke, background, 3);
+        }
+        if (shape.shapeName === 'frame' && generated && shape.options) {
+            shape.options.stroke = muted;
+            shape.options.labelColor = foreground;
+        }
+        if ('labelColor' in shape && generated) {
+            shape.labelColor = solidFill ? readableColor(shape.labelColor || foreground, fill, 4.5) : foreground;
+        }
+        if (shape.group && generated) {
+            shape.group.querySelectorAll('text').forEach(text => {
+                const current = text.getAttribute('fill') || foreground;
+                text.setAttribute('fill', solidFill ? readableColor(current, fill, 4.5) : readableColor(current, background, 4.5));
+            });
+        }
+        if (typeof shape.draw === 'function') shape.draw();
+    }
+}
+
+// ============================================================
 // INIT
 // ============================================================
 
@@ -1317,6 +1467,7 @@ export function initAIRenderer() {
     // Graph, LixScript) can wire arrow endpoints into shapes without
     // import-cycling through this large module.
     window.__autoAttach = autoAttach;
+    window.__adaptCanvasContrast = adaptCanvasContrast;
 
     // Lazy-load sequence renderer
     let _seqParser = null;
@@ -1326,6 +1477,9 @@ export function initAIRenderer() {
     // Lazy-load flowchart renderer
     let _fcPreview = null;
     let _fcCanvas = null;
+
+    // Lazy-load ER / chart renderer
+    let _structured = null;
 
     async function loadSequenceRenderer() {
         if (_seqParser) return;
@@ -1343,9 +1497,25 @@ export function initAIRenderer() {
         _fcCanvas = mod.renderFlowchartOnCanvas;
     }
 
+    async function loadStructuredRenderer() {
+        if (_structured) return;
+        _structured = await import('./MermaidStructuredRenderer.js');
+    }
+
+    function mermaidHeader(src) {
+        return src.split('\n').map(line => line.trim()).find(line => line && !line.startsWith('%%'))?.toLowerCase() || '';
+    }
+
     // Detect if source is a sequence diagram
     function isSequenceDiagram(src) {
-        return src.trim().split('\n')[0].trim().toLowerCase() === 'sequencediagram';
+        return mermaidHeader(src) === 'sequencediagram';
+    }
+
+    function structuredType(src) {
+        const header = mermaidHeader(src);
+        if (header === 'erdiagram') return 'er';
+        if (/^pie(?:\s|$)/.test(header) || /^xychart(?:-beta)?(?:\s|$)/.test(header)) return 'chart';
+        return null;
     }
 
     window.__aiRenderer = renderAIDiagram;
@@ -1363,6 +1533,15 @@ export function initAIRenderer() {
                 return null;
             }
         }
+        if (structuredType(src)) {
+            if (!_structured) {
+                loadStructuredRenderer();
+                return { _pendingStructured: true, src };
+            }
+            return structuredType(src) === 'er'
+                ? _structured.parseERDiagram(src)
+                : _structured.parseChartDiagram(src);
+        }
         return parseMermaid(src);
     };
 
@@ -1373,6 +1552,13 @@ export function initAIRenderer() {
             const diagram = _seqParser(src);
             if (!diagram) return '';
             return _seqPreview(diagram);
+        }
+        const type = structuredType(src);
+        if (type) {
+            await loadStructuredRenderer();
+            const diagram = type === 'er' ? _structured.parseERDiagram(src) : _structured.parseChartDiagram(src);
+            if (!diagram) return '';
+            return type === 'er' ? _structured.renderERPreviewSVG(diagram) : _structured.renderChartPreviewSVG(diagram);
         }
         // Flowchart: use unified flowchart renderer
         await loadFlowchartRenderer();
@@ -1389,6 +1575,13 @@ export function initAIRenderer() {
             if (!diagram) { console.error('[AIRenderer] Sequence parse failed'); return false; }
             return _seqCanvas(diagram);
         }
+        const type = structuredType(src);
+        if (type) {
+            await loadStructuredRenderer();
+            const diagram = type === 'er' ? _structured.parseERDiagram(src) : _structured.parseChartDiagram(src);
+            if (!diagram) { console.error('[AIRenderer] Structured Mermaid parse failed'); return false; }
+            return type === 'er' ? _structured.renderEROnCanvas(diagram) : _structured.renderChartOnCanvas(diagram);
+        }
         // Flowchart: use unified flowchart renderer (same SVG as preview)
         await loadFlowchartRenderer();
         const diagram = parseMermaid(src);
@@ -1399,4 +1592,5 @@ export function initAIRenderer() {
     // Pre-load renderers so they're ready
     loadSequenceRenderer();
     loadFlowchartRenderer();
+    loadStructuredRenderer();
 }

@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 
+const GRID_STORAGE_KEY = 'lixsketch-grid-enabled'
+const RULER_STORAGE_KEY = 'lixsketch-rulers-enabled'
+
 // Tool enum replaces 15 boolean flags
 export const TOOLS = {
   SELECT: 'select',
@@ -16,6 +19,10 @@ export const TOOLS = {
   IMAGE: 'image',
   FRAME: 'frame',
   ICON: 'icon',
+  DRAW_SHAPE: 'draw-shape',
+  PAINT_BUCKET: 'paint-bucket',
+  LASSO: 'lasso',
+  WEB_EMBED: 'web-embed',
 }
 
 // Action types for undo/redo
@@ -41,6 +48,10 @@ const TOOL_CURSORS = {
   [TOOLS.IMAGE]: 'crosshair',
   [TOOLS.FRAME]: 'crosshair',
   [TOOLS.ICON]: 'crosshair',
+  [TOOLS.DRAW_SHAPE]: 'crosshair',
+  [TOOLS.PAINT_BUCKET]: 'cell',
+  [TOOLS.LASSO]: 'crosshair',
+  [TOOLS.WEB_EMBED]: 'crosshair',
 }
 
 // Tool -> sidebar mapping
@@ -53,6 +64,7 @@ const TOOL_SIDEBARS = {
   [TOOLS.TEXT]: 'text',
   [TOOLS.CODE]: 'text',
   [TOOLS.FRAME]: 'frame',
+  [TOOLS.DRAW_SHAPE]: 'paintbrush',
 }
 
 // Keyboard shortcut -> tool mapping
@@ -78,6 +90,10 @@ export const SHORTCUT_MAP = {
   i: TOOLS.ICON,
   f: TOOLS.FRAME,
   k: TOOLS.LASER,
+  d: TOOLS.DRAW_SHAPE,
+  b: TOOLS.PAINT_BUCKET,
+  s: TOOLS.LASSO,
+  w: TOOLS.WEB_EMBED,
 }
 
 const useSketchStore = create((set, get) => ({
@@ -177,12 +193,51 @@ const useSketchStore = create((set, get) => ({
   setPanStart: (p) => set({ panStart: p }),
 
   // --- Canvas background ---
-  canvasBackground: 'var(--lixsketch-bg, #ffffff)',
-  setCanvasBackground: (color) => set({ canvasBackground: color }),
+  canvasBackground: 'var(--lixsketch-bg, #15111f)',
+  setCanvasBackground: (color) => {
+    set({ canvasBackground: color })
+    if (typeof window !== 'undefined') {
+      requestAnimationFrame(() => window.__adaptCanvasContrast?.(color))
+    }
+  },
 
   // --- Grid ---
   gridEnabled: false,
-  toggleGrid: () => set((s) => ({ gridEnabled: !s.gridEnabled })),
+  toggleGrid: () => set((s) => {
+    const gridEnabled = !s.gridEnabled
+    if (typeof window !== 'undefined') {
+      try { localStorage.setItem(GRID_STORAGE_KEY, String(gridEnabled)) } catch {}
+    }
+    return { gridEnabled }
+  }),
+  hydrateGrid: () => {
+    if (typeof window === 'undefined') return
+    try {
+      const saved = localStorage.getItem(GRID_STORAGE_KEY)
+      if (saved === 'true' || saved === 'false') {
+        set({ gridEnabled: saved === 'true' })
+      }
+    } catch {}
+  },
+
+  // --- Rulers ---
+  rulersEnabled: false,
+  toggleRulers: () => set((s) => {
+    const rulersEnabled = !s.rulersEnabled
+    if (typeof window !== 'undefined') {
+      try { localStorage.setItem(RULER_STORAGE_KEY, String(rulersEnabled)) } catch {}
+    }
+    return { rulersEnabled }
+  }),
+  hydrateRulers: () => {
+    if (typeof window === 'undefined') return
+    try {
+      const saved = localStorage.getItem(RULER_STORAGE_KEY)
+      if (saved === 'true' || saved === 'false') {
+        set({ rulersEnabled: saved === 'true' })
+      }
+    } catch {}
+  },
 
   // --- Modes ---
   viewMode: false,

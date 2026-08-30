@@ -7,6 +7,13 @@ import LandingNav from '@/components/landing/LandingNav'
 import LandingFooter from '@/components/landing/LandingFooter'
 import useAuth from '@/hooks/useAuth'
 import useAuthStore from '@/store/useAuthStore'
+import {
+  clearRememberedCanvasId,
+  createCanvasSessionId,
+  getRememberedCanvasId,
+  hasLocalSavedWorkspace,
+  hasStoredCanvasKey,
+} from '@/utils/canvasSession'
 
 // ── WebGL Particle Constellation ──────────────────────────────────────────────
 // Lightweight dot-grid with faint connections. Runs at native RAF, ~0.5ms/frame.
@@ -163,7 +170,7 @@ function ParticleField({ className }) {
       if (li > 0) {
         gl.useProgram(lineProg)
         gl.uniform2f(gl.getUniformLocation(lineProg, 'uRes'), canvas.width, canvas.height)
-        gl.uniform3f(gl.getUniformLocation(lineProg, 'uColor'), 0.357, 0.341, 0.82) // #5B57D1
+        gl.uniform3f(gl.getUniformLocation(lineProg, 'uColor'), 0.545, 0.427, 0.878) // #8b6de0
         gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf)
         gl.bufferData(gl.ARRAY_BUFFER, lineData.subarray(0, li), gl.DYNAMIC_DRAW)
         const lPos = gl.getAttribLocation(lineProg, 'aPos')
@@ -183,7 +190,7 @@ function ParticleField({ className }) {
       }
       gl.useProgram(dotProg)
       gl.uniform2f(gl.getUniformLocation(dotProg, 'uRes'), canvas.width, canvas.height)
-      gl.uniform3f(gl.getUniformLocation(dotProg, 'uColor'), 0.357, 0.341, 0.82)
+      gl.uniform3f(gl.getUniformLocation(dotProg, 'uColor'), 0.545, 0.427, 0.878)
       gl.bindBuffer(gl.ARRAY_BUFFER, dotBuf)
       gl.bufferData(gl.ARRAY_BUFFER, dotData, gl.DYNAMIC_DRAW)
       const dPos = gl.getAttribLocation(dotProg, 'aPos')
@@ -347,15 +354,89 @@ export default function LandingPage() {
   const { scrollYProgress } = useScroll()
   const heroScale = useTransform(scrollYProgress, [0, 0.15], [1, 0.92])
   const heroBlur = useTransform(scrollYProgress, [0, 0.15], [0, 8])
+  const heroFilter = useTransform(heroBlur, v => `blur(${v}px)`)
   const heroY = useTransform(scrollYProgress, [0, 0.15], [0, -40])
 
   const [newSessionId, setNewSessionId] = useState('')
+  const [checkingSavedCanvas, setCheckingSavedCanvas] = useState(true)
   useEffect(() => {
-    setNewSessionId(`lx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`)
+    // The auth callback owns navigation when sign-in started from a canvas.
+    if (window.__lixAuthRedirecting) return
+
+    let cancelled = false
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 2000)
+
+    const showLandingPage = () => {
+      if (cancelled) return
+      setNewSessionId(createCanvasSessionId())
+      setCheckingSavedCanvas(false)
+    }
+
+    // An explicit logo click is a request to see the landing page. Normal
+    // visits still resume the last restorable canvas below.
+    if (new URLSearchParams(window.location.search).has('noredirect')) {
+      clearTimeout(timeout)
+      showLandingPage()
+      return () => {
+        cancelled = true
+        controller.abort()
+      }
+    }
+
+    const restoreRememberedCanvas = async () => {
+      const rememberedCanvasId = getRememberedCanvasId()
+      if (!rememberedCanvasId) {
+        clearRememberedCanvasId()
+        showLandingPage()
+        return
+      }
+
+      if (hasLocalSavedWorkspace(rememberedCanvasId)) {
+        window.location.replace(`/c/${encodeURIComponent(rememberedCanvasId)}`)
+        return
+      }
+
+      // A cloud-saved canvas can outlive its local scene buffer. Resume it
+      // only when this browser still has the E2E key required to decrypt it.
+      try {
+        const response = await fetch(`/api/scenes/load?sessionId=${encodeURIComponent(rememberedCanvasId)}&touch=0`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+        const savedWorkspace = response.ok ? await response.json() : null
+        if (savedWorkspace?.encryptedData && hasStoredCanvasKey(rememberedCanvasId)) {
+          window.location.replace(`/c/${encodeURIComponent(rememberedCanvasId)}`)
+          return
+        }
+        if (savedWorkspace?.missing || (savedWorkspace?.encryptedData && !hasStoredCanvasKey(rememberedCanvasId))) {
+          clearRememberedCanvasId(rememberedCanvasId)
+        }
+      } catch {
+        // Keep the pointer on transient network failure so a later visit can retry.
+      }
+
+      showLandingPage()
+    }
+
+    restoreRememberedCanvas()
+    return () => {
+      cancelled = true
+      clearTimeout(timeout)
+      controller.abort()
+    }
   }, [])
 
+  if (checkingSavedCanvas) {
+    return (
+      <div className="min-h-screen bg-[#120e1a] text-white flex items-center justify-center font-[lixFont]">
+        <i className="bx bx-loader-alt animate-spin text-2xl text-accent-blue" aria-label="Checking saved canvas" />
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-[#13171C] text-white font-[lixFont] overflow-x-hidden">
+    <div className="min-h-screen bg-[#120e1a] text-white font-[lixFont] overflow-x-hidden">
       <LandingNav />
 
       {/* Hero Section */}
@@ -363,7 +444,7 @@ export default function LandingPage() {
         style={{
           scale: heroScale,
           y: heroY,
-          filter: useTransform(heroBlur, v => `blur(${v}px)`),
+          filter: heroFilter,
         }}
         className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden"
       >
@@ -442,7 +523,7 @@ export default function LandingPage() {
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <Link
-              href={newSessionId ? `/c/${newSessionId}` : '#'}
+              href={newSessionId ? `/c/${newSessionId}?new=1&preserveLocal=1` : '#'}
               className={`px-8 py-3.5 bg-accent-blue hover:bg-accent-blue-hover text-white rounded-xl text-base transition-all duration-200 hover:shadow-xl hover:shadow-accent-blue/25 flex items-center gap-2 ${!newSessionId ? 'opacity-50 pointer-events-none' : ''}`}
             >
               <i className="bx bx-palette text-xl" />
@@ -475,7 +556,7 @@ export default function LandingPage() {
                 </div>
                 <span className="text-text-dim text-xs ml-2">LixSketch &mdash; Untitled Canvas</span>
               </div>
-              <div className="relative h-72 md:h-80 bg-[#121212]">
+              <div className="relative h-72 md:h-80 bg-[#171120]">
                 <RoughCanvas className="absolute inset-0 w-full h-full opacity-60" />
                 <div className="absolute left-3 top-3">
                   <ToolbarPreview />
@@ -550,7 +631,7 @@ export default function LandingPage() {
                 <p className="text-text-muted text-sm leading-relaxed mb-5">
                   Mount a full infinite canvas on any SVG element. Works with React, Vue, Svelte, or plain HTML.
                 </p>
-                <div className="bg-[#0d0d14] rounded-lg border border-white/[0.06] px-4 py-3">
+                <div className="bg-[#171120] rounded-lg border border-white/[0.06] px-4 py-3">
                   <code className="text-green-400 text-sm font-[lixCode]">npm install @elixpo/lixsketch</code>
                 </div>
               </Link>
@@ -580,7 +661,7 @@ export default function LandingPage() {
                 <p className="text-text-muted text-sm leading-relaxed mb-5">
                   Draw diagrams inside your editor. Full canvas tab, LixScript syntax highlighting, and live preview.
                 </p>
-                <div className="bg-[#0d0d14] rounded-lg border border-white/[0.06] px-4 py-3">
+                <div className="bg-[#171120] rounded-lg border border-white/[0.06] px-4 py-3">
                   <code className="text-blue-400 text-sm font-[lixCode]">https://marketplace.visualstudio.com/items?itemName=elixpo.lixsketch</code>
                 </div>
               </Link>
@@ -733,7 +814,7 @@ export default function LandingPage() {
             No sign-up. No paywall. Just open the canvas and start creating.
           </p>
           <Link
-            href={newSessionId ? `/c/${newSessionId}` : '#'}
+            href={newSessionId ? `/c/${newSessionId}?new=1&preserveLocal=1` : '#'}
             className={`inline-flex items-center gap-2 px-10 py-4 bg-accent-blue hover:bg-accent-blue-hover text-white rounded-xl text-lg transition-all duration-200 hover:shadow-xl hover:shadow-accent-blue/25 ${!newSessionId ? 'opacity-50 pointer-events-none' : ''}`}
           >
             <i className="bx bx-palette text-2xl" />
@@ -796,7 +877,7 @@ export default function LandingPage() {
                     <div className="w-2 h-2 rounded-full bg-green-400/50" />
                     <span className="text-text-dim text-[10px] ml-1.5">inkflowa.vercel.app</span>
                   </div>
-                  <div className="h-44 bg-[#0d0d0d] flex items-center justify-center relative overflow-hidden">
+                  <div className="h-44 bg-[#171120] flex items-center justify-center relative overflow-hidden">
                     <RoughCanvas className="absolute inset-0 w-full h-full opacity-40" />
                     <div className="relative z-10 text-center">
                       <i className="bx bx-pen text-4xl text-[#8B88E8]/60 mb-2" />
@@ -810,7 +891,81 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
+      <FeaturedTemplates />
+
       <LandingFooter />
     </div>
+  )
+}
+
+function FeaturedTemplates() {
+  const [templates, setTemplates] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/templates?limit=3')
+      .then((res) => res.json())
+      .then((data) => {
+        setTemplates(data.templates || [])
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [])
+
+  if (loading || !templates.length) return null
+
+  return (
+    <section className="py-24 border-t border-border-light bg-[#171324]/30 font-[lixFont]">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-light leading-tight tracking-tight text-white">
+              Recommended <span className="text-accent-blue">Templates</span>
+            </h2>
+            <p className="text-text-muted mt-2 text-sm leading-relaxed max-w-md">
+              Start with one of these public workspaces published by the LixSketch community.
+            </p>
+          </div>
+          <Link
+            href="/templates"
+            className="inline-flex items-center gap-1 text-sm text-accent-blue hover:underline"
+          >
+            Browse all templates <i className="bx bx-right-arrow-alt" />
+          </Link>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
+          {templates.map((template) => (
+            <Link
+              key={template.id}
+              href={`/templates/${template.slug}`}
+              className="group rounded-2xl border border-border-light bg-surface-card/30 p-5 transition-all duration-300 hover:border-accent-blue/40 hover:bg-surface-card/60 flex flex-col h-full"
+            >
+              <div className="overflow-hidden rounded-xl border border-border-light bg-gradient-to-br from-[#2c2142]/40 to-[#111019] aspect-[16/9] mb-4 flex items-center justify-center relative">
+                {template.coverDataUrl ? (
+                  <img
+                    src={template.coverDataUrl}
+                    alt=""
+                    className="h-full w-full object-contain transition duration-500 group-hover:scale-[1.02]"
+                  />
+                ) : (
+                  <i className="bx bx-palette text-5xl text-accent-blue/30" />
+                )}
+              </div>
+              <h3 className="text-base font-medium text-text-primary group-hover:text-accent-blue transition duration-200 truncate">
+                {template.title}
+              </h3>
+              <p className="mt-2 text-xs leading-relaxed text-text-muted line-clamp-2 flex-grow">
+                {template.description || 'A public LixSketch workspace template.'}
+              </p>
+              <div className="mt-4 pt-4 border-t border-border-light/40 flex items-center justify-between text-[10px] text-text-dim">
+                <span>By {template.publisher?.name || 'Community'}</span>
+                <span>{template.forks || 0} forks</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
   )
 }

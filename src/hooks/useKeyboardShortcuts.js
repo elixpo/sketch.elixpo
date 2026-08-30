@@ -12,8 +12,51 @@ export default function useKeyboardShortcuts() {
     function handleKeyDown(e) {
       const key = e.key.toLowerCase()
 
+      // Escape is modal-global and must work even when focus is inside an
+      // input or textarea. Close every open modal in one state update so
+      // overlapping dialogs cannot leave a hidden modal behind.
+      if (e.key === 'Escape') {
+        const uiStore = useUIStore.getState()
+        const hasOpenModal = [
+          uiStore.saveModalOpen,
+          uiStore.aiModalOpen,
+          uiStore.commandPaletteOpen,
+          uiStore.exportImageModalOpen,
+          uiStore.findBarOpen,
+          uiStore.canvasPropertiesOpen,
+          uiStore.imageGenerateModalOpen,
+        ].some(Boolean)
+        if (hasOpenModal) {
+          e.preventDefault()
+          e.stopImmediatePropagation()
+          uiStore.closeAllModals()
+          return
+        }
+      }
+
       // Global Ctrl shortcuts (work even when typing)
       if (e.ctrlKey || e.metaKey) {
+        const zoomDirection = (key === '+' || key === '=' || e.code === 'NumpadAdd')
+          ? 1
+          : (key === '-' || e.code === 'NumpadSubtract')
+            ? -1
+            : 0
+        if (zoomDirection !== 0) {
+          if (!e.defaultPrevented) {
+            e.preventDefault()
+            if (typeof window.zoomFromCenter === 'function') {
+              window.zoomFromCenter(zoomDirection)
+            }
+          }
+          return
+        }
+        if (key === '0' || e.code === 'Numpad0') {
+          if (!e.defaultPrevented) {
+            e.preventDefault()
+            if (typeof window.zoomReset === 'function') window.zoomReset()
+          }
+          return
+        }
         if (key === 's' && e.shiftKey) {
           e.preventDefault()
           useUIStore.getState().toggleSaveModal()
@@ -163,6 +206,12 @@ export default function useKeyboardShortcuts() {
         return
       }
 
+      if (e.shiftKey && (key === '1' || key === '!')) {
+        e.preventDefault()
+        if (typeof window.zoomFit === 'function') window.zoomFit()
+        return
+      }
+
       // Delete / Backspace — delete selected shape(s)
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault()
@@ -235,6 +284,13 @@ export default function useKeyboardShortcuts() {
         return
       }
 
+      if (e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && key === 'r') {
+        e.preventDefault()
+        store.toggleRulers()
+        showToast(store.rulersEnabled ? 'Rulers hidden' : 'Rulers shown', { tone: 'info' })
+        return
+      }
+
       // Tool switching shortcuts (no modifier keys)
       if (!e.shiftKey && !e.altKey) {
         if (key === 'q') {
@@ -261,30 +317,6 @@ export default function useKeyboardShortcuts() {
             return
           }
           const uiStore = useUIStore.getState()
-          if (uiStore.findBarOpen) {
-            uiStore.closeFindBar()
-            return
-          }
-          if (uiStore.commandPaletteOpen) {
-            uiStore.toggleCommandPalette()
-            return
-          }
-          if (uiStore.exportImageModalOpen) {
-            uiStore.toggleExportImageModal()
-            return
-          }
-          if (uiStore.helpModalOpen) {
-            uiStore.toggleHelpModal()
-            return
-          }
-          if (uiStore.shortcutsModalOpen) {
-            uiStore.toggleShortcutsModal()
-            return
-          }
-          if (uiStore.saveModalOpen) {
-            uiStore.toggleSaveModal()
-            return
-          }
           if (uiStore.menuOpen) {
             uiStore.closeMenu()
             return
@@ -310,6 +342,7 @@ export default function useKeyboardShortcuts() {
     function handleKeyUp(e) {
       if (e.code === 'Space' && spaceHeld) {
         spaceHeld = false
+        window.__spacePanActive = false
         if (toolBeforeSpace) {
           useSketchStore.getState().setActiveTool(toolBeforeSpace)
           toolBeforeSpace = null
@@ -323,6 +356,7 @@ export default function useKeyboardShortcuts() {
         if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return
         e.preventDefault()
         spaceHeld = true
+        window.__spacePanActive = true
         const store = useSketchStore.getState()
         if (store.activeTool !== TOOLS.PAN) {
           toolBeforeSpace = store.activeTool
@@ -331,15 +365,27 @@ export default function useKeyboardShortcuts() {
       }
     }
 
+    function handleWindowBlur() {
+      spaceHeld = false
+      window.__spacePanActive = false
+      if (toolBeforeSpace) {
+        useSketchStore.getState().setActiveTool(toolBeforeSpace)
+        toolBeforeSpace = null
+      }
+    }
+
     document.addEventListener('keydown', handleKeyDown)
     document.addEventListener('keydown', handleSpaceDown)
     document.addEventListener('keyup', handleKeyUp)
     document.addEventListener('wheel', handleWheel, { passive: false })
+    window.addEventListener('blur', handleWindowBlur)
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
       document.removeEventListener('keydown', handleSpaceDown)
       document.removeEventListener('keyup', handleKeyUp)
       document.removeEventListener('wheel', handleWheel)
+      window.removeEventListener('blur', handleWindowBlur)
+      window.__spacePanActive = false
     }
   }, [])
 }

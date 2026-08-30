@@ -27,8 +27,7 @@ function isThemeDark() {
 function nodeStrokeColor() { return isThemeDark() ? '#fff' : '#1a1a2e'; }
 function edgeStrokeColor() { return isThemeDark() ? '#888' : '#444'; }
 
-// Theme colors (dark theme — used by the SVG-string preview path only)
-const THEME = {
+const DARK_THEME = {
     bg: '#1e1e28',
     nodeBg: 'transparent',
     nodeStroke: '#9090c0',
@@ -39,6 +38,20 @@ const THEME = {
     subgraphBorder: '#555',
     subgraphLabel: '#888',
 };
+
+const LIGHT_THEME = {
+    bg: '#fbfaf6',
+    nodeBg: '#f5f2ea',
+    nodeStroke: '#6e746c',
+    nodeText: '#343832',
+    edgeStroke: '#6e746c',
+    edgeText: '#4f554e',
+    subgraphBg: 'rgba(117, 135, 119, 0.06)',
+    subgraphBorder: '#aaa99f',
+    subgraphLabel: '#666b64',
+};
+
+function previewTheme() { return isThemeDark() ? DARK_THEME : LIGHT_THEME; }
 
 function escapeXml(str) {
     return String(str)
@@ -61,6 +74,8 @@ function measureText(text, fontSize) {
  */
 export function renderFlowchartSVG(diagram, opts = {}) {
     if (!diagram || !diagram.nodes || diagram.nodes.length === 0) return '';
+
+    const THEME = previewTheme();
 
     const nodes = diagram.nodes;
     const edges = diagram.edges || [];
@@ -269,8 +284,8 @@ export function renderFlowchartSVG(diagram, opts = {}) {
 
         // Node label (supports multi-line via \n)
         if (n.label) {
-            let labelFill = nFill && nFill !== 'transparent' && nFill !== THEME.nodeBg ? getContrastColor(nFill) : nStroke;
-            if (isColorTooDark(labelFill)) labelFill = '#d0d0d0';
+            const hasSolidFill = nFill && nFill !== 'transparent' && nFill !== 'none';
+            const labelFill = n.labelColor || (hasSolidFill ? getContrastColor(nFill) : THEME.nodeText);
 
             const labelLines = n.label.split('\n');
             if (labelLines.length === 1) {
@@ -327,13 +342,6 @@ function getEdgePoint(node, target) {
     }
     if (dx > 0) return { x: node.x + node.w, y: node.cy };
     return { x: node.x, y: node.cy };
-}
-
-function isColorTooDark(hex) {
-    if (!hex || hex === 'transparent' || hex === 'none') return false;
-    const rgb = parseColor(hex);
-    if (!rgb) return false;
-    return (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) < 80;
 }
 
 function parseColor(hex) {
@@ -455,7 +463,7 @@ export function renderFlowchartOnCanvas(diagram) {
             fillStyle: n.fill && n.fill !== 'transparent' ? 'solid' : 'none',
             roughness: 1,
             label: n.label || '',
-            labelColor: n.labelColor || nodeStrokeColor(),
+            labelColor: n.labelColor || (n.fill && n.fill !== 'transparent' ? getContrastColor(n.fill) : nodeStrokeColor()),
         };
 
         let shape = null;

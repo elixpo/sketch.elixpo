@@ -1,99 +1,82 @@
+# Production deployment adapted from blogs.elixpo.
+#
+# Required repository secrets:
+#   CLOUDFLARE_API_TOKEN  — Workers Scripts: Edit and Cloudflare Pages: Edit
+#   CLOUDFLARE_ACCOUNT_ID — Cloudflare account identifier
+#   NEXT_PUBLIC_ELIXPO_AUTH_CLIENT_ID — public Elixpo OAuth client identifier
+#
+# Runtime secrets remain configured on the Worker and Pages project. This
+# workflow only supplies public values that Next.js compiles into the client.
 name: Deploy
 
 on:
   push:
     branches: [main]
 
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
-  detect-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      lixsketch: ${{ steps.filter.outputs.lixsketch }}
-      vscode: ${{ steps.filter.outputs.vscode }}
-      worker: ${{ steps.filter.outputs.worker }}
-      web: ${{ steps.filter.outputs.web }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            lixsketch:
-              - 'packages/lixsketch/**'
-            vscode:
-              - 'packages/vscode/**'
-            worker:
-              - 'worker/**'
-            web:
-              - 'app/**'
-              - 'public/**'
-              - 'src/**'
-              - '!packages/**'
-              - '!worker/**'
-
-  deploy-lixsketch:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.lixsketch == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.CI_AGENT_TOKEN }}
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: 'https://registry.npmjs.org'
-      - run: npm ci
-      - run: ./deploy.sh --package build deploy
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_LIXSKETCH_PUBLISH_TOKEN }}
-          GITHUB_ACCESS_TOKEN: ${{ secrets.CI_AGENT_TOKEN }}
-
-  deploy-vscode:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.vscode == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.CI_AGENT_TOKEN }}
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm ci
-      - run: ./deploy.sh --package --vs build deploy
-        env:
-          VSCE_PAT: ${{ secrets.VSCODE_LIXSKETCH_EXT_PUBLISH_TOKEN }}
-          GITHUB_ACCESS_TOKEN: ${{ secrets.CI_AGENT_TOKEN }}
-
   deploy-worker:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.worker == 'true'
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      !contains(github.event.head_commit.message, '[skip deploy]')
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      - name: Deploy collaboration worker
+        uses: cloudflare/wrangler-action@v3
         with:
-          node-version: 20
-      - run: npm ci
-      - run: ./deploy.sh --worker build deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config wrangler.toml
 
   deploy-pages:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.web == 'true'
+    needs: deploy-worker
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - run: npm ci
-      - run: ./deploy.sh --pages build deploy
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate public build configuration
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          NEXT_PUBLIC_ELIXPO_AUTH_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_ELIXPO_AUTH_CLIENT_ID }}
+        run: |
+          if [ -z "$NEXT_PUBLIC_ELIXPO_AUTH_CLIENT_ID" ]; then
+            echo "::error::NEXT_PUBLIC_ELIXPO_AUTH_CLIENT_ID repository secret is required"
+            exit 1
+          fi
+
+      - name: Build for Cloudflare Pages
+        run: npx --no-install @cloudflare/next-on-pages
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          NEXT_PUBLIC_ELIXPO_AUTH_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_ELIXPO_AUTH_CLIENT_ID }}
+          NEXT_PUBLIC_WORKER_URL: ${{ vars.NEXT_PUBLIC_WORKER_URL || 'https://sketch.elixpo.com' }}
+          NEXT_PUBLIC_ROOM_WS_URL: ${{ vars.NEXT_PUBLIC_ROOM_WS_URL || 'wss://sketch.elixpo.com' }}
+          NEXT_PUBLIC_LIXSKETCH_EMBED_ORIGINS: ${{ vars.NEXT_PUBLIC_LIXSKETCH_EMBED_ORIGINS || 'https://sketch.elixpo.com' }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy .vercel/output/static --project-name lixsketch --branch main
+
+  # D1 migrations intentionally remain manual via `npm run db:migrate`.
+  # Schema changes must be applied before merging code that depends on them.

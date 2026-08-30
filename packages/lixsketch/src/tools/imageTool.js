@@ -4,6 +4,7 @@ import { pushCreateAction, pushDeleteAction, pushTransformAction, pushFrameAttac
 import { updateAttachedArrows as updateArrowsForShape, cleanupAttachments } from './arrowTool.js';
 import { compressImage } from '../utils/imageCompressor.js';
 import { isAllowedImage, IMAGE_ACCEPT_ATTR } from '../utils/allowedImageTypes.js';
+import { registerRotationAnchor } from '../core/ScreenSpaceControls.js';
 
 
 let isDraggingImage = false;
@@ -29,9 +30,15 @@ const minImageSize = 20;
 let draggedShapeInitialFrameImage = null;
 let hoveredFrameImage = null;
 
-// Per-room image size limit: 5MB total
-const ROOM_IMAGE_LIMIT_BYTES = 5 * 1024 * 1024;
 if (!window.__roomImageBytesUsed) window.__roomImageBytesUsed = 0;
+
+function getRoomImageLimitBytes() {
+    return Number(window.__roomImageLimitBytes) || 2 * 1024 * 1024;
+}
+
+function usesPersonalCloudinary() {
+    return Boolean(window.__personalCloudinary?.connected && window.__personalCloudinary?.useForUploads);
+}
 
 
 // Convert SVG element to our ImageShape class
@@ -68,6 +75,37 @@ async function uploadImageToCloudinary(imageShape) {
         const compressed = await compressImage(href);
         if (signal.aborted) return;
 
+        const roomLimit = getRoomImageLimitBytes();
+        const oldSize = imageShape.element.__fileSize || 0;
+        if (!usesPersonalCloudinary() && (window.__roomImageBytesUsed || 0) - oldSize + compressed.compressedSize > roomLimit) {
+            throw new Error(`Room image limit reached (${Math.round(roomLimit / (1024 * 1024))} MB)`);
+        }
+
+        if (usesPersonalCloudinary()) {
+            const personalForm = new FormData();
+            personalForm.append('file', compressed.blob, `image_${Date.now()}`);
+            personalForm.append('sessionId', sessionId);
+            const personalResponse = await fetch('/api/images/personal-upload', {
+                method: 'POST',
+                body: personalForm,
+                signal,
+            });
+            const personalData = await personalResponse.json().catch(() => ({}));
+            if (!personalResponse.ok || !personalData.url) {
+                throw new Error(personalData.error || 'Personal Cloudinary upload failed');
+            }
+            imageShape.element.setAttribute('href', personalData.url);
+            imageShape.element.setAttribute('data-href', personalData.url);
+            imageShape.element.setAttribute('data-cloudinary-id', personalData.publicId);
+            imageShape.element.setAttribute('data-storage-provider', 'user_cloudinary');
+            imageShape.element.setAttribute('data-storage-cloud-name', personalData.cloudName || '');
+            imageShape.element.__fileSize = 0;
+            imageShape.element.setAttribute('data-file-size', '0');
+            window.__roomImageBytesUsed = Math.max(0, (window.__roomImageBytesUsed || 0) - oldSize);
+            imageShape.uploadStatus = 'done';
+            return;
+        }
+
         // Step 2: Get signed upload params
         const signRes = await fetch(`${workerUrl}/api/images/sign`, {
             method: 'POST',
@@ -75,10 +113,14 @@ async function uploadImageToCloudinary(imageShape) {
             body: JSON.stringify({
                 sessionId,
                 filename: `img_${Date.now()}`,
+                sizeBytes: compressed.compressedSize,
             }),
             signal,
         });
-        if (!signRes.ok) throw new Error('Failed to get upload signature');
+        if (!signRes.ok) {
+            const errorBody = await signRes.json().catch(() => ({}));
+            throw new Error(errorBody.message || 'Failed to get upload signature');
+        }
         const signData = await signRes.json();
         if (signal.aborted) return;
 
@@ -99,6 +141,17 @@ async function uploadImageToCloudinary(imageShape) {
         const uploadData = await uploadRes.json();
         if (signal.aborted) return;
 
+        await fetch(`${workerUrl}/api/images/complete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                sessionId,
+                publicId: uploadData.public_id || signData.publicId,
+                sizeBytes: uploadData.bytes || compressed.compressedSize,
+            }),
+            signal,
+        }).catch(() => {});
+
         // Step 4: Replace base64 with Cloudinary URL
         const cloudUrl = uploadData.secure_url || uploadData.url;
         imageShape.element.setAttribute('href', cloudUrl);
@@ -106,9 +159,9 @@ async function uploadImageToCloudinary(imageShape) {
         imageShape.element.setAttribute('data-cloudinary-id', uploadData.public_id);
 
         // Update file size tracking with actual compressed size
-        const oldSize = imageShape.element.__fileSize || 0;
         const newSize = uploadData.bytes || compressed.compressedSize;
         imageShape.element.__fileSize = newSize;
+        imageShape.element.setAttribute('data-file-size', String(newSize));
         window.__roomImageBytesUsed = Math.max(0, (window.__roomImageBytesUsed || 0) - oldSize + newSize);
 
         imageShape.uploadStatus = 'done';
@@ -208,19 +261,20 @@ const handleImageUpload = async (file) => {
         return;
     }
 
-    // Per-room 5MB total image limit
-    if (window.__roomImageBytesUsed + file.size > ROOM_IMAGE_LIMIT_BYTES) {
+    const roomImageLimitBytes = getRoomImageLimitBytes();
+    const personalStorage = usesPersonalCloudinary();
+    if (!personalStorage && window.__roomImageBytesUsed + file.size > roomImageLimitBytes) {
         const usedMB = (window.__roomImageBytesUsed / (1024 * 1024)).toFixed(2);
         const fileMB = (file.size / (1024 * 1024)).toFixed(2);
-        alert(`Room image limit reached (5 MB). Used: ${usedMB} MB, this file: ${fileMB} MB. Delete some images to free space.`);
+        alert(`Room image limit reached (${Math.round(roomImageLimitBytes / (1024 * 1024))} MB). Used: ${usedMB} MB, this file: ${fileMB} MB. Delete some images to free space.`);
         isImageToolActive = false;
         return;
     }
 
-    const maxSize = 5 * 1024 * 1024; // 5MB per file (matches room limit)
+    const maxSize = personalStorage ? 20 * 1024 * 1024 : roomImageLimitBytes;
     if (file.size > maxSize) {
         console.error('File size too large');
-        alert('Image file is too large. Please select an image smaller than 5 MB.');
+        alert(`Image file is too large. Please select an image smaller than ${Math.round(maxSize / (1024 * 1024))} MB.`);
         return;
     }
 
@@ -470,6 +524,7 @@ const handleMouseDownImage = async (e) => {
         // Track image size for room limit
         const placedFileSize = window.__pendingImageFileSize || 0;
         finalImage.__fileSize = placedFileSize;
+        finalImage.setAttribute('data-file-size', String(placedFileSize));
         window.__roomImageBytesUsed = (window.__roomImageBytesUsed || 0) + placedFileSize;
         window.__pendingImageFileSize = 0;
 
@@ -537,8 +592,8 @@ const handleMouseUpImage = (e) => {
     }
 };
 
-function selectImage(event) {
-    if (!isSelectionToolActive) return;
+function selectImage(event, force = false) {
+    if (!isSelectionToolActive && !force) return;
 
     event.stopPropagation(); // Prevent click from propagating to the SVG
 
@@ -592,7 +647,8 @@ function addSelectionOutline() {
     const width = parseFloat(selectedImage.getAttribute('width'));
     const height = parseFloat(selectedImage.getAttribute('height'));
 
-    const selectionPadding = 8; // Padding around the selection
+    const zoom = window.currentZoom || 1;
+    const selectionPadding = 8 / zoom; // Padding around the selection
     const expandedX = x - selectionPadding;
     const expandedY = y - selectionPadding;
     const expandedWidth = width + 2 * selectionPadding;
@@ -651,7 +707,7 @@ function removeSelectionOutline() {
 function addResizeAnchors(x, y, width, height, centerX, centerY) {
     const zoom = window.currentZoom || 1;
     const anchorSize = 10 / zoom;
-    const anchorStrokeWidth = 2;
+    const anchorStrokeWidth = 2 / zoom;
 
     const positions = [
         { x: x, y: y }, // Top-left
@@ -669,6 +725,7 @@ function addResizeAnchors(x, y, width, height, centerX, centerY) {
         anchor.setAttribute("fill", "#121212");
         anchor.setAttribute("stroke", "#5B57D1");
         anchor.setAttribute("stroke-width", anchorStrokeWidth);
+        anchor.setAttribute("vector-effect", "non-scaling-stroke");
         anchor.setAttribute("class", "resize-anchor");
         anchor.style.cursor = ["nw-resize", "ne-resize", "sw-resize", "se-resize"][i];
 
@@ -684,23 +741,26 @@ function addResizeAnchors(x, y, width, height, centerX, centerY) {
 }
 
 function addRotationAnchor(x, y, width, height, centerX, centerY) {
-    const anchorStrokeWidth = 2;
-    const rotationAnchorPos = { x: x + width / 2, y: y - 30 };
+    const zoom = window.currentZoom || 1;
+    const anchorStrokeWidth = 2 / zoom;
+    const rotationAnchorPos = { x: x + width / 2, y: y - 30 / zoom };
     
     const rotationAnchor = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     rotationAnchor.setAttribute('cx', rotationAnchorPos.x);
     rotationAnchor.setAttribute('cy', rotationAnchorPos.y);
-    rotationAnchor.setAttribute('r', 8);
+    rotationAnchor.setAttribute('r', 5 / zoom);
     rotationAnchor.setAttribute('class', 'rotation-anchor');
     rotationAnchor.setAttribute('fill', '#121212');
     rotationAnchor.setAttribute('stroke', '#5B57D1');
     rotationAnchor.setAttribute('stroke-width', anchorStrokeWidth);
+    rotationAnchor.setAttribute('vector-effect', 'non-scaling-stroke');
     rotationAnchor.setAttribute('style', 'pointer-events: all;');
     
     // Apply the same rotation as the image
     rotationAnchor.setAttribute('transform', `rotate(${imageRotation}, ${centerX}, ${centerY})`);
     
     svg.appendChild(rotationAnchor);
+    registerRotationAnchor(rotationAnchor, { radius: 5, edgeY: y });
 
     // Add event listeners for rotation
     rotationAnchor.addEventListener('pointerdown', startRotation);
@@ -1264,9 +1324,11 @@ function deleteCurrentImage() {
             const match = imgHref.match(/\/upload\/(?:v\d+\/)?(lixsketch\/.+?)(?:\.\w+)?$/);
             if (match) {
                 const publicId = match[1];
+                const isPersonal = selectedImage.getAttribute('data-storage-provider') === 'user_cloudinary';
                 const workerUrl = window.__WORKER_URL;
-                if (workerUrl) {
-                    fetch(`${workerUrl}/api/images/delete`, {
+                const deleteUrl = isPersonal ? '/api/images/personal-delete' : (workerUrl ? `${workerUrl}/api/images/delete` : null);
+                if (deleteUrl) {
+                    fetch(deleteUrl, {
                         method: 'DELETE',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ publicId }),
@@ -1314,6 +1376,14 @@ document.addEventListener('keydown', (e) => {
 
 // Expose upload pipeline globally so generated/pasted images can use it
 window.uploadImageToCloudinary = uploadImageToCloudinary;
+
+// Programmatic selection bridge used by generated vector-image shapes.
+// Keeping the selection state in this module prevents a second, divergent
+// implementation of image dragging and screen-space resize controls.
+window.__selectImageElement = function(element, { force = false } = {}) {
+    if (!element) return;
+    selectImage({ target: element, stopPropagation: () => {} }, force);
+};
 
 // Window bridge: allow React UI to trigger the file picker
 window.openImageFilePicker = function() {

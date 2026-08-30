@@ -57,6 +57,7 @@ class SketchEngine {
         // Core SVG reference
         window.svg = this.svg;
         window.freehandCanvas = this.svg;
+        window.__sketchInteractionReady = false;
 
         // RoughJS from npm
         window.rough = rough;
@@ -97,6 +98,10 @@ class SketchEngine {
         window.isFrameToolActive = false;
         window.isIconToolActive = false;
         window.isCodeToolActive = false;
+        window.isShapeRecognitionToolActive = false;
+        window.isPaintBucketToolActive = false;
+        window.isLassoToolActive = false;
+        window.isWebEmbedToolActive = false;
         window.isTextInCodeMode = false;
 
         // Pan state
@@ -288,6 +293,14 @@ class SketchEngine {
             if (eventDispatcher.initEventDispatcher) {
                 eventDispatcher.initEventDispatcher(this.svg);
             }
+            window.__sketchInteractionReady = true;
+
+            // Restore only after pointer handlers are bound. This still keeps
+            // first canvas paint ahead of optional AI/graph/LixScript chunks,
+            // while guaranteeing every visible restored shape is immediately
+            // selectable and draggable.
+            const sceneSerializer = await import('./core/SceneSerializer.js');
+            if (sceneSerializer.initSceneSerializer) sceneSerializer.initSceneSerializer();
 
             // Import standalone tools
             await Promise.all([
@@ -313,10 +326,6 @@ class SketchEngine {
             // Initialize graph engine bridge
             const graphEngine = await import('./core/GraphEngine.js');
             if (graphEngine.initGraphEngine) graphEngine.initGraphEngine();
-
-            // Initialize scene serializer bridge
-            const sceneSerializer = await import('./core/SceneSerializer.js');
-            if (sceneSerializer.initSceneSerializer) sceneSerializer.initSceneSerializer();
 
             // Initialize layer ordering
             const layerOrder = await import('./core/LayerOrder.js');
@@ -395,6 +404,10 @@ class SketchEngine {
         if (typeof window.__cleanupIconTool === 'function') {
             window.__cleanupIconTool();
         }
+        if (typeof window.__cancelShapeRecognition === 'function') {
+            window.__cancelShapeRecognition();
+        }
+        if (typeof window.__cancelLasso === 'function') window.__cancelLasso();
 
         window.isPaintToolActive = false;
         window.isSquareToolActive = false;
@@ -410,6 +423,10 @@ class SketchEngine {
         window.isFrameToolActive = false;
         window.isIconToolActive = false;
         window.isCodeToolActive = false;
+        window.isShapeRecognitionToolActive = false;
+        window.isPaintBucketToolActive = false;
+        window.isLassoToolActive = false;
+        window.isWebEmbedToolActive = false;
 
         const flagMap = {
             select: 'isSelectionToolActive',
@@ -426,6 +443,10 @@ class SketchEngine {
             image: 'isImageToolActive',
             frame: 'isFrameToolActive',
             icon: 'isIconToolActive',
+            'draw-shape': 'isShapeRecognitionToolActive',
+            'paint-bucket': 'isPaintBucketToolActive',
+            lasso: 'isLassoToolActive',
+            'web-embed': 'isWebEmbedToolActive',
         };
 
         const flag = flagMap[toolName];
@@ -438,6 +459,10 @@ class SketchEngine {
         // Show image source picker when image tool is activated
         if (toolName === 'image' && window.__showImageSourcePicker) {
             window.__showImageSourcePicker();
+        }
+        if (toolName === 'web-embed') {
+            window.__showWebEmbedModal?.();
+            window.dispatchEvent(new CustomEvent('lixsketch:open-web-embed'));
         }
 
         // Set appropriate cursor for the active tool
@@ -456,6 +481,10 @@ class SketchEngine {
             image: 'crosshair',
             frame: 'crosshair',
             icon: 'crosshair',
+            'draw-shape': 'crosshair',
+            'paint-bucket': 'cell',
+            lasso: 'crosshair',
+            'web-embed': 'crosshair',
         };
         if (this.svg) {
             this.svg.style.cursor = cursorMap[toolName] || 'default';
@@ -463,6 +492,9 @@ class SketchEngine {
     }
 
     cleanup() {
+        if (typeof window.__cancelShapeRecognition === 'function') {
+            window.__cancelShapeRecognition();
+        }
         // Remove event listeners from the SVG element
         if (this._modules.core?.eventDispatcher?.cleanupEventDispatcher) {
             this._modules.core.eventDispatcher.cleanupEventDispatcher();
@@ -470,6 +502,8 @@ class SketchEngine {
         window.shapes = [];
         window.currentShape = null;
         window.lastMousePos = null;
+        window.__sketchInteractionReady = false;
+        delete window.__sceneSerializer;
         this._modules = {};
         this._initialized = false;
         console.log('[SketchEngine] Cleaned up');

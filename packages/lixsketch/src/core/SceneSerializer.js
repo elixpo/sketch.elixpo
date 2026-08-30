@@ -12,6 +12,7 @@ import { Line } from '../shapes/Line.js';
 import { Arrow } from '../shapes/Arrow.js';
 import { FreehandStroke } from '../shapes/FreehandStroke.js';
 import { Frame } from '../shapes/Frame.js';
+import { normalizeWebEmbedUrl } from './WebEmbedPolicy.js';
 import { TextShape } from '../shapes/TextShape.js';
 import { CodeShape } from '../shapes/CodeShape.js';
 import { ImageShape } from '../shapes/ImageShape.js';
@@ -35,12 +36,28 @@ function cloneOptions(options) {
     return JSON.parse(JSON.stringify(options));
 }
 
+function restoreDocBlockLinks(shape, data) {
+    const ids = [...new Set((Array.isArray(data.docBlockIds)
+        ? data.docBlockIds
+        : (data.docBlockId ? [data.docBlockId] : [])).filter(Boolean))];
+    shape.docBlockIds = ids;
+    delete shape.docBlockId;
+    if (ids.length) {
+        (shape.group || shape.element)?.setAttribute('data-doc-block-ids', JSON.stringify(ids));
+    }
+}
+
 // ============================================================
 // SERIALIZE a single shape to plain data
 // ============================================================
 function serializeShape(shape) {
     const base = {
         shapeID: shape.shapeID,
+        // Optional many-to-many connections to BlockNote document blocks.
+        // Stored with the encrypted scene so navigation survives restore.
+        docBlockIds: [...new Set((Array.isArray(shape.docBlockIds)
+            ? shape.docBlockIds
+            : (shape.docBlockId ? [shape.docBlockId] : [])).filter(Boolean))],
         parentFrame: shape.parentFrame ? shape.parentFrame.shapeID : null,
         // Group membership — null when the shape isn't part of a group.
         // All shapes sharing a non-null groupId move/resize/rotate as a
@@ -121,6 +138,8 @@ function serializeShape(shape) {
                 fillColor: shape.fillColor || '#1e1e28',
                 gridSize: shape.gridSize || 20,
                 gridColor: shape.gridColor || 'rgba(255,255,255,0.06)',
+                frameType: shape._frameType || null,
+                webEmbedURL: shape._frameType === 'web-embed' ? shape._webEmbedURL : null,
                 options: cloneOptions(shape.options),
                 // Issue #24 bug #10: filter out null / undefined / shapeID-less
                 // children. A stale reference would serialize as `null` and the
@@ -164,6 +183,16 @@ function serializeShape(shape) {
                 width: shape.width, height: shape.height,
                 rotation: shape.rotation,
                 href: el.getAttribute('href') || el.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '',
+                sizeBytes: Number(el.__fileSize || el.getAttribute('data-file-size')) || 0,
+                cloudinaryId: el.getAttribute('data-cloudinary-id') || null,
+                storageProvider: el.getAttribute('data-storage-provider') || 'platform_cloudinary',
+                storageCloudName: el.getAttribute('data-storage-cloud-name') || null,
+                aiGenerated: el.getAttribute('data-ai-generated') === 'true',
+                aiModel: el.getAttribute('data-ai-model') || null,
+                frameType: shape._frameType || null,
+                graphData: shape._frameType === 'graph' && shape._graphData
+                    ? cloneOptions(shape._graphData)
+                    : null,
             };
         }
 
@@ -243,6 +272,8 @@ function deserializeShape(data) {
             if (data.fillColor) frameOpts.fillColor = data.fillColor;
             if (data.gridSize) frameOpts.gridSize = data.gridSize;
             if (data.gridColor) frameOpts.gridColor = data.gridColor;
+            const embedURL = data.frameType === 'web-embed' ? normalizeWebEmbedUrl(data.webEmbedURL) : null;
+            if (embedURL) { frameOpts.frameType = 'web-embed'; frameOpts.webEmbedURL = embedURL; }
             const shape = new Frame(data.x, data.y, data.width, data.height, frameOpts);
             if (data.rotation) shape.rotation = data.rotation;
             if (data.shapeID) shape.shapeID = data.shapeID;
@@ -284,10 +315,29 @@ function deserializeShape(data) {
             imgEl.setAttribute('height', data.height);
             imgEl.setAttribute('href', data.href);
             imgEl.setAttribute('preserveAspectRatio', 'none');
+            if (data.sizeBytes) {
+                imgEl.__fileSize = Number(data.sizeBytes) || 0;
+                imgEl.setAttribute('data-file-size', String(imgEl.__fileSize));
+                window.__roomImageBytesUsed = (window.__roomImageBytesUsed || 0) + imgEl.__fileSize;
+            }
+            if (data.cloudinaryId) imgEl.setAttribute('data-cloudinary-id', data.cloudinaryId);
+            if (data.storageProvider) imgEl.setAttribute('data-storage-provider', data.storageProvider);
+            if (data.storageCloudName) imgEl.setAttribute('data-storage-cloud-name', data.storageCloudName);
+            if (data.aiGenerated) imgEl.setAttribute('data-ai-generated', 'true');
+            if (data.aiModel) imgEl.setAttribute('data-ai-model', data.aiModel);
             svgEl.appendChild(imgEl);
             const shape = new ImageShape(imgEl);
             if (data.rotation) shape.rotation = data.rotation;
             if (data.shapeID) shape.shapeID = data.shapeID;
+            if (data.frameType === 'graph' && data.graphData) {
+                if (typeof window.__hydrateGraphShape === 'function') {
+                    window.__hydrateGraphShape(shape, data.graphData);
+                } else {
+                    shape._frameType = 'graph';
+                    shape._graphData = cloneOptions(data.graphData);
+                    shape.element.setAttribute('data-graph-shape', 'true');
+                }
+            }
             return shape;
         }
 
@@ -371,6 +421,7 @@ export function loadScene(sceneData) {
     // Clear current scene
     const svgEl = window.svg;
     if (!svgEl) return false;
+    window.__roomImageBytesUsed = 0;
 
     // Remove all existing shape DOM elements
     const existingShapes = window.shapes || [];
@@ -411,6 +462,7 @@ export function loadScene(sceneData) {
         if (shape) {
             // Restore group membership if present.
             if (data.groupId) shape.groupId = data.groupId;
+            restoreDocBlockLinks(shape, data);
             window.shapes.push(shape);
             if (data.shapeID) idMap.set(data.shapeID, shape);
         }
@@ -421,6 +473,7 @@ export function loadScene(sceneData) {
         const shape = deserializeShape(data);
         if (shape) {
             if (data.groupId) shape.groupId = data.groupId;
+            restoreDocBlockLinks(shape, data);
             window.shapes.push(shape);
             if (data.shapeID) idMap.set(data.shapeID, shape);
         }
@@ -539,6 +592,7 @@ export function loadScene(sceneData) {
     }
 
     console.log(`[SceneSerializer] Loaded ${window.shapes.length} shapes from "${sceneData.name}"`);
+    window.dispatchEvent(new CustomEvent('lix-doc-canvas-links-changed'));
 
     // Re-sync tool flags so shapes are interactable after restore
     if (window.__sketchEngine && typeof window.__sketchEngine.setActiveTool === 'function') {
@@ -806,6 +860,9 @@ export function resetCanvas() {
     } catch (_) {}
 
     console.log('[SceneSerializer] Canvas reset');
+    if (typeof window.__collabSceneChanged === 'function') {
+        window.__collabSceneChanged();
+    }
 }
 
 // ============================================================

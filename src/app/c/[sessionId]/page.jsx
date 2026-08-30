@@ -2,14 +2,13 @@
 
 import { useEffect } from 'react'
 import Header from '@/components/header/Header'
+import useUIStore from '@/store/useUIStore'
 import Toolbar from '@/components/toolbar/Toolbar'
 import Footer from '@/components/footer/Footer'
 import AppMenu from '@/components/menu/AppMenu'
-import ShortcutsModal from '@/components/modals/ShortcutsModal'
 import SaveModal from '@/components/modals/SaveModal'
 import AIModal from '@/components/modals/AIModal'
 import CommandPalette from '@/components/modals/CommandPalette'
-import HelpModal from '@/components/modals/HelpModal'
 import ExportImageModal from '@/components/modals/ExportImageModal'
 import CanvasPropertiesModal from '@/components/modals/CanvasPropertiesModal'
 import RectangleSidebar from '@/components/sidebars/RectangleSidebar'
@@ -21,10 +20,13 @@ import TextSidebar from '@/components/sidebars/TextSidebar'
 import FrameSidebar from '@/components/sidebars/FrameSidebar'
 import IconSidebar from '@/components/sidebars/IconSidebar'
 import ImageSidebar from '@/components/sidebars/ImageSidebar'
+import PaintBucketSidebar from '@/components/sidebars/PaintBucketSidebar'
 import SVGCanvas from '@/components/canvas/SVGCanvas'
+import CanvasDocConnectors from '@/components/canvas/CanvasDocConnectors'
 import MultiSelectActions from '@/components/canvas/MultiSelectActions'
 import ImageSourcePicker from '@/components/canvas/ImageSourcePicker'
 import ImageGenerateModal from '@/components/modals/ImageGenerateModal'
+import WebEmbedModal from '@/components/modals/WebEmbedModal'
 import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts'
 import useSessionID from '@/hooks/useSessionID'
 import useGuestProfile from '@/hooks/useGuestProfile'
@@ -36,6 +38,8 @@ import FindBar from '@/components/canvas/FindBar'
 import SplitLayout from '@/components/docs/SplitLayout'
 import dynamic from 'next/dynamic'
 import useSketchStore from '@/store/useSketchStore'
+import useCollabStore from '@/store/useCollabStore'
+import useCollaboration from '@/hooks/useCollaboration'
 
 // Lazy: only pulls BlockNote/Mantine/Mermaid into the bundle when the
 // docs panel is actually mounted (i.e. layoutMode is 'split' or 'docs').
@@ -47,10 +51,20 @@ const DocsPanel = dynamic(() => import('@/components/docs/DocsPanel'), {
 export default function CanvasPage() {
   useEffect(() => {
     document.body.classList.add('canvas-mode')
+    const ui = useUIStore.getState()
+    ui.hydrateTheme()
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleSystemTheme = () => useUIStore.getState().syncSystemTheme()
+    media.addEventListener?.('change', handleSystemTheme)
     // Restore the user's last-used layout mode (canvas / split / docs)
     // before the editor or split layout decides to render.
     useSketchStore.getState().hydrateLayoutMode?.()
-    return () => document.body.classList.remove('canvas-mode')
+    return () => {
+      media.removeEventListener?.('change', handleSystemTheme)
+      document.body.classList.remove('canvas-mode', 'theme-dark', 'theme-light')
+      delete document.body.dataset.resolvedTheme
+      document.documentElement.style.removeProperty('color-scheme')
+    }
   }, [])
 
   useAuth()
@@ -58,6 +72,9 @@ export default function CanvasPage() {
   useSessionID()
   useGuestProfile()
   useAutoSave()
+
+  const activeRoomId = useCollabStore((s) => s.activeRoomId)
+  useCollaboration(activeRoomId)
 
   const layoutMode = useSketchStore((s) => s.layoutMode)
   const canvasVisible = layoutMode !== 'docs'
@@ -70,6 +87,7 @@ export default function CanvasPage() {
         canvas={
           <>
             <SVGCanvas />
+            <CanvasDocConnectors />
             {/* All canvas chrome lives inside the canvas wrapper so it
                 can't visually overflow into the docs panel during split. */}
             {canvasVisible && (
@@ -84,6 +102,7 @@ export default function CanvasPage() {
                 <FrameSidebar />
                 <IconSidebar />
                 <ImageSidebar />
+                <PaintBucketSidebar />
                 <MultiSelectActions />
                 <Footer />
               </>
@@ -93,15 +112,14 @@ export default function CanvasPage() {
         docs={<DocsPanel />}
       />
       <AppMenu />
-      <ShortcutsModal />
       <SaveModal />
       <AIModal />
       <CommandPalette />
-      <HelpModal />
       <ExportImageModal />
       <CanvasPropertiesModal />
       <ImageSourcePicker />
       <ImageGenerateModal />
+      <WebEmbedModal />
       <ContextMenu />
       <FindBar />
       <CanvasLoadingOverlay />

@@ -19,6 +19,7 @@ import Footer from './components/Footer.jsx';
 import AppMenu from './components/AppMenu.jsx';
 import RectangleSidebar from './components/sidebars/RectangleSidebar.jsx';
 import CircleSidebar from './components/sidebars/CircleSidebar.jsx';
+import PaintBucketSidebar from './components/sidebars/PaintBucketSidebar.jsx';
 import LineSidebar from './components/sidebars/LineSidebar.jsx';
 import ArrowSidebar from './components/sidebars/ArrowSidebar.jsx';
 import PaintbrushSidebar from './components/sidebars/PaintbrushSidebar.jsx';
@@ -31,12 +32,11 @@ import ContextMenu from './components/canvas/ContextMenu.jsx';
 import FindBar from './components/canvas/FindBar.jsx';
 import ImageSourcePicker from './components/canvas/ImageSourcePicker.jsx';
 import CanvasLoadingOverlay from './components/canvas/CanvasLoadingOverlay.jsx';
-import ShortcutsModal from './components/modals/ShortcutsModal.jsx';
 import CommandPalette from './components/modals/CommandPalette.jsx';
 import ExportImageModal from './components/modals/ExportImageModal.jsx';
-import HelpModal from './components/modals/HelpModal.jsx';
 import LixScriptModal from './components/modals/LixScriptModal.jsx';
 import GraphModal from './components/modals/GraphModal.jsx';
+import WebEmbedModal from './components/modals/WebEmbedModal.jsx';
 
 const SAVE_DEBOUNCE_MS = 1500;
 
@@ -111,6 +111,18 @@ export default function LixSketchCanvas({
   // real persistence layer.
   useEffect(() => {
     function handleKey(e) {
+      if (e.key === 'Escape') {
+        useUIStore.getState().closeAllModals?.();
+        return;
+      }
+      const target = e.target;
+      const tag = (target?.tagName || '').toLowerCase();
+      const isTyping = tag === 'input' || tag === 'textarea' || target?.isContentEditable;
+      if (!isTyping && !e.ctrlKey && !e.metaKey && !e.altKey && e.shiftKey && (e.key || '').toLowerCase() === 'r') {
+        e.preventDefault();
+        useSketchStore.getState().toggleRulers();
+        return;
+      }
       if (!(e.ctrlKey || e.metaKey)) return;
       const key = (e.key || '').toLowerCase();
       if (key !== 's' || e.shiftKey) return;
@@ -211,6 +223,7 @@ export default function LixSketchCanvas({
       <AppMenu />
       <RectangleSidebar />
       <CircleSidebar />
+      <PaintBucketSidebar />
       <LineSidebar />
       <ArrowSidebar />
       <PaintbrushSidebar />
@@ -219,26 +232,25 @@ export default function LixSketchCanvas({
       <IconSidebar />
       <ImageSidebar />
       <MultiSelectActions />
-      <ShortcutsModal />
       <CommandPalette />
       <ExportImageModal />
-      <HelpModal />
       <LixScriptModal />
       <GraphModal />
+      <WebEmbedModal />
       <ContextMenu />
       <FindBar />
       <ImageSourcePicker />
       <CanvasLoadingOverlay />
 
-      {/* Floating header — menu trigger + help / shortcuts. Hosts can
+      {/* Floating header — menu trigger + command center. Hosts can
           hide this strip by setting CSS `.lixsketch-floating-header { display: none }`
           if they render their own chrome (blogs.elixpo's CanvasSubpage does). */}
       <div className="lixsketch-floating-header absolute top-2 right-2 z-[1000] flex items-center gap-1.5 font-[lixFont]">
         <button
           type="button"
-          title="LixScript — write shapes in DSL"
+          title="LixScript MCP — coming soon"
           onClick={() => useUIStore.getState().toggleAIModal?.()}
-          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
         >
           <i className="bx bx-code-alt text-base" />
         </button>
@@ -246,23 +258,15 @@ export default function LixSketchCanvas({
           type="button"
           title="Graph — plot equations"
           onClick={() => useUIStore.getState().toggleGraphModal?.()}
-          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
         >
           <i className="bx bx-line-chart text-base" />
         </button>
         <button
           type="button"
-          title="Help (?)"
-          onClick={() => useUIStore.getState().toggleHelpModal?.()}
-          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
-        >
-          <i className="bx bx-help-circle text-base" />
-        </button>
-        <button
-          type="button"
-          title="Shortcuts (Ctrl+/)"
-          onClick={() => useUIStore.getState().toggleShortcutsModal?.()}
-          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
+          title="Commands and shortcuts (Ctrl+/)"
+          onClick={() => useUIStore.getState().toggleCommandPalette?.()}
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
         >
           <i className="bx bx-command text-base" />
         </button>
@@ -270,7 +274,7 @@ export default function LixSketchCanvas({
           type="button"
           title="Menu"
           onClick={() => useUIStore.getState().toggleMenu?.()}
-          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface border border-border-light text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
         >
           <i className="bx bx-menu text-base" />
         </button>

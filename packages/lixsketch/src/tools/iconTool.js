@@ -2,6 +2,7 @@
 // Icon tool event handlers - extracted from icons.js
 import { pushCreateAction, pushDeleteAction, pushTransformAction, pushFrameAttachmentAction } from '../core/UndoRedo.js';
 import { updateAttachedArrows as updateArrowsForShape, cleanupAttachments } from './arrowTool.js';
+import { registerRotationAnchor } from '../core/ScreenSpaceControls.js';
 
 
 let isDraggingIcon = false;
@@ -257,6 +258,18 @@ const handleMouseDownIcon = async (e) => {
         return;
     }
 
+// Helper to get inherited attribute from the SVG sub-tree
+function getInheritedAttr(element, attrName) {
+    let curr = element;
+    while (curr && curr.nodeType === 1) {
+        if (curr.getAttribute(attrName)) {
+            return curr.getAttribute(attrName);
+        }
+        curr = curr.parentElement;
+    }
+    return null;
+}
+
     if (!isDraggingIcon || !iconToPlace || !isIconToolActive) {
         return;
     }
@@ -321,29 +334,50 @@ const handleMouseDownIcon = async (e) => {
         backgroundRect.setAttribute('style', 'pointer-events: all; cursor: pointer;');
         finalIconGroup.appendChild(backgroundRect);
 
+        const isDark = document.body && document.body.classList.contains('theme-dark');
+        const targetDarkColor = '#1a1a2e';
+        const bgDarkColor = '#15111f';
+
+        const applyThemeStyle = (element) => {
+            if (element.nodeType === 1) {
+                const fill = getInheritedAttr(element, 'fill');
+                const stroke = getInheritedAttr(element, 'stroke');
+
+                const normFill = fill ? fill.toLowerCase().trim() : null;
+                const normStroke = stroke ? stroke.toLowerCase().trim() : null;
+
+                // Handle fill
+                if (normFill === 'none' || normFill === 'transparent') {
+                    element.setAttribute('fill', 'none');
+                } else if (!normFill || ['#000', '#000000', 'black', 'currentcolor', '#1a1a2e'].includes(normFill)) {
+                    element.setAttribute('fill', isDark ? '#ffffff' : targetDarkColor);
+                } else if (['#fff', '#ffffff', 'white', '#15111f'].includes(normFill)) {
+                    element.setAttribute('fill', isDark ? bgDarkColor : '#ffffff');
+                }
+
+                // Handle stroke
+                if (normStroke === 'none' || normStroke === 'transparent') {
+                    element.setAttribute('stroke', 'none');
+                } else if (normStroke && ['#000', '#000000', 'black', 'currentcolor', '#1a1a2e'].includes(normStroke)) {
+                    element.setAttribute('stroke', isDark ? '#ffffff' : targetDarkColor);
+                } else if (normStroke && ['#fff', '#ffffff', 'white', '#15111f'].includes(normStroke)) {
+                    element.setAttribute('stroke', isDark ? bgDarkColor : '#ffffff');
+                }
+
+                for (let j = 0; j < element.children.length; j++) {
+                    applyThemeStyle(element.children[j]);
+                }
+            }
+        };
+
+        // Apply theme styles to original elements while they are still in context
+        for (let i = 0; i < originalSvgElement.children.length; i++) {
+            applyThemeStyle(originalSvgElement.children[i]);
+        }
+
         const allChildren = originalSvgElement.children;
         for (let i = 0; i < allChildren.length; i++) {
             const clonedChild = allChildren[i].cloneNode(true);
-
-            // Apply white fill/stroke so icons are visible on dark canvas
-            const applyWhiteStyle = (element) => {
-                if (element.nodeType === 1) {
-                    const fill = element.getAttribute('fill');
-                    const stroke = element.getAttribute('stroke');
-                    // Replace black/dark fills with white; leave 'none'/'transparent' alone
-                    if (!fill || fill === '#000' || fill === '#000000' || fill === 'black' || fill === 'currentColor') {
-                        element.setAttribute('fill', '#ffffff');
-                    }
-                    if (stroke === '#000' || stroke === '#000000' || stroke === 'black' || stroke === 'currentColor') {
-                        element.setAttribute('stroke', '#ffffff');
-                    }
-                    for (let j = 0; j < element.children.length; j++) {
-                        applyWhiteStyle(element.children[j]);
-                    }
-                }
-            };
-            applyWhiteStyle(clonedChild);
-
             finalIconGroup.appendChild(clonedChild);
         }
 
@@ -440,7 +474,8 @@ function addSelectionOutline() {
     const centerX = x + width / 2;
     const centerY = y + height / 2;
 
-    const selectionPadding = Math.max(4, width * 0.08);
+    const zoom = window.currentZoom || 1;
+    const selectionPadding = 8 / zoom;
     const expandedX = x - selectionPadding;
     const expandedY = y - selectionPadding;
     const expandedWidth = width + 2 * selectionPadding;
@@ -589,8 +624,8 @@ function addResizeAnchors(x, y, width, height, centerX, centerY, iconWidth, rota
     if (!svg) return;
 
     const zoom = window.currentZoom || 1;
-    const anchorSize = Math.max(8, Math.min(16, iconWidth * 0.15)) / zoom;
-    const anchorStrokeWidth = Math.max(1.5, anchorSize * 0.15);
+    const anchorSize = 10 / zoom;
+    const anchorStrokeWidth = 2 / zoom;
 
     const positions = [
         { x: x, y: y, cursor: "nw-resize" },
@@ -608,6 +643,7 @@ function addResizeAnchors(x, y, width, height, centerX, centerY, iconWidth, rota
         anchor.setAttribute("fill", "#121212");
         anchor.setAttribute("stroke", "#5B57D1");
         anchor.setAttribute("stroke-width", anchorStrokeWidth);
+        anchor.setAttribute("vector-effect", "non-scaling-stroke");
         anchor.setAttribute("class", "resize-anchor");
         anchor.setAttribute("transform", `rotate(${rotation}, ${centerX}, ${centerY})`);
         anchor.style.cursor = pos.cursor;
@@ -623,9 +659,10 @@ function addRotationAnchor(x, y, width, height, centerX, centerY, iconWidth, rot
     const svg = getSVGElement();
     if (!svg) return;
 
-    const anchorRadius = Math.max(6, Math.min(12, iconWidth * 0.12));
-    const anchorStrokeWidth = Math.max(1.5, anchorRadius * 0.2);
-    const rotationDistance = Math.max(25, iconWidth * 0.4);
+    const zoom = window.currentZoom || 1;
+    const anchorRadius = 5 / zoom;
+    const anchorStrokeWidth = 2 / zoom;
+    const rotationDistance = 30 / zoom;
 
     const rotationAnchorX = x + width / 2;
     const rotationAnchorY = y - rotationDistance;
@@ -638,10 +675,12 @@ function addRotationAnchor(x, y, width, height, centerX, centerY, iconWidth, rot
     rotationAnchor.setAttribute('fill', '#121212');
     rotationAnchor.setAttribute('stroke', '#5B57D1');
     rotationAnchor.setAttribute('stroke-width', anchorStrokeWidth);
+    rotationAnchor.setAttribute('vector-effect', 'non-scaling-stroke');
     rotationAnchor.setAttribute('style', 'pointer-events: all; cursor: grab;');
     rotationAnchor.setAttribute('transform', `rotate(${rotation}, ${centerX}, ${centerY})`);
 
     svg.appendChild(rotationAnchor);
+    registerRotationAnchor(rotationAnchor, { radius: 5, edgeY: y });
 
     rotationAnchor.addEventListener('pointerdown', startRotation);
     rotationAnchor.addEventListener('pointerup', stopRotation);
@@ -1244,8 +1283,8 @@ function normalizeSVGSize(svgContent, fillColor = '#fff', strokeColor = null) {
                 
                 // Only apply to shape elements, not container elements like 'g'
                 if (['path', 'circle', 'rect', 'polygon', 'ellipse', 'polyline', 'line'].includes(tagName)) {
-                    const currentFill = element.getAttribute('fill');
-                    const currentStroke = element.getAttribute('stroke');
+                    const currentFill = getInheritedAttr(element, 'fill');
+                    const currentStroke = getInheritedAttr(element, 'stroke');
                     
                     // Check if parent <g> has explicit colors - if so, don't override
                     let parentG = element.parentElement;
@@ -1260,19 +1299,21 @@ function normalizeSVGSize(svgContent, fillColor = '#fff', strokeColor = null) {
                     }
                     
                     // Only apply white fill if:
-                    // 1. Element doesn't have explicit 'none' fill
+                    // 1. Element doesn't have explicit/inherited 'none'/'transparent' fill
                     // 2. Element doesn't already have a specific color (other than black/default)
                     // 3. Parent <g> doesn't have explicit colors
-                    if (!hasParentColor && currentFill !== 'none') {
+                    if (!hasParentColor && currentFill !== 'none' && currentFill !== 'transparent') {
                         // Only override if it's black, default, or unset
                         if (!currentFill || currentFill === '#000' || currentFill === '#000000' || currentFill === 'black' || currentFill === 'currentColor') {
                             element.setAttribute('fill', fillColor);
                         }
+                    } else if (currentFill === 'none' || currentFill === 'transparent') {
+                        element.setAttribute('fill', 'none');
                     }
                     
                     // Handle stroke similarly
                     if (strokeColor && !hasParentColor) {
-                        if (currentStroke && currentStroke !== 'none') {
+                        if (currentStroke && currentStroke !== 'none' && currentStroke !== 'transparent') {
                             if (!currentStroke || currentStroke === '#000' || currentStroke === '#000000' || currentStroke === 'black' || currentStroke === 'currentColor') {
                                 element.setAttribute('stroke', strokeColor);
                             }

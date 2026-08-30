@@ -25,9 +25,28 @@ function updateSelectionFeedback() {}
 function deselectElement() { selectedElement = null; }
 function selectElement(el) { selectedElement = el; }
 
+function removeLegacySoftWrap(groupElement) {
+    const textElement = groupElement.querySelector('text');
+    if (!textElement || !textElement.hasAttribute('data-wrap-width')) return;
+    const source = textElement.getAttribute('data-wrap-source');
+    if (source === null) return;
+
+    while (textElement.firstChild) textElement.removeChild(textElement.firstChild);
+    const x = textElement.getAttribute('x') || 0;
+    source.split('\n').forEach((line, index) => {
+        const tspan = textElement.ownerDocument.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+        tspan.setAttribute('x', x);
+        tspan.setAttribute('dy', index === 0 ? '0' : '1.2em');
+        tspan.textContent = line || ' ';
+        textElement.appendChild(tspan);
+    });
+    textElement.removeAttribute('data-wrap-width');
+}
+
 class TextShape {
     constructor(groupElement) {
         this.group = groupElement;
+        removeLegacySoftWrap(groupElement);
         this.shapeName = 'text';
         this.shapeID = groupElement.getAttribute('id') || `text-${String(Date.now()).slice(0, 8)}-${Math.floor(Math.random() * 10000)}`;
         
@@ -188,19 +207,24 @@ class TextShape {
         try { bbox = textElement.getBBox(); } catch { return false; }
         const padding = 8; // Selection padding
 
-        const CTM = this.group.getCTM();
-        if (!CTM) return false;
+        const transform = this.group.getAttribute('transform') || '';
+        const translate = transform.match(/translate\(\s*([^,\s)]+)[,\s]+([^\s)]+)/);
+        const tx = Number.isFinite(parseFloat(this.group.getAttribute('data-x')))
+            ? parseFloat(this.group.getAttribute('data-x')) : parseFloat(translate?.[1]) || 0;
+        const ty = Number.isFinite(parseFloat(this.group.getAttribute('data-y')))
+            ? parseFloat(this.group.getAttribute('data-y')) : parseFloat(translate?.[2]) || 0;
+        const centerX = bbox.x + bbox.width / 2;
+        const centerY = bbox.y + bbox.height / 2;
+        const angle = -extractRotationFromTransform(this.group) * Math.PI / 180;
+        const dx = x - tx - centerX;
+        const dy = y - ty - centerY;
+        const localX = dx * Math.cos(angle) - dy * Math.sin(angle) + centerX;
+        const localY = dx * Math.sin(angle) + dy * Math.cos(angle) + centerY;
         
-        const inverseCTM = CTM.inverse();
-        const svgPoint = svg.createSVGPoint();
-        svgPoint.x = x;
-        svgPoint.y = y;
-        const transformedPoint = svgPoint.matrixTransform(inverseCTM);
-        
-        return transformedPoint.x >= bbox.x - padding && 
-               transformedPoint.x <= bbox.x + bbox.width + padding &&
-               transformedPoint.y >= bbox.y - padding && 
-               transformedPoint.y <= bbox.y + bbox.height + padding;
+        return localX >= bbox.x - padding &&
+               localX <= bbox.x + bbox.width + padding &&
+               localY >= bbox.y - padding &&
+               localY <= bbox.y + bbox.height + padding;
     }
 
     // Add draw method for consistency with other shapes
@@ -213,7 +237,13 @@ class TextShape {
 
     // Add methods for frame compatibility
     removeSelection() {
-        if (selectedElement === this.group) {
+        // Selection is owned by textTool (selectShape delegates to it below),
+        // so deselection must go through the same controller. Updating this
+        // module's fallback-only selectedElement left the real text handles
+        // visible when another shape was selected without Ctrl/Meta.
+        if (typeof window !== 'undefined' && window.__deselectTextElement) {
+            window.__deselectTextElement();
+        } else if (selectedElement === this.group) {
             deselectElement();
         }
     }

@@ -1,62 +1,73 @@
 "use client"
 
 import { useState, useEffect, useCallback } from 'react'
-import useUIStore from '@/store/useUIStore'
+import useUIStore, { MAX_WORKSPACE_NAME_LENGTH } from '@/store/useUIStore'
 import useCollabStore from '@/store/useCollabStore'
 import { getSessionID } from '@/hooks/useSessionID'
 import { generateKey, encrypt } from '@/utils/encryption'
 import { WORKER_URL } from '@/lib/env'
+import usePlanEntitlements from '@/hooks/usePlanEntitlements'
+import useAuthStore from '@/store/useAuthStore'
+import { triggerCloudSync } from '@/hooks/useAutoSave'
+import {
+  canvasToLosslessPNG,
+  createExportSVG,
+  downloadBlob,
+  getExportBackground,
+  renderExportCanvas,
+} from '@/utils/canvasExport'
 
-// ── Export helpers ────────────────────────────────────────────
-
-function getCleanSVG() {
-  const svgEl = window.svg
-  if (!svgEl) return null
-  const clone = svgEl.cloneNode(true)
-  clone.querySelectorAll(
-    '[data-selection], .selection-handle, .resize-handle, .rotation-handle, .anchor, .rotate-anchor'
-  ).forEach((el) => el.remove())
-  return clone
+async function validatePublicSceneMedia(sceneData) {
+  const sources = [...new Set((sceneData?.shapes || [])
+    .filter((shape) => shape?.type === 'image')
+    .map((shape) => String(shape.href || ''))
+    .filter(Boolean))]
+  const invalid = sources.filter((source) => source.startsWith('blob:') || (!source.startsWith('data:image/') && !/^https?:\/\//i.test(source)))
+  if (invalid.length) throw new Error('Replace local or unsupported images before publishing')
+  const remote = sources.filter((source) => /^https?:\/\//i.test(source))
+  const results = await Promise.all(remote.map((source) => new Promise((resolve) => {
+    const image = new Image()
+    const timer = setTimeout(() => { image.src = ''; resolve(false) }, 5000)
+    image.onload = () => { clearTimeout(timer); resolve(true) }
+    image.onerror = () => { clearTimeout(timer); resolve(false) }
+    image.src = source
+  })))
+  if (results.some((available) => !available)) {
+    throw new Error('One or more workspace images are private or unavailable. Make them public or remove them before publishing.')
+  }
 }
 
-function renderToCanvas(clone, scale, bgColor) {
-  return new Promise((resolve) => {
-    const svgData = new XMLSerializer().serializeToString(clone)
-    const vb = window.svg.viewBox.baseVal
-    const canvas = document.createElement('canvas')
-    canvas.width = vb.width * scale
-    canvas.height = vb.height * scale
-    const ctx = canvas.getContext('2d')
-    ctx.scale(scale, scale)
-
-    const img = new Image()
-    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-
-    img.onload = () => {
-      if (bgColor) {
-        ctx.fillStyle = bgColor
-        ctx.fillRect(0, 0, vb.width, vb.height)
-      }
-      ctx.drawImage(img, 0, 0, vb.width, vb.height)
-      URL.revokeObjectURL(url)
-      resolve(canvas)
-    }
-    img.onerror = () => {
-      URL.revokeObjectURL(url)
-      resolve(null)
-    }
-    img.src = url
-  })
+async function validatePublicDocumentMedia(blocks) {
+  const sceneLike = {
+    shapes: (blocks || []).filter((block) => block?.type === 'image' && block?.props?.url)
+      .map((block) => ({ type: 'image', href: block.props.url })),
+  }
+  return validatePublicSceneMedia(sceneLike)
 }
+
+const MODAL_TABS = [
+  { id: 'save', label: 'Save', icon: 'bx-cloud-upload', description: 'Rename and securely sync the current workspace.' },
+  { id: 'export', label: 'Export', icon: 'bx-export', description: 'Download a lossless image, vector, PDF, or scene file.' },
+  { id: 'share', label: 'Share', icon: 'bx-share-alt', description: 'Collaborate live or create an encrypted view-only link.' },
+  { id: 'publish', label: 'Publish', icon: 'bx-world', description: 'Publish a public template that others can fork or clone.' },
+]
 
 // ── Component ────────────────────────────────────────────────
 
 export default function SaveModal() {
+  const { tier, limits } = usePlanEntitlements()
   const saveModalOpen = useUIStore((s) => s.saveModalOpen)
   const toggleSaveModal = useUIStore((s) => s.toggleSaveModal)
   const workspaceName = useUIStore((s) => s.workspaceName)
   const setWorkspaceName = useUIStore((s) => s.setWorkspaceName)
+  const resolvedTheme = useUIStore((s) => s.resolvedTheme)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const login = useAuthStore((s) => s.login)
+  const saveStatus = useUIStore((s) => s.saveStatus)
+  const templateSlug = useUIStore((s) => s.templateSlug)
+  const [activeTab, setActiveTab] = useState('save')
+  const [savingNow, setSavingNow] = useState(false)
+  const [saveMessage, setSaveMessage] = useState('')
 
   // Live collab state
   const [collabLink, setCollabLink] = useState('')
@@ -64,6 +75,7 @@ export default function SaveModal() {
   const [startingCollab, setStartingCollab] = useState(false)
   const [collabError, setCollabError] = useState('')
   const collabConnected = useCollabStore((s) => s.connected)
+  const collabRuntimeError = useCollabStore((s) => s.error)
 
   // Issue #24 bug #9: one-time view-only share link. Creates a separate
   // read-only snapshot of the current scene that anyone with the link can
@@ -73,15 +85,30 @@ export default function SaveModal() {
   const [creatingShare, setCreatingShare] = useState(false)
   const [shareError, setShareError] = useState('')
 
+  // Public template publishing uses its own public snapshot key. It never
+  // reuses the key for the editable workspace.
+  const [publishTitle, setPublishTitle] = useState(workspaceName || '')
+  const [publishDescription, setPublishDescription] = useState('')
+  const [publishTags, setPublishTags] = useState('')
+  const [publishing, setPublishing] = useState(false)
+  const [publishError, setPublishError] = useState('')
+  const [publishedUrl, setPublishedUrl] = useState('')
+  const [publishedSlug, setPublishedSlug] = useState('')
+
+  useEffect(() => {
+    if (templateSlug) {
+      setPublishedSlug(templateSlug)
+      setPublishedUrl(`${window.location.origin}/templates/${templateSlug}`)
+    }
+  }, [templateSlug])
+
   // Export state
   const [bgMode, setBgMode] = useState('dark')
-  const [exportScale, setExportScale] = useState(2)
+  const [exportScale, setExportScale] = useState(4)
   const [previewUrl, setPreviewUrl] = useState(null)
 
   const getBgColor = useCallback(() => {
-    if (bgMode === 'dark') return '#121212'
-    if (bgMode === 'light') return '#ffffff'
-    return null
+    return getExportBackground(bgMode)
   }, [bgMode])
 
   // Generate preview when modal opens or bg changes
@@ -89,15 +116,19 @@ export default function SaveModal() {
     if (!saveModalOpen) return
     let cancelled = false
     const generate = async () => {
-      const clone = getCleanSVG()
+      const clone = createExportSVG(bgMode, resolvedTheme)
       if (!clone) return
-      const canvas = await renderToCanvas(clone, 1, getBgColor())
+      const canvas = await renderExportCanvas(clone, 1)
       if (cancelled || !canvas) return
-      setPreviewUrl(canvas.toDataURL('image/png'))
+      setPreviewUrl(canvas.toDataURL('image/webp', 0.78))
     }
     generate()
     return () => { cancelled = true }
-  }, [saveModalOpen, bgMode, getBgColor])
+  }, [saveModalOpen, bgMode, resolvedTheme])
+
+  useEffect(() => {
+    if (saveModalOpen && !publishTitle) setPublishTitle(workspaceName || '')
+  }, [saveModalOpen, publishTitle, workspaceName])
 
   if (!saveModalOpen) return null
 
@@ -122,6 +153,7 @@ export default function SaveModal() {
       const origin = window.location.origin
       const link = `${origin}/room/${roomId}#key=${key}`
 
+      useCollabStore.getState().startRoom(roomId)
       setCollabLink(link)
       setCollabCopied(false)
     } catch (err) {
@@ -190,6 +222,62 @@ export default function SaveModal() {
     }).catch(() => {})
   }
 
+  const handlePublishTemplate = async (updateExisting = false) => {
+    if (!isAuthenticated) {
+      login(`${window.location.pathname}${window.location.search}`)
+      return
+    }
+    if (publishing) return
+    setPublishing(true)
+    setPublishError('')
+    try {
+      const serializer = window.__sceneSerializer
+      const sessionId = getSessionID()
+      if (!serializer || typeof serializer.save !== 'function' || !sessionId) {
+        throw new Error('The workspace is not ready to publish yet')
+      }
+      if (!publishTitle.trim()) throw new Error('Add a public template title')
+      const publicKey = await generateKey()
+      const sceneData = serializer.save(workspaceName || 'Untitled')
+      await validatePublicSceneMedia(sceneData)
+      const encryptedData = await encrypt(JSON.stringify(sceneData), publicKey)
+      let encryptedDocData = null
+      try {
+        const savedDoc = localStorage.getItem(`lixsketch-doc-autosave-${sessionId}`)
+        const blocks = savedDoc ? JSON.parse(savedDoc)?.blocks : null
+        if (Array.isArray(blocks) && blocks.length) {
+          await validatePublicDocumentMedia(blocks)
+          encryptedDocData = await encrypt(JSON.stringify(blocks), publicKey)
+        }
+      } catch {}
+      const coverDataUrl = previewUrl && new Blob([previewUrl]).size <= 200_000 ? previewUrl : null
+      const response = await fetch(updateExisting && publishedSlug ? `/api/templates/${encodeURIComponent(publishedSlug)}` : '/api/templates', {
+        method: updateExisting && publishedSlug ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceSessionId: sessionId,
+          title: publishTitle,
+          description: publishDescription,
+          tags: publishTags.split(','),
+          coverDataUrl,
+          encryptedData,
+          publicKey,
+          encryptedDocData,
+        }),
+      })
+      const body = await response.json()
+      if (!response.ok) throw new Error(body.error || 'Could not publish workspace')
+      if (body.url) {
+        setPublishedSlug(body.slug)
+        setPublishedUrl(`${window.location.origin}${body.url}`)
+      }
+    } catch (reason) {
+      setPublishError(reason.message || 'Could not publish workspace')
+    } finally {
+      setPublishing(false)
+    }
+  }
+
   const handleCopyCollabLink = () => {
     if (!collabLink) return
     navigator.clipboard.writeText(collabLink).then(() => {
@@ -199,13 +287,24 @@ export default function SaveModal() {
   }
 
   const handleEndSession = () => {
-    const ws = useCollabStore.getState().ws
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.close()
-    }
-    useCollabStore.getState().reset()
+    window.__disconnectCollaboration?.()
+    useCollabStore.getState().stopRoom()
     setCollabLink('')
     setCollabCopied(false)
+  }
+
+  const handleSaveNow = async () => {
+    if (savingNow) return
+    setSavingNow(true)
+    setSaveMessage('')
+    try {
+      const saved = await triggerCloudSync()
+      setSaveMessage(saved ? 'Workspace saved locally and synced to the cloud.' : 'Workspace saved locally. Cloud sync is unavailable or waiting for a workspace slot.')
+    } catch {
+      setSaveMessage('Workspace saved locally, but cloud sync could not complete.')
+    } finally {
+      setSavingNow(false)
+    }
   }
 
   // ── Export handlers ──
@@ -220,49 +319,33 @@ export default function SaveModal() {
   }
 
   const handleExportPNG = async () => {
-    const clone = getCleanSVG()
+    const clone = createExportSVG(bgMode, resolvedTheme)
     if (!clone) return
-    const canvas = await renderToCanvas(clone, exportScale, getBgColor())
-    if (!canvas) return
-
-    canvas.toBlob((blob) => {
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = `${fileName}-${exportScale}x.png`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-    }, 'image/png')
+    const canvas = await renderExportCanvas(clone, exportScale)
+    const blob = await canvasToLosslessPNG(canvas)
+    downloadBlob(blob, `${fileName}-${exportScale}x.png`)
     toggleSaveModal()
   }
 
   const handleExportSVG = () => {
-    const clone = getCleanSVG()
+    const clone = createExportSVG(bgMode, resolvedTheme)
     if (!clone) return
-
-    const bg = getBgColor()
-    if (bg) {
-      const ns = 'http://www.w3.org/2000/svg'
-      const rect = document.createElementNS(ns, 'rect')
-      const vb = window.svg.viewBox.baseVal
-      rect.setAttribute('width', vb.width)
-      rect.setAttribute('height', vb.height)
-      rect.setAttribute('fill', bg)
-      clone.insertBefore(rect, clone.firstChild)
-    }
-
     const svgData = new XMLSerializer().serializeToString(clone)
     const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `${fileName}.svg`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
+    downloadBlob(blob, `${fileName}.svg`)
     toggleSaveModal()
   }
 
   const handleExportPDF = () => {
+    if (!limits.pdfExport) {
+      const toast = document.getElementById('save-toast')
+      if (toast) {
+        toast.innerHTML = '<i class="bx bxs-lock-alt text-[#b99be9] mr-1.5"></i>PDF export is available on Pro'
+        toast.classList.remove('hidden')
+        setTimeout(() => toast.classList.add('hidden'), 3500)
+      }
+      return
+    }
     const serializer = window.__sceneSerializer
     if (!serializer) return
     serializer.exportPDF()
@@ -286,7 +369,7 @@ export default function SaveModal() {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-3">
-          <h2 className="text-text-primary text-base font-medium">Save & Export</h2>
+          <h2 className="text-text-primary text-base font-medium">Workspace actions</h2>
           <button
             onClick={toggleSaveModal}
             className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-hover cursor-pointer transition-all duration-200"
@@ -295,22 +378,54 @@ export default function SaveModal() {
           </button>
         </div>
 
+        <div className="mx-6 mb-4 grid grid-cols-4 gap-1 rounded-xl border border-border-light bg-surface/70 p-1">
+          {MODAL_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs transition ${activeTab === tab.id ? 'bg-accent-blue/20 text-accent-blue shadow-sm' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'}`}
+            >
+              <i className={`bx ${tab.icon} text-sm`} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         <div className="px-6 pb-6 flex flex-col gap-4">
+          <div className="rounded-xl border border-border-light bg-surface/35 px-4 py-3">
+            <p className="text-sm text-text-primary">{MODAL_TABS.find((tab) => tab.id === activeTab)?.label}</p>
+            <p className="mt-1 text-[11px] leading-5 text-text-dim">{MODAL_TABS.find((tab) => tab.id === activeTab)?.description}</p>
+          </div>
           {/* Workspace Name */}
+          {activeTab === 'save' && <div className="space-y-4">
           <div>
-            <label className="text-text-dim text-xs uppercase tracking-wider mb-1.5 block">Workspace Name</label>
+            <div className="mb-1.5 flex items-center justify-between">
+              <label className="text-text-dim text-xs uppercase tracking-wider">Workspace Name</label>
+              <span className="text-[10px] text-text-dim">{workspaceName.length}/{MAX_WORKSPACE_NAME_LENGTH}</span>
+            </div>
             <input
               type="text"
               value={workspaceName}
+              maxLength={MAX_WORKSPACE_NAME_LENGTH}
               onChange={(e) => setWorkspaceName(e.target.value)}
               placeholder="e.g. cosmic-penguin"
               className="w-full bg-surface text-text-primary text-sm border border-border-light rounded-lg px-3 py-2 outline-none focus:border-accent-blue transition-all duration-200"
               spellCheck={false}
             />
           </div>
+          <div className="rounded-xl border border-border-light bg-surface/50 p-4">
+            <div className="flex items-start gap-3">
+              <span className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full ${saveStatus === 'cloud' ? 'bg-green-400' : saveStatus === 'failed' ? 'bg-red-400' : 'bg-yellow-400'}`} />
+              <div className="flex-1"><p className="text-sm text-text-primary">Encrypted workspace save</p><p className="mt-1 text-[10px] leading-5 text-text-dim">Save the canvas and paired document locally, then sync the encrypted payload when cloud storage is available.</p></div>
+            </div>
+            <button onClick={handleSaveNow} disabled={savingNow} className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent-blue py-2.5 text-sm text-white hover:bg-accent-blue-hover disabled:opacity-50"><i className={`bx ${savingNow ? 'bx-loader-alt animate-spin' : 'bx-save'}`} />{savingNow ? 'Saving…' : 'Save workspace now'}</button>
+            {saveMessage && <p className="mt-2 text-[10px] leading-4 text-text-muted">{saveMessage}</p>}
+          </div>
+          </div>}
 
           {/* ── Export As ── */}
-          <div className="p-3.5 rounded-xl border border-border-light bg-surface/50">
+          {activeTab === 'export' && <div className="p-3.5 rounded-xl border border-border-light bg-surface/50">
             <div className="flex items-center gap-2 mb-3">
               <i className="bx bx-export text-lg text-accent-blue" />
               <span className="text-text-primary text-sm font-medium">Export As</span>
@@ -361,7 +476,7 @@ export default function SaveModal() {
             <div className="flex items-center gap-3 mb-3">
               <p className="text-text-dim text-[10px] uppercase tracking-wider shrink-0">Scale</p>
               <div className="flex items-center gap-1 flex-1">
-                {[1, 2, 3].map((s) => (
+                {[1, 2, 4, 8].map((s) => (
                   <button
                     key={s}
                     onClick={() => setExportScale(s)}
@@ -376,6 +491,9 @@ export default function SaveModal() {
                 ))}
               </div>
             </div>
+            <p className="text-text-dim text-[10px] mb-3">
+              PNG exports are lossless and rendered at the selected full resolution.
+            </p>
 
             {/* Format buttons */}
             <div className="grid grid-cols-2 gap-2">
@@ -395,10 +513,12 @@ export default function SaveModal() {
               </button>
               <button
                 onClick={handleExportPDF}
+                title={limits.pdfExport ? 'Export PDF' : 'PDF export is available on Pro'}
                 className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-surface hover:bg-surface-hover border border-border-light text-text-secondary text-xs cursor-pointer transition-all duration-200"
               >
                 <i className="bx bxs-file-pdf text-sm" />
                 PDF Document
+                {!limits.pdfExport && <span className="ml-auto rounded bg-accent-blue/15 px-1.5 py-0.5 text-[8px] uppercase text-accent-blue">Pro</span>}
               </button>
               <button
                 onClick={handleExportLixjson}
@@ -408,15 +528,15 @@ export default function SaveModal() {
                 .lixjson Scene
               </button>
             </div>
-          </div>
+          </div>}
 
           {/* ── Live Collaborate ── */}
-          <div className="p-3.5 rounded-xl border border-border-light bg-surface/50">
+          {activeTab === 'share' && <div className="p-3.5 rounded-xl border border-border-light bg-surface/50">
             <div className="flex items-center gap-2 mb-2.5">
               <i className="bx bx-group text-lg text-accent-blue" />
               <div className="flex-1">
                 <span className="text-text-primary text-sm font-medium">Live Collaborate</span>
-                <p className="text-text-dim text-[10px] leading-relaxed">Real-time E2E encrypted editing with up to 10 people</p>
+                <p className="text-text-dim text-[10px] leading-relaxed">Real-time E2E encrypted editing with up to {limits.collaborators} {limits.collaborators === 1 ? 'person' : 'people'} on {tier === 'guest' ? 'Guest' : tier[0].toUpperCase() + tier.slice(1)}</p>
               </div>
               <span className="flex items-center gap-1 text-[10px] text-green-400/80">
                 <i className="bx bxs-lock-alt text-xs" />
@@ -471,13 +591,13 @@ export default function SaveModal() {
               </button>
             )}
 
-            {collabError && (
-              <p className="text-red-400 text-[10px] mt-2">{collabError}</p>
+            {(collabError || collabRuntimeError) && (
+              <p className="text-red-400 text-[10px] mt-2">{collabError || collabRuntimeError}</p>
             )}
-          </div>
+          </div>}
 
           {/* ── One-time view-only share (issue #24 bug #9) ── */}
-          <div className="p-3.5 rounded-xl border border-border-light bg-surface/50">
+          {activeTab === 'share' && <div className="p-3.5 rounded-xl border border-border-light bg-surface/50">
             <div className="flex items-center gap-2 mb-2.5">
               <i className="bx bx-link-alt text-lg text-accent-blue" />
               <div className="flex-1">
@@ -524,7 +644,42 @@ export default function SaveModal() {
             {shareError && (
               <p className="text-red-400 text-[10px] mt-2">{shareError}</p>
             )}
-          </div>
+          </div>}
+
+          {/* ── Public workspace template ── */}
+          {activeTab === 'publish' && <div className="p-3.5 rounded-xl border border-accent-blue/25 bg-accent-blue/5">
+            <div className="mb-3 flex items-start gap-2">
+              <i className="bx bx-world text-lg text-accent-blue" />
+              <div className="flex-1">
+                <span className="text-text-primary text-sm font-medium">Publish as a template</span>
+                <p className="text-text-dim text-[10px] leading-relaxed">Create a public canvas and document snapshot others can fork or clone.</p>
+              </div>
+              <a href="/templates" target="_blank" rel="noreferrer" className="text-[10px] text-accent-blue hover:underline">Browse</a>
+            </div>
+            {publishedUrl ? (
+              <div>
+                <div className="flex gap-2">
+                  <input readOnly value={publishedUrl} onClick={(event) => event.target.select()} className="min-w-0 flex-1 rounded-lg border border-border-light bg-surface px-2.5 py-2 text-xs text-text-secondary outline-none" />
+                  <button onClick={() => navigator.clipboard.writeText(publishedUrl)} className="cursor-pointer rounded-lg bg-accent-blue px-3 text-xs text-white hover:bg-accent-blue-hover">Copy</button>
+                </div>
+                <a href={publishedUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-[10px] text-accent-blue hover:underline">Open published template <i className="bx bx-link-external" /></a>
+                <button onClick={() => handlePublishTemplate(true)} disabled={publishing} className="mt-2 ml-4 cursor-pointer text-[10px] text-text-dim hover:text-accent-blue disabled:opacity-50"><i className="bx bx-refresh mr-1" />{publishing ? 'Updating…' : 'Update public snapshot'}</button>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                <input value={publishTitle} maxLength={72} onChange={(event) => setPublishTitle(event.target.value)} placeholder="Public title" className="w-full rounded-lg border border-border-light bg-surface px-3 py-2 text-xs text-text-primary outline-none focus:border-accent-blue" />
+                <textarea value={publishDescription} maxLength={600} onChange={(event) => setPublishDescription(event.target.value)} placeholder="What can people build with this workspace?" rows={3} className="w-full resize-none rounded-lg border border-border-light bg-surface px-3 py-2 text-xs leading-5 text-text-primary outline-none focus:border-accent-blue" />
+                <input value={publishTags} onChange={(event) => setPublishTags(event.target.value)} placeholder="Tags, separated by commas (up to 6)" className="w-full rounded-lg border border-border-light bg-surface px-3 py-2 text-xs text-text-primary outline-none focus:border-accent-blue" />
+                <div className="rounded-lg border border-yellow-400/20 bg-yellow-400/5 p-2.5 text-[10px] leading-4 text-yellow-200/80">
+                  <i className="bx bx-info-circle mr-1" />Everything in this snapshot becomes public. Private or access-controlled media may not work for other users.
+                </div>
+                <button onClick={() => handlePublishTemplate(false)} disabled={publishing} className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-accent-blue py-2.5 text-sm text-white hover:bg-accent-blue-hover disabled:opacity-50">
+                  <i className="bx bx-upload" />{!isAuthenticated ? 'Sign in to publish' : publishing ? 'Publishing…' : 'Publish workspace'}
+                </button>
+              </div>
+            )}
+            {publishError && <p className="mt-2 text-[10px] text-red-400">{publishError}</p>}
+          </div>}
         </div>
       </div>
     </div>

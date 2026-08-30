@@ -3,6 +3,7 @@
 // Depends on globals: svg, shapes, currentShape, currentZoom
 
 import { cleanupAttachments } from '../tools/arrowTool.js';
+import { registerRotationAnchor } from '../core/ScreenSpaceControls.js';
 
 function getSVGCoordsFromMouse(e) {
     const viewBox = svg.viewBox.baseVal;
@@ -24,6 +25,10 @@ class Frame {
         this.height = height;
         this.rotation = options.rotation || 0;
         this.frameName = options.frameName || "Frame";
+        this._frameType = options.frameType || null;
+        this._webEmbedURL = options.webEmbedURL || null;
+        this._webEmbedForeignObject = null;
+        this._webEmbedElement = null;
         this.fillStyle = options.fillStyle || "transparent"; // 'transparent' | 'solid' | 'grid'
         this.fillColor = options.fillColor || "#1e1e28";
         this.gridSize = options.gridSize || 20;
@@ -80,9 +85,9 @@ class Frame {
 
     draw() {
         // Clear previous elements
-        while (this.group.firstChild) {
-            this.group.removeChild(this.group.firstChild);
-        }
+        Array.from(this.group.children).forEach((child) => {
+            if (child !== this._webEmbedForeignObject) this.group.removeChild(child);
+        });
         this.anchors = [];
 
         // Ensure defs exists for grid pattern
@@ -152,6 +157,12 @@ class Frame {
         this.element = frameRect;
         this.group.appendChild(this.element);
 
+        if (this._frameType === 'web-embed' && this._webEmbedURL) {
+            this._updateWebEmbed();
+            // Keep the frame outline above the embedded document so it remains selectable.
+            this.group.appendChild(this.element);
+        }
+
         // Add label
         this.addFrameLabel();
 
@@ -207,7 +218,39 @@ class Frame {
         }
     }
 
+    setWebEmbedURL(url) {
+        this._webEmbedURL = url;
+        this._frameType = 'web-embed';
+        this._updateWebEmbed();
+    }
+
+    _updateWebEmbed() {
+        if (!this._webEmbedURL) return;
+        if (!this._webEmbedForeignObject) {
+            const foreign = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+            const host = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+            const embed = document.createElementNS('http://www.w3.org/1999/xhtml', 'embed');
+            host.style.cssText = 'width:100%;height:100%;overflow:hidden;background:#fff;border-radius:4px';
+            embed.setAttribute('type', 'text/html'); embed.setAttribute('width', '100%'); embed.setAttribute('height', '100%');
+            embed.setAttribute('src', this._webEmbedURL); embed.setAttribute('title', this.frameName || 'Web embed');
+            host.appendChild(embed); foreign.appendChild(host);
+            this._webEmbedForeignObject = foreign; this._webEmbedElement = embed;
+            this.group.insertBefore(foreign, this.element || null);
+        } else if (this._webEmbedElement?.getAttribute('src') !== this._webEmbedURL) {
+            this._webEmbedElement.setAttribute('src', this._webEmbedURL);
+        }
+        const inset = 2;
+        this._webEmbedForeignObject.setAttribute('x', this.x + inset);
+        this._webEmbedForeignObject.setAttribute('y', this.y + inset);
+        this._webEmbedForeignObject.setAttribute('width', Math.max(0, this.width - inset * 2));
+        this._webEmbedForeignObject.setAttribute('height', Math.max(0, this.height - inset * 2));
+        if (this.rotation) {
+            this._webEmbedForeignObject.setAttribute('transform', `rotate(${this.rotation}, ${this.x + this.width / 2}, ${this.y + this.height / 2})`);
+        } else this._webEmbedForeignObject.removeAttribute('transform');
+    }
+
     addShapeToFrame(shape) {
+    if (this._frameType === 'web-embed') return;
     if (shape && !this.containedShapes.includes(shape)) {
         const oldFrame = shape.parentFrame;
 
@@ -274,7 +317,7 @@ class Frame {
 
     // Check if a shape overlaps with this frame
     isShapeInFrame(shape) {
-    if (!shape || shape === this) return false;
+    if (this._frameType === 'web-embed' || !shape || shape === this) return false;
     
     const shapeX = shape.x || 0;
     const shapeY = shape.y || 0;
@@ -290,6 +333,7 @@ class Frame {
 }
 
 updateContainedShapes(applyClipping = true) {
+    if (this._frameType === 'web-embed') return;
     // Check all shapes to see if they should be in this frame
     if (typeof shapes === 'undefined' || !Array.isArray(shapes)) return;
     shapes.forEach(shape => {
@@ -474,11 +518,12 @@ move(dx, dy) {
     labelText.setAttribute("x", this.x + 5);
     labelText.setAttribute("y", this.y - 10);
     labelText.setAttribute("font-size", `${16 / currentZoom}px`);
-    labelText.setAttribute("fill", this.options.stroke);
+    labelText.setAttribute("fill", this.options.labelColor || this.options.stroke);
     labelText.setAttribute("font-family", "lixFont");
     labelText.textContent = this.frameName || "Frame";
     labelText.style.cursor = "pointer";
     labelText.style.userSelect = "none";
+    labelText.style.pointerEvents = "all";
     
     if (this.rotation !== 0) {
         const centerX = this.x + this.width / 2;
@@ -486,6 +531,11 @@ move(dx, dy) {
         labelText.setAttribute("transform", `rotate(${this.rotation}, ${centerX}, ${centerY})`);
     }
     
+    // Do not let the first click select/redraw the frame: replacing the label
+    // between clicks prevents the browser from ever emitting `dblclick`.
+    labelText.addEventListener('pointerdown', (e) => e.stopPropagation());
+    labelText.addEventListener('click', (e) => e.stopPropagation());
+
     // Add double-click event for renaming
     labelText.addEventListener('dblclick', (e) => {
         e.stopPropagation();
@@ -497,6 +547,10 @@ move(dx, dy) {
 }
 
 startLabelEdit(labelElement) {
+    if (this._labelEditor) {
+        this._labelEditor.querySelector('input')?.focus();
+        return;
+    }
     // Create a foreignObject to hold an HTML input
     const foreignObject = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
     foreignObject.setAttribute("x", this.x + 5);
@@ -534,6 +588,7 @@ startLabelEdit(labelElement) {
     
     foreignObject.appendChild(input);
     this.group.appendChild(foreignObject);
+    this._labelEditor = foreignObject;
     
     // Hide the original label
     labelElement.style.display = "none";
@@ -544,7 +599,10 @@ startLabelEdit(labelElement) {
         input.select();
     }, 10);
     
+    let finished = false;
     const finishEdit = () => {
+        if (finished) return;
+        finished = true;
         const newName = input.value.trim() || "Frame";
         
         // Track name change in undo system if it actually changed
@@ -572,7 +630,8 @@ startLabelEdit(labelElement) {
         this.frameName = newName;
         
         // Remove the input
-        this.group.removeChild(foreignObject);
+        foreignObject.remove();
+        this._labelEditor = null;
         
         // Show and update the label
         labelElement.style.display = "block";
@@ -589,8 +648,10 @@ startLabelEdit(labelElement) {
             finishEdit();
         } else if (e.key === 'Escape') {
             e.preventDefault();
+            finished = true;
             // Cancel edit - restore original name
-            this.group.removeChild(foreignObject);
+            foreignObject.remove();
+            this._labelEditor = null;
             labelElement.style.display = "block";
         }
     });
@@ -775,6 +836,12 @@ startLabelEdit(labelElement) {
             }
             
             this.group.appendChild(rotationLine);
+            registerRotationAnchor(anchor, {
+                radius: 8,
+                edgeY: this.y,
+                line: rotationLine,
+                lineEnd: '2',
+            });
         } else {
             // Create resize handle (rectangle)
             anchor = document.createElementNS("http://www.w3.org/2000/svg", "rect");
@@ -1209,6 +1276,28 @@ startLabelEdit(labelElement) {
                             const relTY = (ty - oldY) / oldH;
                             shape.x = this.x + relTX * this.width;
                             shape.y = this.y + relTY * this.height;
+                            break;
+                        }
+                        case 'freehandStroke': {
+                            // Pie sectors are editable closed freehand polygons.
+                            // Scale their source points with the frame so their
+                            // geometry stays attached instead of being clipped
+                            // at its previous canvas coordinates.
+                            if (Array.isArray(shape.points)) {
+                                shape.points = shape.points.map(point => {
+                                    if (!Array.isArray(point) || point.length < 2) return point;
+                                    const relPX = (point[0] - oldX) / oldW;
+                                    const relPY = (point[1] - oldY) / oldH;
+                                    return [
+                                        this.x + relPX * this.width,
+                                        this.y + relPY * this.height,
+                                        point[2] || 0.5
+                                    ];
+                                });
+                                shape._moveOffsetX = 0;
+                                shape._moveOffsetY = 0;
+                                if (typeof shape.draw === 'function') shape.draw();
+                            }
                             break;
                         }
                     }

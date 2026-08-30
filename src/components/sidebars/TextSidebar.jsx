@@ -27,7 +27,7 @@ export default function TextSidebar() {
   const activeTool = useSketchStore((s) => s.activeTool)
   const selectedShapeSidebar = useSketchStore((s) => s.selectedShapeSidebar)
   const [textColor, setTextColor] = useState('#fff')
-  const [fontSize, setFontSize] = useState('M')
+  const [fontSize, setFontSize] = useState('S')
   const [font, setFont] = useState('lixFont')
   const [codeMode, setCodeMode] = useState(false)
   const [language, setLanguage] = useState('javascript')
@@ -87,7 +87,7 @@ export default function TextSidebar() {
         <div className="grid grid-cols-4 gap-1.5">
           {TEXT_COLORS.map((c) => (
             <button key={c} onClick={() => updateColor(c)}
-              className={`w-7 h-7 rounded-md border-[1.5px] transition-all duration-100 ${textColor === c ? 'border-[#5B57D1] scale-110' : 'border-border-light hover:border-text-dim'}`}
+              className={`w-7 h-7 rounded-md border-[1.5px] transition-all duration-100 ${textColor === c ? 'border-[#7667a8] scale-110' : 'border-border-light hover:border-text-dim'}`}
               style={{ backgroundColor: c }}
             />
           ))}
@@ -104,7 +104,7 @@ export default function TextSidebar() {
             <div className="flex flex-col gap-0.5">
               {FONTS.map((f) => (
                 <button key={f.value} onClick={() => updateFont(f.value)}
-                  className={`flex items-center px-2.5 py-1.5 rounded-lg text-xs transition-all duration-100 ${font === f.value ? 'bg-[#5B57D1] text-white' : 'text-text-secondary hover:bg-white/[0.06]'}`}
+                  className={`flex items-center px-2.5 py-1.5 rounded-lg text-xs transition-all duration-100 ${font === f.value ? 'bg-[#7667a8] text-white' : 'text-text-secondary hover:bg-surface-hover'}`}
                   style={{ fontFamily: f.value }}
                 >
                   {f.label}
@@ -123,7 +123,7 @@ export default function TextSidebar() {
         <div className="flex items-center gap-1">
           {['S', 'M', 'L', 'XL'].map((s) => (
             <button key={s} onClick={() => updateSize(s)}
-              className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs transition-all duration-100 ${fontSize === s ? 'bg-[#5B57D1]/20 text-[#5B57D1]' : 'text-text-muted hover:bg-white/[0.06]'}`}
+              className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs transition-all duration-100 ${fontSize === s ? 'bg-[#7667a8]/20 text-[#7667a8]' : 'text-text-muted hover:bg-surface-hover'}`}
             >{s}</button>
           ))}
         </div>
@@ -136,7 +136,7 @@ export default function TextSidebar() {
         <p className="text-xs text-text-muted uppercase tracking-wider mb-2">{t('sidebar.code')}</p>
         <div className="flex flex-col gap-2">
           <button onClick={toggleCodeMode}
-            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-all duration-100 ${codeMode ? 'bg-[#5B57D1] text-white' : 'text-text-secondary hover:bg-white/[0.06]'}`}
+            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-all duration-100 ${codeMode ? 'bg-[#7667a8] text-white' : 'text-text-secondary hover:bg-surface-hover'}`}
           >
             <div className={`w-6 h-3 rounded-full transition-all duration-150 relative ${codeMode ? 'bg-white/30' : 'bg-white/10'}`}>
               <div className={`absolute top-0.5 w-2 h-2 rounded-full bg-white transition-all duration-150 ${codeMode ? 'left-3.5' : 'left-0.5'}`} />
@@ -147,7 +147,7 @@ export default function TextSidebar() {
             <div className="flex flex-wrap gap-1 max-w-[180px]">
               {LANGUAGES.map((lang) => (
                 <button key={lang} onClick={() => updateLanguage(lang)}
-                  className={`px-1.5 py-0.5 rounded text-[9px] transition-all duration-100 ${language === lang ? 'bg-[#5B57D1]/20 text-[#5B57D1]' : 'text-text-dim hover:bg-white/[0.06] hover:text-text-secondary'}`}
+                  className={`px-1.5 py-0.5 rounded text-[9px] transition-all duration-100 ${language === lang ? 'bg-[#7667a8]/20 text-[#7667a8]' : 'text-text-dim hover:bg-surface-hover hover:text-text-secondary'}`}
                 >{lang}</button>
               ))}
             </div>
@@ -164,9 +164,9 @@ export default function TextSidebar() {
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 pointer-events-none translate-y-2'
       }`}
     >
-      <p className="text-[10px] text-white/30 leading-relaxed text-center whitespace-nowrap">
-        <span className="text-white/50">Ctrl+Enter</span> / <span className="text-white/50">Enter</span> — {t('sidebar.renderText')} &nbsp;&nbsp;
-        <span className="text-white/50">Shift+Enter</span> — {t('sidebar.newLine')}
+      <p className="text-[10px] text-text-dim leading-relaxed text-center whitespace-nowrap">
+        <span className="text-text-muted">Ctrl+Enter</span> / <span className="text-text-muted">Enter</span> — {t('sidebar.renderText')} &nbsp;&nbsp;
+        <span className="text-text-muted">Shift+Enter</span> — {t('sidebar.newLine')}
       </p>
     </div>
     </>

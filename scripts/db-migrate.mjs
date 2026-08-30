@@ -2,10 +2,10 @@
 // Apply pending D1 migrations from worker/migrations in order.
 // Usage:  node scripts/db-migrate.mjs [--remote|--local]
 //
-// We can't use `wrangler d1 migrations apply` directly because there's no
-// wrangler.toml at the repo root (D1 bindings live in next.config.mjs's
-// setupDevPlatform call). This script tracks applied migrations in a
-// `_migrations` table so re-running only applies new ones.
+// This script tracks applied migrations in a `_migrations` table so re-running
+// only applies new ones. Both Wrangler and Next use the same explicit config
+// and persistent local state, otherwise `npm run dev` can start against a
+// separate, empty D1 database.
 
 import { readdir, readFile } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
@@ -20,11 +20,19 @@ const flag = args.has('--local') ? '--local' : '--remote'
 // applied manually, before adopting this tracker.
 const INIT_MODE = args.has('--init')
 const DB_NAME = 'lixsketch'
+const WRANGLER_CONFIG = 'wrangler.next.toml'
+const LOCAL_PERSIST_DIR = '.wrangler/state'
 const MIGRATIONS_DIR = path.resolve(process.cwd(), 'worker/migrations')
+
+function wranglerDatabaseArgs(...extra) {
+  const common = ['wrangler', 'd1', 'execute', DB_NAME, flag, `--config=${WRANGLER_CONFIG}`]
+  if (flag === '--local') common.push(`--persist-to=${LOCAL_PERSIST_DIR}`)
+  return [...common, ...extra]
+}
 
 function run(cmd, cmdArgs, opts = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, cmdArgs, { stdio: opts.capture ? ['inherit', 'pipe', 'inherit'] : 'inherit', shell: false })
+    const child = spawn(cmd, cmdArgs, { stdio: opts.capture ? ['inherit', 'pipe', 'inherit'] : 'inherit', shell: process.platform === 'win32' })
     let out = ''
     if (opts.capture) child.stdout.on('data', (d) => { out += d.toString(); process.stdout.write(d) })
     child.on('exit', (code) => code === 0 ? resolve(out) : reject(new Error(`${cmd} exited ${code}`)))
@@ -36,14 +44,21 @@ async function execSQL(sql) {
   const tmp = path.join(tmpdir(), `lixsketch-migration-${Date.now()}.sql`)
   writeFileSync(tmp, sql, 'utf8')
   try {
-    return await run('npx', ['wrangler', 'd1', 'execute', DB_NAME, flag, `--file=${tmp}`], { capture: true })
+    return await run('npx', wranglerDatabaseArgs(`--file=${tmp}`), { capture: true })
   } finally {
     try { unlinkSync(tmp) } catch {}
   }
 }
 
+// Wrangler 4.87 no longer includes SELECT result rows when SQL is supplied
+// through --file. Use --command for reads so migration history and schema
+// probes receive their actual rows instead of only execution totals.
+function querySQL(sql) {
+  return run('npx', wranglerDatabaseArgs(`--command=${sql}`), { capture: true })
+}
+
 async function execFile(filePath) {
-  await run('npx', ['wrangler', 'd1', 'execute', DB_NAME, flag, `--file=${filePath}`])
+  await run('npx', wranglerDatabaseArgs(`--file=${filePath}`))
 }
 
 // 1. Ensure history table exists.
@@ -53,14 +68,12 @@ await execSQL(`CREATE TABLE IF NOT EXISTS _migrations (
 );`)
 
 // 2. Read applied migrations.
-const appliedOut = await execSQL(`SELECT name FROM _migrations;`)
+const appliedOut = await querySQL(`SELECT name FROM _migrations;`)
 const applied = new Set()
-// wrangler prints results as JSON-ish text; pull out filename rows.
-const m = appliedOut.match(/"name"\s*:\s*"([^"]+)"/g) || []
-for (const line of m) {
-  const v = line.match(/"name"\s*:\s*"([^"]+)"/)
-  if (v) applied.add(v[1])
-}
+// Wrangler output varies between JSON and a Unicode table depending on its
+// version and terminal. Migration filenames are unique enough to parse from
+// either representation without depending on the surrounding renderer.
+for (const name of appliedOut.match(/\b\d{4}_[a-z0-9_.-]+\.sql\b/gi) || []) applied.add(name)
 
 // 3. List migration files.
 const files = (await readdir(MIGRATIONS_DIR))
@@ -74,8 +87,8 @@ const pending = files.filter((f) => !applied.has(f))
 // Abort with a clear message instead of attempting non-idempotent
 // ALTER TABLE statements.
 if (!INIT_MODE && applied.size === 0) {
-  const probe = await execSQL(`SELECT name FROM sqlite_master WHERE type='table' AND name='scenes';`)
-  if (/"name"\s*:\s*"scenes"/.test(probe)) {
+  const probe = await querySQL(`SELECT name FROM sqlite_master WHERE type='table' AND name='scenes';`)
+  if (/\bscenes\b/.test(probe)) {
     console.error('\n✗ Schema already exists but _migrations history is empty.')
     console.error('  This usually means migrations were applied manually before this tracker was added.')
     console.error('  Run `npm run db:migrate -- --init` ONCE to seed history with every migration')

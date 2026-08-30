@@ -147,7 +147,15 @@ function serializeShape(shape) {
                 width: shape.width,
                 height: shape.height,
                 rotation: shape.rotation,
-                href: el.getAttribute('href') || el.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || ''
+                href: el.getAttribute('href') || el.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '',
+                storageProvider: el.getAttribute('data-storage-provider') || null,
+                storageCloudName: el.getAttribute('data-storage-cloud-name') || null,
+                aiGenerated: el.getAttribute('data-ai-generated') === 'true',
+                aiModel: el.getAttribute('data-ai-model') || null,
+                frameType: shape._frameType || null,
+                graphData: shape._frameType === 'graph' && shape._graphData
+                    ? cloneOptions(shape._graphData)
+                    : null
             };
         }
 
@@ -383,20 +391,39 @@ function createShapeFromData(data, offsetX, offsetY) {
             imgEl.setAttribute('data-shape-height', data.height);
             imgEl.setAttribute('preserveAspectRatio', 'none');
             imgEl.setAttribute('style', 'cursor: pointer;');
+            if (data.storageProvider) imgEl.setAttribute('data-storage-provider', data.storageProvider);
+            if (data.storageCloudName) imgEl.setAttribute('data-storage-cloud-name', data.storageCloudName);
+            if (data.aiGenerated) imgEl.setAttribute('data-ai-generated', 'true');
+            if (data.aiModel) imgEl.setAttribute('data-ai-model', data.aiModel);
 
             // ImageShape constructor moves element into a group and appends to svg
             svgEl.appendChild(imgEl);
             const imageShape = new ImageShape(imgEl);
             imageShape.rotation = data.rotation;
+            if (data.frameType === 'graph' && data.graphData) {
+                if (typeof window.__hydrateGraphShape === 'function') {
+                    window.__hydrateGraphShape(imageShape, data.graphData);
+                } else {
+                    imageShape._frameType = 'graph';
+                    imageShape._graphData = cloneOptions(data.graphData);
+                    imageShape.element.setAttribute('data-graph-shape', 'true');
+                }
+            }
             return imageShape;
         }
 
         case 'icon': {
-            // Parse the cloned icon element HTML
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = data.elementHTML;
-            const clonedEl = tempDiv.firstElementChild;
-            if (!clonedEl) return null;
+            // Parse inside an SVG document. Parsing a copied <g> through an
+            // HTML <div> creates it in the HTML namespace, so it can be added
+            // to shapes[] but the SVG renderer will not paint it.
+            const parser = new DOMParser();
+            const parsed = parser.parseFromString(
+                `<svg xmlns="http://www.w3.org/2000/svg">${data.elementHTML}</svg>`,
+                'image/svg+xml'
+            );
+            const parsedGroup = parsed.querySelector('g');
+            if (!parsedGroup || parsed.querySelector('parsererror')) return null;
+            const clonedEl = svgEl.ownerDocument.importNode(parsedGroup, true);
 
             const newX = data.x + offsetX;
             const newY = data.y + offsetY;
@@ -599,15 +626,25 @@ function handlePasteEvent(e) {
                 const rawDataUrl = ev.target.result;
                 const isSvg = (blob.type || '').toLowerCase() === 'image/svg+xml';
                 let placedDataUrl = rawDataUrl;
+                let placedSize = blob.size;
                 if (!isSvg) {
                     try {
                         const compressed = await compressImage(rawDataUrl);
-                        if (compressed?.dataUrl) placedDataUrl = compressed.dataUrl;
+                        if (compressed?.dataUrl) {
+                            placedDataUrl = compressed.dataUrl;
+                            placedSize = compressed.compressedSize || placedSize;
+                        }
                     } catch (err) {
                         console.warn('[CopyPaste] Pre-placement compression failed, using raw:', err);
                     }
                 }
-                placeImageFromDataUrl(placedDataUrl);
+                const limit = Number(window.__roomImageLimitBytes) || 2 * 1024 * 1024;
+                const personalStorage = window.__personalCloudinary?.connected && window.__personalCloudinary?.useForUploads;
+                if (!personalStorage && (window.__roomImageBytesUsed || 0) + placedSize > limit) {
+                    alert(`Workspace image limit reached (${Math.round(limit / (1024 * 1024))} MB).`);
+                    return;
+                }
+                placeImageFromDataUrl(placedDataUrl, placedSize);
             };
             reader.readAsDataURL(blob);
             return; // only handle first image
@@ -615,7 +652,7 @@ function handlePasteEvent(e) {
     }
 }
 
-function placeImageFromDataUrl(dataUrl) {
+function placeImageFromDataUrl(dataUrl, sizeBytes = 0) {
     const svgEl = getSVGElement();
     if (!svgEl || !window.ImageShape) return;
 
@@ -642,6 +679,9 @@ function placeImageFromDataUrl(dataUrl) {
         imgEl.setAttribute('data-shape-height', displayH);
         imgEl.setAttribute('type', 'image');
         imgEl.setAttribute('preserveAspectRatio', 'none');
+        imgEl.__fileSize = sizeBytes;
+        imgEl.setAttribute('data-file-size', String(sizeBytes));
+        window.__roomImageBytesUsed = (window.__roomImageBytesUsed || 0) + sizeBytes;
 
         svgEl.appendChild(imgEl);
         const imageShape = new ImageShape(imgEl);

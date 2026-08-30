@@ -180,7 +180,7 @@ function DiagramPreview({ svgMarkup, className }) {
   return (
     <div
       ref={containerRef}
-      className={`rounded-xl bg-surface-card border border-border-light overflow-hidden relative select-none ${className || 'w-full h-[clamp(200px,40vh,400px)]'}`}
+      className={`rounded-xl bg-surface-dark border border-border-light overflow-hidden relative select-none ${className || 'w-full h-[clamp(200px,40vh,400px)]'}`}
     >
       <div
         style={{
@@ -199,11 +199,11 @@ function DiagramPreview({ svgMarkup, className }) {
         style={{ zIndex: 1 }}
         onMouseDown={handleMouseDown}
       />
-      <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/50 rounded-lg px-1.5 py-0.5" style={{ zIndex: 2 }}>
-        <button onClick={() => setZoom(z => Math.max(0.3, z * 0.8))} className="text-text-dim hover:text-white text-xs px-1">-</button>
-        <span className="text-text-dim text-[10px] w-8 text-center">{Math.round(zoom * 100)}%</span>
-        <button onClick={() => setZoom(z => Math.min(3, z * 1.2))} className="text-text-dim hover:text-white text-xs px-1">+</button>
-        <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }) }} className="text-text-dim hover:text-white text-[10px] px-1 border-l border-white/10 ml-0.5 pl-1.5">Reset</button>
+      <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-surface-card border border-border-light shadow-md rounded-lg px-1.5 py-0.5" style={{ zIndex: 2 }}>
+        <button onClick={() => setZoom(z => Math.max(0.3, z * 0.8))} className="text-text-secondary hover:text-text-primary text-xs px-1">-</button>
+        <span className="text-text-secondary text-[10px] w-8 text-center">{Math.round(zoom * 100)}%</span>
+        <button onClick={() => setZoom(z => Math.min(3, z * 1.2))} className="text-text-secondary hover:text-text-primary text-xs px-1">+</button>
+        <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }) }} className="text-text-secondary hover:text-text-primary text-[10px] px-1 border-l border-border-light ml-0.5 pl-1.5">Reset</button>
       </div>
     </div>
   )
@@ -212,6 +212,7 @@ function DiagramPreview({ svgMarkup, className }) {
 export default function AIModal() {
   const aiModalOpen = useUIStore((s) => s.aiModalOpen)
   const toggleAIModal = useUIStore((s) => s.toggleAIModal)
+  const resolvedTheme = useUIStore((s) => s.resolvedTheme)
 
   // Hides every "Describe with AI" prompt block. The visual scaffolding
   // (modal shell, tabs, code editors, preview panes, render buttons) stays
@@ -305,7 +306,7 @@ export default function AIModal() {
 
   // Fetch AI quota on modal open
   useEffect(() => {
-    if (!aiModalOpen) return
+    if (!aiModalOpen || AI_DISABLED) return
     const authState = useAuthStore.getState()
     const params = new URLSearchParams()
     if (authState.isAuthenticated && authState.user?.id) {
@@ -339,7 +340,7 @@ export default function AIModal() {
       }
     }, 200)
     return () => { if (graphDebounceRef.current) clearTimeout(graphDebounceRef.current) }
-  }, [equations, graphSettings, mode])
+  }, [equations, graphSettings, mode, resolvedTheme])
 
   // Live mermaid preview (debounced)
   useEffect(() => {
@@ -368,7 +369,7 @@ export default function AIModal() {
       }
     }, 300)
     return () => { if (mermaidDebounceRef.current) clearTimeout(mermaidDebounceRef.current) }
-  }, [mermaidCode, mode])
+  }, [mermaidCode, mode, resolvedTheme])
 
   // Live research paper LixScript preview (debounced)
   useEffect(() => {
@@ -808,25 +809,11 @@ export default function AIModal() {
     const validEquations = equations.filter(eq => eq.expression && eq.expression.trim())
     if (validEquations.length === 0) return
 
-    // If editing existing graph frame, remove old one
-    if (editingFrame && editingFrame._frameType === 'graph') {
-      try {
-        const contained = editingFrame.containedShapes ? [...editingFrame.containedShapes] : []
-        if (typeof editingFrame.destroy === 'function') editingFrame.destroy()
-        contained.forEach(s => {
-          if (!s) return
-          const idx = window.shapes?.indexOf(s)
-          if (idx !== -1) window.shapes.splice(idx, 1)
-          if (s.group?.parentNode) s.group.parentNode.removeChild(s.group)
-        })
-        const idx = window.shapes?.indexOf(editingFrame)
-        if (idx !== -1) window.shapes.splice(idx, 1)
-      } catch {}
-    }
-
     handleClose()
     if (window.__graphRenderer) {
-      const success = window.__graphRenderer(equations, graphSettings)
+      // Updating an existing graph keeps its canvas geometry intact.
+      const graphToUpdate = editingFrame?._frameType === 'graph' ? editingFrame : null
+      const success = window.__graphRenderer(equations, graphSettings, graphToUpdate)
       if (!success) {
         setToast({ status: 'error', message: 'Failed to render graph' })
         return
@@ -919,7 +906,7 @@ export default function AIModal() {
                     </>
                   ) : (
                     <h2 className="text-text-primary text-lg font-medium flex items-center gap-2.5">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isGraphMode ? 'text-[#4A90D9]' : isResearchMode ? 'text-[#9B59B6]' : isCodeMode ? 'text-[#F39C12]' : mode === 'mermaid' ? 'text-[#2ECC71]' : 'text-accent'}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-blue">
                         {isGraphMode ? (
                           <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                         ) : isResearchMode ? (
@@ -965,10 +952,9 @@ export default function AIModal() {
               <div className="flex gap-1 mb-4 bg-surface-dark rounded-xl p-1">
                 {[
                   // 'Research Paper' tab was AI-inference-only and is hidden
-                  // while the assistant is offline. The remaining three tabs
-                  // (LixScript / Mermaid / Graph) parse and render entirely
-                  // client-side, no worker round-trip required.
-                  { value: 'code', label: 'LixScript', beta: true },
+                  // while the assistant is offline. LixScript remains visible
+                  // as a preview of the upcoming MCP integration.
+                  { value: 'code', label: 'LixScript', comingSoon: true },
                   { value: 'mermaid', label: 'Mermaid' },
                   { value: 'graph', label: 'Graph' },
                 ].map((t) => (
@@ -976,9 +962,12 @@ export default function AIModal() {
                     key={t.value}
                     onClick={() => setMode(t.value)}
                     className={`flex-1 px-4 py-2 rounded-lg text-sm transition-all duration-200 ${
-                      mode === t.value ? 'bg-surface-active text-text-primary' : 'text-text-muted hover:text-text-primary'
+                      mode === t.value ? 'bg-accent-blue/15 text-accent-blue' : 'text-text-muted hover:text-text-primary hover:bg-accent-blue/5'
                     }`}
-                  >{t.label}{t.beta && <span className="ml-1.5 px-1.5 py-0.5 text-[9px] rounded-md bg-orange-500/20 text-orange-400 font-medium uppercase leading-none">Beta</span>}</button>
+                  >
+                    {t.label}
+                    {t.comingSoon && <span className="ml-1.5 px-1.5 py-0.5 text-[9px] rounded-md bg-accent-blue/10 text-accent-blue font-medium uppercase leading-none">Coming soon</span>}
+                  </button>
                 ))}
               </div>
             )}
@@ -1161,7 +1150,7 @@ export default function AIModal() {
                     value={mermaidCode}
                     onChange={(e) => setMermaidCode(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder={'graph TD\n  A[Start] --> B{Decision}\n  B -->|Yes| C[Action]\n  B -->|No| D[End]\n\nsequenceDiagram\n  Alice ->> Bob: Hello\n  Bob -->> Alice: Hi!'}
+                    placeholder={'flowchart TD\n  A[Start] --> B{Decision}\n  B -->|Yes| C[Action]\n  B -->|No| D[End]\n\nerDiagram\n  USER ||--o{ ORDER : places'}
                     className="flex-1 bg-surface-dark border border-border rounded-xl px-4 py-3 text-text-primary text-sm leading-relaxed resize-none focus:outline-none focus:border-accent-blue placeholder:text-text-dim font-mono"
                     autoFocus
                     spellCheck={false}
@@ -1175,11 +1164,14 @@ export default function AIModal() {
                         { label: 'Flowchart', code: 'graph TD\n  A[Start] --> B{Decision}\n  B -->|Yes| C[Process]\n  B -->|No| D[End]\n  C --> D' },
                         { label: 'LR Flow', code: 'graph LR\n  A[Input] --> B(Process)\n  B --> C((Output))\n  B --> D{Check}\n  D --> A' },
                         { label: 'Sequence', code: 'sequenceDiagram\n  Alice ->> Bob: Hello Bob\n  Bob -->> Alice: Hi Alice\n  Alice ->> Bob: How are you?\n  Bob -->> Alice: Great!' },
+                        { label: 'ER Diagram', code: 'erDiagram\n  CUSTOMER ||--o{ ORDER : places\n  CUSTOMER {\n    string name\n    string email\n  }\n  ORDER {\n    int id PK\n    float total\n  }' },
+                        { label: 'Bar Chart', code: 'xychart-beta\n  title "Weekly Focus"\n  x-axis [Mon, Tue, Wed, Thu, Fri]\n  bar [4, 7, 5, 8, 6]' },
+                        { label: 'Pie Chart', code: 'pie title Project Time\n  "Design" : 35\n  "Build" : 45\n  "Review" : 20' },
                       ].map((preset) => (
                         <button
                           key={preset.label}
                           onClick={() => setMermaidCode(preset.code)}
-                          className="px-2 py-1 rounded-lg text-[10px] text-text-dim border border-white/[0.06] hover:border-white/[0.15] hover:text-text-secondary transition-all"
+                          className="px-2 py-1 rounded-lg text-[10px] text-text-dim border border-border hover:border-accent-blue/40 hover:text-accent-blue transition-all"
                         >{preset.label}</button>
                       ))}
                     </div>
@@ -1207,13 +1199,13 @@ export default function AIModal() {
                 <div className="flex-1 flex flex-col min-w-0">
                   <p className="text-text-muted text-xs uppercase tracking-wider mb-2">Preview</p>
                   {mermaidError ? (
-                    <div className="flex-1 flex items-center justify-center rounded-xl bg-[#111] border border-white/[0.06]">
+                    <div className="flex-1 flex items-center justify-center rounded-xl bg-surface-card border border-border">
                       <p className="text-red-400/70 text-sm">{mermaidError}</p>
                     </div>
                   ) : mermaidPreviewSVG ? (
                     <DiagramPreview svgMarkup={mermaidPreviewSVG} className="flex-1 min-h-[300px]" />
                   ) : (
-                    <div className="flex-1 flex items-center justify-center rounded-xl bg-[#111] border border-white/[0.06]">
+                    <div className="flex-1 flex items-center justify-center rounded-xl bg-surface-card border border-border">
                       <p className="text-text-dim text-sm">Type Mermaid code to see a live preview</p>
                     </div>
                   )}
@@ -1221,7 +1213,22 @@ export default function AIModal() {
                 </div>
               </div>
 
-            ) : /* ============ CODE MODE (LixScript) ============ */
+            ) : /* ============ LIXSCRIPT / MCP COMING SOON ============ */
+            isCodeMode && !previewDiagram && !isFrameEdit ? (
+              <div className="h-[calc(100%-100px)] flex items-center justify-center">
+                <div className="w-full max-w-xl rounded-2xl border border-border bg-surface-card px-8 py-10 text-center">
+                  <div className="mx-auto mb-5 w-12 h-12 rounded-xl bg-[#7667a8]/12 border border-[#7667a8]/25 flex items-center justify-center">
+                    <i className="bx bx-plug text-2xl text-[#7667a8]" />
+                  </div>
+                  <span className="inline-flex px-2.5 py-1 rounded-full bg-accent-blue/10 text-accent-blue text-[10px] font-semibold uppercase tracking-wider">Coming soon</span>
+                  <h3 className="mt-4 text-xl text-text-primary">LixScript MCP</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-text-muted">
+                    LixScript is being prepared as the programmable MCP interface for LixSketch. The editor will return when scripts can run through the supported platform workflow.
+                  </p>
+                </div>
+              </div>
+
+            ) : /* ============ LEGACY CODE MODE (kept until MCP ships) ============ */
             isCodeMode && !previewDiagram && !isFrameEdit ? (
               <div className="flex gap-4 h-[calc(100%-100px)]">
                 {/* Left panel - AI prompt + Code editor */}
@@ -1449,8 +1456,8 @@ export default function AIModal() {
                       onClick={() => updateGraphSetting('showGrid', !graphSettings.showGrid)}
                       className="flex items-center gap-2 mt-2.5 px-2 py-1.5 rounded-lg text-text-dim text-xs hover:text-text-secondary transition-all"
                     >
-                      <div className={`w-7 h-4 rounded-full transition-all duration-150 relative ${graphSettings.showGrid ? 'bg-accent-blue' : 'bg-white/10'}`}>
-                        <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all duration-150 ${graphSettings.showGrid ? 'left-3.5' : 'left-0.5'}`} />
+                      <div className={`w-7 h-4 rounded-full border transition-all duration-150 relative ${graphSettings.showGrid ? 'bg-accent-blue border-accent-blue' : 'bg-surface-active border-border-light'}`}>
+                        <div className={`absolute top-0.5 w-3 h-3 rounded-full transition-all duration-150 ${graphSettings.showGrid ? 'left-3.5 bg-white' : 'left-0.5 bg-text-secondary'}`} />
                       </div>
                       Show Grid
                     </button>
@@ -1538,7 +1545,7 @@ export default function AIModal() {
                 </div>
 
                 {/* AI Edit controls — only for AI-generated diagrams, not raw mermaid */}
-                {!previewDiagram?._mermaidSrc && (
+                {!AI_DISABLED && !previewDiagram?._mermaidSrc && (
                   <>
                     <div className="mb-4 shrink-0">
                       <p className="text-text-muted text-xs uppercase tracking-wider mb-2">Suggest Edits</p>

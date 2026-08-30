@@ -5,6 +5,8 @@ const CURSOR_COLORS = [
   '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#F1948A',
 ];
 
+const MAX_WORKSPACE_NAME_LENGTH = 20;
+
 interface UserInfo {
   userId: string;
   displayName: string;
@@ -20,6 +22,14 @@ interface RoomState {
   createdAt: string;
   expiresAt: string;
   status: string;
+  tier?: 'guest' | 'free' | 'pro';
+  maxUsers?: number;
+}
+
+interface AuthSession {
+  userId: string;
+  displayName: string;
+  avatar: string | null;
 }
 
 export class RoomDurableObject {
@@ -34,6 +44,16 @@ export class RoomDurableObject {
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
     this.env = env;
+
+    // Durable Objects may hibernate between messages. Rebuild the in-memory
+    // session index from WebSocket attachments so live rooms keep relaying
+    // operations after wake-up.
+    for (const ws of this.state.getWebSockets()) {
+      const user = ws.deserializeAttachment() as UserInfo | null;
+      if (!user?.userId) continue;
+      this.sessions.set(ws, user);
+      this.availableColors = this.availableColors.filter((color) => color !== user.color);
+    }
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -44,18 +64,58 @@ export class RoomDurableObject {
       return new Response('Expected WebSocket', { status: 426 });
     }
 
+    if (!isAllowedOrigin(request.headers.get('Origin'), this.env)) {
+      return new Response('Origin not allowed', { status: 403 });
+    }
+
     // Extract user info from query params
-    const userId = url.searchParams.get('userId') || `guest-${crypto.randomUUID().slice(0, 8)}`;
-    const displayName = decodeParam(url.searchParams.get('displayName') || '');
-    const avatar = url.searchParams.get('avatar') || '';
-    const workspaceName = decodeParam(url.searchParams.get('workspaceName') || 'Untitled');
+    const authToken = url.searchParams.get('authToken');
+    let authSession = authToken
+      ? await this.env.KV.get(`session:${authToken}`, 'json') as AuthSession | null
+      : null;
+    // The Next.js OAuth callback stores the Elixpo access token client-side,
+    // while the worker callback stores its own KV session. Accept either by
+    // validating unknown bearer tokens directly with Accounts.
+    if (authToken && !authSession) {
+      try {
+        const response = await fetch(`${this.env.ELIXPO_AUTH_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+        if (response.ok) {
+          const profile = await response.json() as {
+            id?: string;
+            userId?: string;
+            displayName?: string;
+            avatar?: string | null;
+          };
+          const verifiedUserId = profile.id || profile.userId;
+          if (verifiedUserId) {
+            authSession = {
+              userId: verifiedUserId,
+              displayName: profile.displayName || 'User',
+              avatar: profile.avatar || null,
+            };
+          }
+        }
+      } catch {}
+    }
+    if (authToken && !authSession) {
+      return new Response('Invalid or expired session', { status: 401 });
+    }
+
+    const userId = authSession?.userId
+      || url.searchParams.get('userId')
+      || `guest-${crypto.randomUUID().slice(0, 8)}`;
+    const displayName = authSession?.displayName
+      || decodeParam(url.searchParams.get('displayName') || '');
+    const avatar = authSession?.avatar || url.searchParams.get('avatar') || '';
+    const workspaceName = decodeParam(url.searchParams.get('workspaceName') || 'Untitled')
+      .slice(0, MAX_WORKSPACE_NAME_LENGTH);
     const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
 
     // Get or initialize room
     const roomId = url.pathname.split('/room/')[1];
-    if (!this.roomState) {
-      await this.initRoom(roomId, userId, clientIp, workspaceName);
-    }
+    await this.ensureRoomState(roomId, authSession?.userId || null, clientIp, workspaceName);
 
     // Check room status
     if (this.roomState!.status !== 'active') {
@@ -65,8 +125,9 @@ export class RoomDurableObject {
       });
     }
 
-    // Check max users
-    const maxUsers = parseInt(this.env.MAX_ROOM_USERS || '10');
+    // The room owner's plan controls total room occupancy (owner included).
+    // Never trust a client-provided tier.
+    const maxUsers = this.roomState!.maxUsers || 1;
     if (this.sessions.size >= maxUsers) {
       return new Response(JSON.stringify({ error: 'ROOM_FULL' }), {
         status: 429,
@@ -75,11 +136,10 @@ export class RoomDurableObject {
     }
 
     // 1 room per user (guest or authenticated)
-    const authToken = url.searchParams.get('authToken');
     const isGuest = !authToken;
     if (this.sessions.size === 0) {
       // First connection = room creation. Check if this user already has a room
-      const limitKey = isGuest ? `ip-rooms:${clientIp}` : `user-rooms:${authToken}`;
+      const limitKey = isGuest ? `ip-rooms:${clientIp}` : `user-rooms:${userId}`;
       const existingRoom = await this.env.KV.get(limitKey);
       if (existingRoom && existingRoom !== roomId) {
         return new Response(JSON.stringify({ error: 'ROOM_LIMIT_REACHED' }), {
@@ -109,6 +169,7 @@ export class RoomDurableObject {
     };
 
     this.state.acceptWebSocket(server);
+    server.serializeAttachment(userInfo);
     this.sessions.set(server, userInfo);
 
     // Send room-info to the new user
@@ -135,7 +196,7 @@ export class RoomDurableObject {
   }
 
   async webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer): Promise<void> {
-    const user = this.sessions.get(ws);
+    const user = this.getUser(ws);
     if (!user) return;
 
     let msg: any;
@@ -148,8 +209,13 @@ export class RoomDurableObject {
 
     switch (msg.type) {
       case 'op':
+        if (typeof msg.payload !== 'string' || msg.payload.length > 900_000) {
+          this.sendTo(ws, { type: 'error', code: 'INVALID_OPERATION' });
+          break;
+        }
         this.lastActivityAt = Date.now();
         user.lastActivity = new Date().toISOString();
+        ws.serializeAttachment(user);
         this.broadcast(ws, {
           type: 'op',
           from: user.userId,
@@ -184,6 +250,10 @@ export class RoomDurableObject {
         break;
 
       case 'sync-response':
+        if (typeof msg.payload !== 'string' || msg.payload.length > 900_000) {
+          this.sendTo(ws, { type: 'error', code: 'INVALID_OPERATION' });
+          break;
+        }
         // Relay full sync to the requesting user
         for (const [otherWs, otherUser] of this.sessions) {
           if (otherUser.userId === msg.targetUserId) {
@@ -240,13 +310,13 @@ export class RoomDurableObject {
 
     // Check session expiry (3h)
     if (now >= expiresAt) {
-      this.closeRoom('ROOM_EXPIRED');
+      await this.closeRoom('ROOM_EXPIRED');
       return;
     }
 
     // Check idle timeout (40min)
     if (now - this.lastActivityAt >= idleTimeoutMs && this.sessions.size > 0) {
-      this.closeRoom('ROOM_IDLE_TIMEOUT');
+      await this.closeRoom('ROOM_IDLE_TIMEOUT');
       return;
     }
 
@@ -257,25 +327,46 @@ export class RoomDurableObject {
 
   // --- Private helpers ---
 
-  private async initRoom(roomId: string, ownerId: string, ownerIp: string, workspaceName: string = 'Untitled'): Promise<void> {
+  private async ensureRoomState(roomId: string, ownerId: string | null, ownerIp: string, workspaceName: string): Promise<void> {
+    if (this.roomState) return;
+    const stored = await this.state.storage.get<RoomState>('roomState');
+    if (stored) {
+      this.roomState = stored;
+      if (!stored.maxUsers) {
+        const tier = await this.getOwnerTier(stored.ownerId);
+        stored.tier = tier;
+        stored.maxUsers = this.getCollaboratorLimit(tier);
+        await this.state.storage.put('roomState', stored);
+      }
+      return;
+    }
+    await this.initRoom(roomId, ownerId, ownerIp, workspaceName);
+  }
+
+  private async initRoom(roomId: string, ownerId: string | null, ownerIp: string, workspaceName: string = 'Untitled'): Promise<void> {
     const ttlHours = parseInt(this.env.ROOM_TTL_HOURS || '3');
     const now = new Date();
     const expiresAt = new Date(now.getTime() + ttlHours * 3600 * 1000);
 
+    const tier = await this.getOwnerTier(ownerId);
+    const maxUsers = this.getCollaboratorLimit(tier);
     this.roomState = {
       ownerId,
       ownerIp,
       createdAt: now.toISOString(),
       expiresAt: expiresAt.toISOString(),
       status: 'active',
+      tier,
+      maxUsers,
     };
+    await this.state.storage.put('roomState', this.roomState);
 
     // Persist to D1
     try {
       await this.env.DB.prepare(
-        `INSERT OR IGNORE INTO rooms (id, owner_user_id, owner_ip, workspace_name, created_at, expires_at, status)
-         VALUES (?, ?, ?, ?, ?, ?, 'active')`
-      ).bind(roomId, ownerId, ownerIp, workspaceName, now.toISOString(), expiresAt.toISOString()).run();
+        `INSERT OR IGNORE INTO rooms (id, owner_user_id, owner_ip, workspace_name, created_at, expires_at, max_users, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'active')`
+      ).bind(roomId, ownerId, ownerIp, workspaceName, now.toISOString(), expiresAt.toISOString(), maxUsers).run();
     } catch {
       // Room may already exist from a previous session
     }
@@ -290,8 +381,25 @@ export class RoomDurableObject {
     this.state.storage.setAlarm(Date.now() + 5 * 60 * 1000);
   }
 
+  private getCollaboratorLimit(tier: 'guest' | 'free' | 'pro'): number {
+    if (tier === 'pro') return 5;
+    if (tier === 'free') return 3;
+    return 1;
+  }
+
+  private async getOwnerTier(ownerId: string | null): Promise<'guest' | 'free' | 'pro'> {
+    if (!ownerId) return 'guest';
+    try {
+      const user = await this.env.DB.prepare(`SELECT tier FROM users WHERE id = ?`)
+        .bind(ownerId).first<{ tier: string }>();
+      return user?.tier === 'pro' || user?.tier === 'team' ? 'pro' : 'free';
+    } catch {
+      return 'free';
+    }
+  }
+
   private handleDisconnect(ws: WebSocket): void {
-    const user = this.sessions.get(ws);
+    const user = this.getUser(ws);
     if (!user) return;
 
     // Recycle color
@@ -308,7 +416,7 @@ export class RoomDurableObject {
     // If room is empty, we let it expire naturally via alarm
   }
 
-  private closeRoom(reason: string): void {
+  private async closeRoom(reason: string): Promise<void> {
     // Broadcast to all connected clients
     for (const [ws] of this.sessions) {
       try {
@@ -320,7 +428,17 @@ export class RoomDurableObject {
 
     if (this.roomState) {
       this.roomState.status = 'expired';
+      await this.state.storage.put('roomState', this.roomState);
     }
+  }
+
+  private getUser(ws: WebSocket): UserInfo | null {
+    const existing = this.sessions.get(ws);
+    if (existing) return existing;
+    const attached = ws.deserializeAttachment() as UserInfo | null;
+    if (!attached?.userId) return null;
+    this.sessions.set(ws, attached);
+    return attached;
   }
 
   private broadcast(sender: WebSocket | null, message: object): void {
@@ -345,8 +463,23 @@ export class RoomDurableObject {
 
 function decodeParam(value: string): string {
   try {
-    return atob(value);
+    return decodeURIComponent(atob(value));
   } catch {
-    return decodeURIComponent(value);
+    try { return decodeURIComponent(value); } catch { return value; }
+  }
+}
+
+function isAllowedOrigin(origin: string | null, env: Env): boolean {
+  if (!origin) return false;
+  try {
+    const url = new URL(origin);
+    const host = url.hostname;
+    const local = host === 'localhost' || host === '127.0.0.1' || host === '::1'
+      || host.startsWith('10.') || host.startsWith('192.168.')
+      || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+    if (local) return true;
+    return origin === env.APP_ORIGIN;
+  } catch {
+    return false;
   }
 }

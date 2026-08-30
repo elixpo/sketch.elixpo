@@ -2,8 +2,9 @@
 // Multi-selection system - copied from selection.js
 
 import { cleanupAttachments } from '../tools/arrowTool.js';
-import { pushTransformAction, pushFrameAttachmentAction, pushDeleteAction } from './UndoRedo.js';
+import { pushCreateAction, pushTransformAction, pushFrameAttachmentAction, pushDeleteAction } from './UndoRedo.js';
 import { calculateSnap, clearSnapGuides } from './SnapGuides.js';
+import { registerRotationAnchor } from './ScreenSpaceControls.js';
 
 let isMultiSelecting = false;
 let multiSelectionStart = { x: 0, y: 0 };
@@ -55,6 +56,21 @@ function removeMultiSelectionRect() {
     multiSelectionRect = null;
     // Clean up any drag-select highlights
     clearDragSelectHighlights();
+}
+
+function cancelActiveMultiSelectionDrag() {
+    if (!isMultiSelecting) return false;
+
+    removeMultiSelectionRect();
+    isMultiSelecting = false;
+    isDraggingMultiSelection = false;
+    document.body.style.userSelect = '';
+    document.body.style.webkitUserSelect = '';
+    if (typeof svg !== 'undefined') {
+        svg.style.userSelect = '';
+        svg.style.webkitUserSelect = '';
+    }
+    return true;
 }
 
 // Track elements highlighted during drag-select
@@ -545,6 +561,12 @@ class MultiSelection {
 
         this.group.appendChild(this.rotationLine);
         this.group.appendChild(this.rotationAnchor);
+        registerRotationAnchor(this.rotationAnchor, {
+            radius: 8,
+            edgeY: y,
+            line: this.rotationLine,
+            lineEnd: '1',
+        });
     }
 
     removeControls() {
@@ -1505,8 +1527,21 @@ function handleMultiSelectionMouseDown(e) {
     let clickedOnShape = false;
     let clickedShape = null;
     if (typeof shapes !== 'undefined') {
-        let fallbackFrame = null;
+        // Prefer the actual SVG event target. This remains exact regardless
+        // of pan/zoom and also covers shapes whose visual bounds come from a
+        // foreignObject or imported SVG rather than simple geometry.
         for (let i = shapes.length - 1; i >= 0; i--) {
+            const shape = shapes[i];
+            const element = shape?.group || shape?.element;
+            if (element && (element === e.target || element.contains?.(e.target))) {
+                clickedOnShape = true;
+                clickedShape = shape;
+                break;
+            }
+        }
+
+        let fallbackFrame = null;
+        for (let i = shapes.length - 1; !clickedOnShape && i >= 0; i--) {
             const shape = shapes[i];
             if (shape.contains && shape.contains(x, y)) {
                 if (shape.shapeName === 'frame') {
@@ -1806,6 +1841,15 @@ window.addEventListener('pointerup', () => {
     }
 });
 
+// Select-all owns the selection state. Cancel an in-progress marquee during
+// capture so the app or embedded-engine shortcut can safely select every
+// shape without a later pointer-up restoring the partial drag selection.
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key || '').toLowerCase() === 'a') {
+        cancelActiveMultiSelectionDrag();
+    }
+}, true);
+
 // Delete key support for multi-selection
 document.addEventListener('keydown', (e) => {
     if ((e.key === 'Delete' || e.key === 'Backspace') && multiSelection.selectedShapes.size > 0) {
@@ -1923,6 +1967,11 @@ function deleteSelectedShapes() {
 function frameSelectedShapes() {
     if (multiSelection.selectedShapes.size < 2) return;
 
+    const shapesToFrame = Array.from(multiSelection.selectedShapes);
+    // Frames cannot be nested through the Frame it action, and objects that
+    // already belong to a frame must first be detached explicitly.
+    if (shapesToFrame.some(shape => shape?.shapeName === 'frame' || shape?.parentFrame)) return;
+
     const bounds = multiSelection.getBounds();
     if (!bounds) return;
 
@@ -1942,17 +1991,7 @@ function frameSelectedShapes() {
     const frame = new FrameClass(fx, fy, fw, fh);
     shapes.push(frame);
 
-    // Push undo action for frame creation
-    if (window.historyStack) {
-        window.historyStack.push({
-            type: window.ACTION_CREATE || 'create',
-            shape: frame,
-            shapeName: 'frame'
-        });
-    }
-
     // Add each selected shape into the frame
-    const shapesToFrame = Array.from(multiSelection.selectedShapes);
     multiSelection.clearSelection();
 
     for (const shape of shapesToFrame) {
@@ -1976,6 +2015,12 @@ function frameSelectedShapes() {
         }
     }
 
+    // Record after reordering so redo restores the same hit-test/layer index.
+    pushCreateAction(frame, {
+        frameCreation: true,
+        containedShapes: shapesToFrame
+    });
+
     // Select the new frame
     if (typeof frame.selectFrame === 'function') {
         frame.selectFrame();
@@ -1986,6 +2031,7 @@ function frameSelectedShapes() {
 // Expose for plain scripts (sketchGeneric.js is not a module)
 window.clearAllSelections = clearAllSelections;
 window.multiSelection = multiSelection;
+window.cancelActiveMultiSelectionDrag = cancelActiveMultiSelectionDrag;
 window.deleteSelectedShapes = deleteSelectedShapes;
 window.frameSelectedShapes = frameSelectedShapes;
 
@@ -1998,6 +2044,7 @@ export {
     createMultiSelectionControls,
     removeMultiSelectionControls,
     removeMultiSelectionRect,
+    cancelActiveMultiSelectionDrag,
     isPointInMultiSelection,
     moveSelectedShapes,
     multiSelection,

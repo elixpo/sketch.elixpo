@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server'
 import { getCloudflareBindings, generateToken } from '@/lib/cloudflare'
+import { getPlanLimits, normalizePlanTier } from '@/lib/planLimits'
 
 export const runtime = 'edge'
 
-// Workspace limits: guests get 1, free authenticated users get 3
-const GUEST_WORKSPACE_LIMIT = 1
-const FREE_WORKSPACE_LIMIT = 3
+const MAX_WORKSPACE_NAME_LENGTH = 20
 
 export async function POST(request) {
   try {
@@ -28,8 +27,15 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing sessionId or encryptedData' }, { status: 400 })
     }
 
+    const workspaceName = String(body.workspaceName || 'Untitled').slice(0, MAX_WORKSPACE_NAME_LENGTH)
+
     const ownerType = body.createdBy && !body.createdBy.startsWith('guest-') ? 'user' : 'guest'
-    const maxWorkspaces = ownerType === 'user' ? FREE_WORKSPACE_LIMIT : GUEST_WORKSPACE_LIMIT
+    let tier = 'guest'
+    if (ownerType === 'user') {
+      const user = await DB.prepare(`SELECT tier FROM users WHERE id = ?`).bind(body.createdBy).first()
+      tier = normalizePlanTier(user?.tier, true)
+    }
+    const maxWorkspaces = getPlanLimits(tier).workspaces
 
     // Check if this is an update to an existing workspace (same session_id)
     const existing = await DB.prepare(
@@ -45,7 +51,7 @@ export async function POST(request) {
          WHERE id = ?`
       ).bind(
         body.encryptedData,
-        body.workspaceName || 'Untitled',
+        workspaceName,
         sizeBytes,
         ownerType,
         existing.id
@@ -87,7 +93,7 @@ export async function POST(request) {
       ).bind(
         sceneId,
         body.sessionId,
-        body.workspaceName || 'Untitled',
+        workspaceName,
         body.encryptedData,
         body.permission || 'view',
         body.createdBy || null,

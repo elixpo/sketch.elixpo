@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getCloudflareBindings } from '@/lib/cloudflare'
+import { getPlanLimits, normalizePlanTier } from '@/lib/planLimits'
 
 export const runtime = 'edge'
 
@@ -51,14 +52,29 @@ export async function GET(request) {
        WHERE created_by = ? AND owner_type = ?`
     ).bind(identifier, ownerType).first()
     const workspaceCount = wsResult?.count || 0
-    const workspaceLimit = userId ? 3 : 1
+    const normalizedTier = normalizePlanTier(tier, Boolean(userId))
+    const limits = getPlanLimits(normalizedTier)
+    const workspaceLimit = limits.workspaces
 
-    // Image storage
+    // Keep the enforced per-workspace figure and also expose the account-wide
+    // total so profile storage can show the user's complete managed allowance.
     const storageResult = await DB.prepare(
-      `SELECT COALESCE(SUM(size_bytes), 0) as total FROM scenes
-       WHERE created_by = ? AND owner_type = ?`
+      `SELECT COALESCE(MAX(workspace_bytes), 0) AS fullest,
+              COALESCE(SUM(workspace_bytes), 0) AS total
+       FROM (
+         SELECT COALESCE(SUM(ia.size_bytes), 0) AS workspace_bytes
+         FROM (
+           SELECT DISTINCT session_id FROM scenes
+           WHERE created_by = ? AND owner_type = ?
+         ) owned
+         LEFT JOIN image_assets ia ON ia.session_id = owned.session_id
+           AND ia.status = 'complete' AND ia.storage_provider = 'platform_cloudinary'
+         GROUP BY owned.session_id
+       )`
     ).bind(identifier, ownerType).first()
-    const storageUsed = storageResult?.total || 0
+    const storageUsed = Number(storageResult?.fullest || 0)
+    const accountStorageUsed = Number(storageResult?.total || 0)
+    const accountStorageLimit = limits.imageBytesPerWorkspace * workspaceLimit
 
     return NextResponse.json({
       tier,
@@ -76,8 +92,14 @@ export async function GET(request) {
       },
       storage: {
         usedBytes: storageUsed,
-        limitBytes: 5 * 1024 * 1024,
+        limitBytes: limits.imageBytesPerWorkspace,
+        perWorkspace: true,
+        accountUsedBytes: accountStorageUsed,
+        accountLimitBytes: accountStorageLimit,
+        accountRemainingBytes: Math.max(0, accountStorageLimit - accountStorageUsed),
       },
+      collaboration: { maxParticipants: limits.collaborators },
+      exports: { pdf: limits.pdfExport },
     })
   } catch (err) {
     console.error('[api/user/quota-summary] Error:', err)

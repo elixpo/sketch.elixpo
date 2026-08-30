@@ -10,6 +10,12 @@ let selectedElement = null;
 let updateSelectionFeedback = null;
 let svg = null;
 
+function notifyCollaboration() {
+    if (typeof window !== 'undefined' && typeof window.__collabSceneChanged === 'function') {
+        window.__collabSceneChanged();
+    }
+}
+
 // Function to set references from other modules
 export function setTextReferences(element, updateFn, svgElement) {
     selectedElement = element;
@@ -28,14 +34,21 @@ export function updateSelectedElement(element) {
 }
 
 // Call this after creating a new shape (e.g., Rectangle)
-export function pushCreateAction(shape) {
-    undoStack.push({
+export function pushCreateAction(shape, meta = null) {
+    const action = {
         type: 'create',
         shape: shape
-    });
+    };
+    if (meta?.frameCreation && shape?.shapeName === 'frame') {
+        action.frameCreation = true;
+        action.containedShapes = [...(meta.containedShapes || shape.containedShapes || [])];
+        action.shapeIndex = Array.isArray(shapes) ? shapes.indexOf(shape) : -1;
+    }
+    undoStack.push(action);
     
     // Clear redo stack when new action is performed
     redoStack.length = 0;
+    notifyCollaboration();
 }
 
 export function pushDeleteAction(shape, meta = null) {
@@ -49,6 +62,7 @@ export function pushDeleteAction(shape, meta = null) {
 
     // Clear redo stack when new action is performed
     redoStack.length = 0;
+    notifyCollaboration();
 }
 
 // Enhanced delete action to clean up attached arrows
@@ -77,6 +91,7 @@ export function pushDeleteActionWithAttachments(shape) {
     
     // Clear redo stack when new action is performed
     redoStack.length = 0;
+    notifyCollaboration();
 }
 
 export function pushFrameAttachmentAction(frame, shape, action, oldFrame = null) {
@@ -98,6 +113,7 @@ export function pushFrameAttachmentAction(frame, shape, action, oldFrame = null)
     
     // Clear redo stack when new action is performed
     redoStack.length = 0;
+    notifyCollaboration();
 }
 
 export function pushCreateActionWithAttachments(shape) {
@@ -110,6 +126,7 @@ export function pushCreateActionWithAttachments(shape) {
     
     // Clear redo stack when new action is performed
     redoStack.length = 0;
+    notifyCollaboration();
 }
 
 export function pushTransformAction(shape, oldPos, newPos) {
@@ -409,17 +426,20 @@ export function pushTransformAction(shape, oldPos, newPos) {
     
     // Clear redo stack when new action is performed
     redoStack.length = 0;
+    notifyCollaboration();
 }
 
-export function pushOptionsChangeAction(shape, oldOptions) {
+export function pushOptionsChangeAction(shape, oldOptions, newOptions = null) {
     undoStack.push({
         type: 'optionsChange',
         shape: shape,
-        oldOptions: oldOptions
+        oldOptions: oldOptions,
+        newOptions: newOptions
     });
     
     // Clear redo stack when new action is performed
     redoStack.length = 0;
+    notifyCollaboration();
 }
 
 // Issue #34 bug #4: refresh the multi-selection outline + handles so it
@@ -554,6 +574,23 @@ export function undo() {
     }
 
     if (action.type === 'create') {
+    if (action.frameCreation && action.shape.shapeName === 'frame') {
+        // Treat a manually-created frame and its initial membership as one
+        // atomic action. Children remain on the canvas when the frame is
+        // undone and are clipped back into it on redo.
+        for (const child of action.containedShapes || []) {
+            if (child?.parentFrame === action.shape) action.shape.removeShapeFromFrame(child);
+        }
+        if (currentShape === action.shape) {
+            action.shape.removeSelection?.();
+            currentShape = null;
+        }
+        const idx = shapes.indexOf(action.shape);
+        if (idx !== -1) shapes.splice(idx, 1);
+        action.shape.group?.remove();
+        action.shape.clipGroup?.remove();
+        action.shape.clipPath?.remove();
+    } else
     if (action.shape.type === 'text') {
         // Handle text creation undo
         if (action.shape.element && action.shape.element.parentNode) {
@@ -887,6 +924,17 @@ export function undo() {
     }
     
     if (action.type === 'optionsChange') {
+        if (!action.newOptions && action.shape?.options) {
+            action.newOptions = action.shape.shapeName === 'arrow'
+                ? {
+                    ...action.shape.options,
+                    arrowOutlineStyle: action.shape.arrowOutlineStyle,
+                    arrowHeadStyle: action.shape.arrowHeadStyle,
+                    arrowCurved: action.shape.arrowCurved,
+                    arrowCurveAmount: action.shape.arrowCurveAmount,
+                }
+                : { ...action.shape.options };
+        }
         if (action.shape.type === 'text') {
             // Handle text options change undo
             const textElement = (action.shape.element || action.shape).querySelector('text');
@@ -917,7 +965,10 @@ export function undo() {
         redoStack.push(action);
         return;
     }
-    } finally { refreshSelectionAfterAction(); }
+    } finally {
+        refreshSelectionAfterAction();
+        notifyCollaboration();
+    }
 }
 
 export function redo() {
@@ -1033,6 +1084,27 @@ export function redo() {
     }
 
     if (action.type === 'create') {
+    if (action.frameCreation && action.shape.shapeName === 'frame') {
+        const frame = action.shape;
+        let defs = svg?.querySelector('defs');
+        if (!defs && svg) {
+            defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            svg.appendChild(defs);
+        }
+        if (defs && frame.clipPath && !frame.clipPath.parentNode) defs.appendChild(frame.clipPath);
+        if (svg && frame.group && !frame.group.parentNode) svg.appendChild(frame.group);
+        if (svg && frame.clipGroup && !frame.clipGroup.parentNode) svg.appendChild(frame.clipGroup);
+        if (shapes.indexOf(frame) === -1) {
+            const index = action.shapeIndex >= 0 ? Math.min(action.shapeIndex, shapes.length) : shapes.length;
+            shapes.splice(index, 0, frame);
+        }
+        frame.containedShapes = [];
+        frame.draw();
+        frame.updateClipPath();
+        for (const child of action.containedShapes || []) {
+            if (child && shapes.includes(child)) frame.addShapeToFrame(child);
+        }
+    } else
     if (action.shape.type === 'text') {
         // Handle text creation redo
         if (svg) {
@@ -1374,28 +1446,23 @@ export function redo() {
                 }
             }
         } else if (action.shape.shapeName === 'arrow') {
-            // Handle arrow options change redo - we need to get current options as newOptions
-            const currentOptions = {
-                ...action.shape.options,
-                arrowOutlineStyle: action.shape.arrowOutlineStyle,
-                arrowHeadStyle: action.shape.arrowHeadStyle,
-                arrowCurved: action.shape.arrowCurved,
-                arrowCurveAmount: action.shape.arrowCurveAmount
-            };
-            
-            // Store current state for potential future undo
-            action.newOptions = currentOptions;
-            
+            action.shape.options = { ...action.newOptions };
+            action.shape.arrowOutlineStyle = action.newOptions.arrowOutlineStyle;
+            action.shape.arrowHeadStyle = action.newOptions.arrowHeadStyle;
+            action.shape.arrowCurved = action.newOptions.arrowCurved;
+            action.shape.arrowCurveAmount = action.newOptions.arrowCurveAmount;
             action.shape.draw();
         } else {
-            // Handle other shape options change redo - we need to get current options as newOptions
-            action.newOptions = action.shape.options;
+            action.shape.options = { ...action.newOptions };
             action.shape.draw();
         }
         undoStack.push(action);
         return;
     }
-    } finally { refreshSelectionAfterAction(); }
+    } finally {
+        refreshSelectionAfterAction();
+        notifyCollaboration();
+    }
 }
 
 // Optional: Keyboard shortcuts

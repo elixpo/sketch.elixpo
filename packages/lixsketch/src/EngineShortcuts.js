@@ -47,6 +47,10 @@ export const SHORTCUT_MAP = {
     i: 'icon',
     f: 'frame',
     k: 'laser',
+    d: 'draw-shape',
+    b: 'paint-bucket',
+    s: 'lasso',
+    w: 'web-embed',
 };
 
 // Mirror of TOOLS used inside this module's function bodies. Local copy
@@ -67,6 +71,10 @@ const TOOLS = {
     IMAGE: 'image',
     FRAME: 'frame',
     ICON: 'icon',
+    DRAW_SHAPE: 'draw-shape',
+    PAINT_BUCKET: 'paint-bucket',
+    LASSO: 'lasso',
+    WEB_EMBED: 'web-embed',
 };
 
 function isTypingTarget(target) {
@@ -117,6 +125,34 @@ export function installEngineShortcuts(engine, options = {}) {
         // Always check ctrl/cmd shortcuts first — they should fire even when
         // selection is empty, but skip when the user is typing.
         const isMod = e.ctrlKey || e.metaKey;
+
+        // Own the standard browser zoom keys while the canvas engine is
+        // active. This keeps the surrounding page at 100% and zooms the
+        // infinite canvas from its center instead. Handle both the main
+        // keyboard and numpad variants, across Ctrl and Cmd platforms.
+        if (isMod) {
+            const zoomDirection = (key === '+' || key === '=' || e.code === 'NumpadAdd')
+                ? 1
+                : (key === '-' || e.code === 'NumpadSubtract')
+                    ? -1
+                    : 0;
+            if (zoomDirection !== 0) {
+                if (!e.defaultPrevented) {
+                    e.preventDefault();
+                    if (typeof window.zoomFromCenter === 'function') {
+                        window.zoomFromCenter(zoomDirection);
+                    }
+                }
+                return;
+            }
+            if (key === '0' || e.code === 'Numpad0') {
+                if (!e.defaultPrevented) {
+                    e.preventDefault();
+                    if (typeof window.zoomReset === 'function') window.zoomReset();
+                }
+                return;
+            }
+        }
 
         if (isTypingTarget(e.target)) return;
         if (document.querySelector('.text-edit-overlay:not(.hidden)')) return;
@@ -173,6 +209,13 @@ export function installEngineShortcuts(engine, options = {}) {
             // stop the browser's bookmark dialog).
             if (key === 'd') { e.preventDefault(); return; }
             return; // Other Ctrl combos are app-level; let the consumer handle them.
+        }
+
+        // Shift+1 = Fit to content
+        if (e.shiftKey && (key === '1' || key === '!')) {
+            e.preventDefault();
+            if (typeof window.zoomFit === 'function') window.zoomFit();
+            return;
         }
 
         // Delete / Backspace — remove selected shapes.
@@ -274,6 +317,7 @@ export function installEngineShortcuts(engine, options = {}) {
         if (skipWhen && skipWhen(e)) return;
         e.preventDefault();
         spaceHeld = true;
+        window.__spacePanActive = true;
         const active = getActiveTool();
         if (active && active !== TOOLS.PAN) {
             toolBeforeSpace = active;
@@ -284,10 +328,20 @@ export function installEngineShortcuts(engine, options = {}) {
     function handleKeyUp(e) {
         if (e.code === 'Space' && spaceHeld) {
             spaceHeld = false;
+            window.__spacePanActive = false;
             if (toolBeforeSpace) {
                 setTool(toolBeforeSpace);
                 toolBeforeSpace = null;
             }
+        }
+    }
+
+    function handleWindowBlur() {
+        spaceHeld = false;
+        window.__spacePanActive = false;
+        if (toolBeforeSpace) {
+            setTool(toolBeforeSpace);
+            toolBeforeSpace = null;
         }
     }
 
@@ -300,11 +354,14 @@ export function installEngineShortcuts(engine, options = {}) {
     document.addEventListener('keydown', handleSpaceDown);
     document.addEventListener('keyup', handleKeyUp);
     document.addEventListener('wheel', handleWheel, { passive: false });
+    window.addEventListener('blur', handleWindowBlur);
 
     return function uninstall() {
         document.removeEventListener('keydown', handleKeyDown);
         document.removeEventListener('keydown', handleSpaceDown);
         document.removeEventListener('keyup', handleKeyUp);
         document.removeEventListener('wheel', handleWheel);
+        window.removeEventListener('blur', handleWindowBlur);
+        window.__spacePanActive = false;
     };
 }

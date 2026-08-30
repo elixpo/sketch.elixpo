@@ -4,14 +4,13 @@ import { useParams } from 'next/navigation'
 import { useEffect } from 'react'
 import Script from 'next/script'
 import Header from '@/components/header/Header'
+import useUIStore from '@/store/useUIStore'
 import Toolbar from '@/components/toolbar/Toolbar'
 import Footer from '@/components/footer/Footer'
 import AppMenu from '@/components/menu/AppMenu'
-import ShortcutsModal from '@/components/modals/ShortcutsModal'
 import SaveModal from '@/components/modals/SaveModal'
 import AIModal from '@/components/modals/AIModal'
 import CommandPalette from '@/components/modals/CommandPalette'
-import HelpModal from '@/components/modals/HelpModal'
 import ExportImageModal from '@/components/modals/ExportImageModal'
 import CanvasPropertiesModal from '@/components/modals/CanvasPropertiesModal'
 import RectangleSidebar from '@/components/sidebars/RectangleSidebar'
@@ -27,6 +26,7 @@ import SVGCanvas from '@/components/canvas/SVGCanvas'
 import MultiSelectActions from '@/components/canvas/MultiSelectActions'
 import ImageSourcePicker from '@/components/canvas/ImageSourcePicker'
 import ImageGenerateModal from '@/components/modals/ImageGenerateModal'
+import WebEmbedModal from '@/components/modals/WebEmbedModal'
 import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts'
 import useGuestProfile from '@/hooks/useGuestProfile'
 import useAuth from '@/hooks/useAuth'
@@ -40,7 +40,17 @@ export default function RoomPage() {
 
   useEffect(() => {
     document.body.classList.add('canvas-mode')
-    return () => document.body.classList.remove('canvas-mode')
+    const ui = useUIStore.getState()
+    ui.hydrateTheme()
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleSystemTheme = () => useUIStore.getState().syncSystemTheme()
+    media.addEventListener?.('change', handleSystemTheme)
+    return () => {
+      media.removeEventListener?.('change', handleSystemTheme)
+      document.body.classList.remove('canvas-mode', 'theme-dark', 'theme-light')
+      delete document.body.dataset.resolvedTheme
+      document.documentElement.style.removeProperty('color-scheme')
+    }
   }, [])
 
   useAuth()
@@ -49,7 +59,7 @@ export default function RoomPage() {
   useCollaboration(roomId)
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-black">
+    <div className="relative w-screen h-screen overflow-hidden bg-surface-dark">
       <Header />
       <Toolbar />
 
@@ -68,15 +78,14 @@ export default function RoomPage() {
       <MultiSelectActions />
       <Footer />
       <AppMenu />
-      <ShortcutsModal />
       <SaveModal />
       <AIModal />
       <CommandPalette />
-      <HelpModal />
       <ExportImageModal />
       <CanvasPropertiesModal />
       <ImageSourcePicker />
       <ImageGenerateModal />
+      <WebEmbedModal />
       <ContextMenu />
       <FindBar />
       <CanvasLoadingOverlay />
