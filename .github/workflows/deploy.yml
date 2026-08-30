@@ -1,0 +1,99 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      lixsketch: ${{ steps.filter.outputs.lixsketch }}
+      vscode: ${{ steps.filter.outputs.vscode }}
+      worker: ${{ steps.filter.outputs.worker }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            lixsketch:
+              - 'packages/lixsketch/**'
+            vscode:
+              - 'packages/vscode/**'
+            worker:
+              - 'worker/**'
+            web:
+              - 'app/**'
+              - 'public/**'
+              - 'src/**'
+              - '!packages/**'
+              - '!worker/**'
+
+  deploy-lixsketch:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.lixsketch == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.CI_AGENT_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm ci
+      - run: ./deploy.sh --package build deploy
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_LIXSKETCH_PUBLISH_TOKEN }}
+          GITHUB_ACCESS_TOKEN: ${{ secrets.CI_AGENT_TOKEN }}
+
+  deploy-vscode:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.vscode == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.CI_AGENT_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: ./deploy.sh --package --vs build deploy
+        env:
+          VSCE_PAT: ${{ secrets.VSCODE_LIXSKETCH_EXT_PUBLISH_TOKEN }}
+          GITHUB_ACCESS_TOKEN: ${{ secrets.CI_AGENT_TOKEN }}
+
+  deploy-worker:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.worker == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: ./deploy.sh --worker build deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+
+  deploy-pages:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: ./deploy.sh --pages build deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
