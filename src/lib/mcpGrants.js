@@ -35,6 +35,7 @@ export async function authorizeMcpWorkspace(DB, request, sessionId, requiredPerm
      FROM mcp_workspace_grants g
      JOIN scenes s ON s.id = g.scene_id
      WHERE g.token_hash = ? AND s.session_id = ? AND g.revoked_at IS NULL
+       AND g.user_id = s.created_by
        AND g.expires_at > datetime('now')`
   ).bind(tokenHash, sessionId).first()
   if (!grant) return null

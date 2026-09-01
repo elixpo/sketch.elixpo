@@ -124,6 +124,7 @@ export default function McpDocsPage() {
               ['templates', 'Templates'],
               ['embedding', 'Package API'],
               ['limits', 'Limits'],
+              ['deployment', 'Deployment'],
             ].map(([id, label]) => (
               <a key={id} href={`#${id}`} className="block rounded-lg px-3 py-2 text-text-muted hover:bg-surface-hover hover:text-text-primary">{label}</a>
             ))}
@@ -211,6 +212,15 @@ export default function McpDocsPage() {
               <li>Maximum 5,000 shapes per scene and 500 operations per patch.</li>
               <li>Local scene files are capped at 20 MB, requests at 10 MB, and SVG previews at 5 MB.</li>
               <li><code className="font-[lixCode] text-accent">canvas_new</code> requires explicit confirmation because it replaces the current scene.</li>
+            </ul>
+          </DocSection>
+
+          <DocSection id="deployment" title="Deployment configuration">
+            <ul className="space-y-2">
+              <li>Apply D1 migration <code className="font-[lixCode] text-accent">0010_mcp_workspace_grants.sql</code> before deploying the routes.</li>
+              <li>Set the same high-entropy <code className="font-[lixCode] text-accent">MCP_RELAY_SECRET</code> on the Pages and collaboration Worker deployments.</li>
+              <li>Set <code className="font-[lixCode] text-accent">MCP_RELAY_URL</code> on Pages to the collaboration Worker origin.</li>
+              <li>Do not expose either deployment value through a <code className="font-[lixCode] text-accent">NEXT_PUBLIC_</code> variable.</li>
             </ul>
           </DocSection>
 

@@ -206,6 +206,8 @@ Signed-in workspace owners can create a scoped grant from **Profile → Workspac
 
 The server authorizes the grant but never receives the encryption key. Decryption and encryption happen inside the local package process. Remote writes use conditional revisions, update an active collaboration room immediately, and are detected by an otherwise-open canvas through encrypted revision polling.
 
+Deployment requires migration `0010_mcp_workspace_grants.sql`, a shared `MCP_RELAY_SECRET` on both the Pages and collaboration Worker deployments, and `MCP_RELAY_URL` on Pages pointing to the collaboration Worker origin.
+
 The stdio channel is reserved for MCP JSON-RPC. Server status is written to stderr.
 
 ### MCP tools

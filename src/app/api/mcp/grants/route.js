@@ -26,7 +26,7 @@ export async function GET(request) {
      WHERE g.user_id = ? AND s.session_id = ?
      ORDER BY g.created_at DESC`
   ).bind(user.id, sessionId).all()
-  return NextResponse.json({ grants: (grants.results || []).map(sanitizeGrant) })
+  return NextResponse.json({ grants: (grants.results || []).map(sanitizeGrant) }, { headers: { 'Cache-Control': 'no-store' } })
 }
 
 export async function POST(request) {
@@ -58,7 +58,7 @@ export async function POST(request) {
   const grant = await cloudflare.DB.prepare(
     `SELECT g.*, ? AS session_id FROM mcp_workspace_grants g WHERE g.id = ?`
   ).bind(sessionId, id).first()
-  return NextResponse.json({ grant: sanitizeGrant(grant), token }, { status: 201 })
+  return NextResponse.json({ grant: sanitizeGrant(grant), token }, { status: 201, headers: { 'Cache-Control': 'no-store' } })
 }
 
 export async function DELETE(request) {
