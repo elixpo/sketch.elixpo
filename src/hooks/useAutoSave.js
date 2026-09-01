@@ -223,10 +223,13 @@ async function saveToDb({ force = false } = {}) {
         workspaceName,
         createdBy,
         ownerType: authState.isAuthenticated ? 'user' : 'guest',
+        expectedRevision: Number.isInteger(window.__cloudSceneRevision) ? window.__cloudSceneRevision : undefined,
       }),
     })
 
     if (res.ok) {
+      const saved = await res.json().catch(() => ({}))
+      if (Number.isInteger(saved.revision)) window.__cloudSceneRevision = saved.revision
       _automaticCloudSyncBlocked.delete(sessionId)
       recordDbSave()
       useUIStore.getState().setSaveStatus('cloud')
@@ -234,6 +237,14 @@ async function saveToDb({ force = false } = {}) {
       useUIStore.getState().setSessionEncryptionKey?.(key, sessionId)
       console.log('[AutoSave] Synced to cloud')
       return true
+    } else if (res.status === 409) {
+      const data = await res.json().catch(() => ({}))
+      window.__remoteSceneConflict = data
+      console.warn('[AutoSave] Remote edit conflict — cloud save paused', data)
+      useUIStore.getState().setSaveStatus('failed')
+      window.dispatchEvent(new CustomEvent('lix-remote-scene-conflict', { detail: data }))
+      showRemoteSceneToast('Remote edit conflict — reload before saving')
+      return false
     } else if (res.status === 429) {
       _automaticCloudSyncBlocked.add(sessionId)
       const data = await res.json().catch(() => ({}))
@@ -361,6 +372,7 @@ export default function useAutoSave() {
         const res = await fetch(`${WORKER_URL}/api/scenes/load?sessionId=${sessionId}`)
         if (!res.ok || cancelled) return { status: 'unavailable' }
         const data = await res.json()
+        if (Number.isInteger(data.revision)) window.__cloudSceneRevision = data.revision
         if (data.missing || !data.encryptedData) {
           _automaticCloudSyncBlocked.add(sessionId)
           return { status: 'missing', metadata: data }
@@ -506,6 +518,7 @@ export default function useAutoSave() {
     let hasWarnedAboutEditingPublished = false
     let debounceTimer = null
     const debouncedSave = () => {
+      if (window.__applyingAgentScene) return
       clearTimeout(debounceTimer)
       debounceTimer = setTimeout(() => {
         const ui = useUIStore.getState()
@@ -670,6 +683,8 @@ export default function useAutoSave() {
         })
 
         if (res.ok) {
+          const saved = await res.json().catch(() => ({}))
+          if (Number.isInteger(saved.revision)) window.__cloudSceneRevision = saved.revision
           useUIStore.getState().setSaveStatus('cloud')
           useUIStore.getState().setSessionEncryptionKey?.(key, sessionId)
           console.log('[AutoSave] New workspace saved to cloud')
@@ -686,4 +701,78 @@ export default function useAutoSave() {
 
     setTimeout(saveNewWorkspace, 2000)
   }, [isInRoom])
+
+  // ──────────────────────────────────────────────────────
+  // 6. REMOTE AGENT REFRESH: active collaboration relays immediately;
+  //    otherwise poll the encrypted cloud revision without touching recency.
+  // ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (isInRoom || !WORKER_URL) return
+    let applying = false
+    let warnedRevision = null
+
+    const checkRemoteRevision = async () => {
+      if (applying || document.visibilityState === 'hidden') return
+      const sessionId = getSessionID()
+      const serializer = window.__sceneSerializer
+      if (!sessionId || !serializer) return
+      try {
+        const response = await fetch(`${WORKER_URL}/api/scenes/load?sessionId=${encodeURIComponent(sessionId)}&touch=0&meta=1`, { cache: 'no-store' })
+        if (!response.ok) return
+        const data = await response.json()
+        const revision = Number(data.revision)
+        if (!Number.isInteger(revision)) return
+        if (!Number.isInteger(window.__cloudSceneRevision)) {
+          window.__cloudSceneRevision = revision
+          return
+        }
+        if (revision <= window.__cloudSceneRevision) return
+        if (useUIStore.getState().saveStatus !== 'cloud') {
+          if (warnedRevision !== revision) {
+            warnedRevision = revision
+            window.__remoteSceneConflict = { currentRevision: revision, localRevision: window.__cloudSceneRevision }
+            window.dispatchEvent(new CustomEvent('lix-remote-scene-conflict', { detail: window.__remoteSceneConflict }))
+            showRemoteSceneToast('A remote edit is waiting — reload to avoid overwriting it')
+          }
+          return
+        }
+        const key = useUIStore.getState().loadEncryptionKeyForSession(sessionId)
+        if (!key) return
+        applying = true
+        const sceneResponse = await fetch(`${WORKER_URL}/api/scenes/load?sessionId=${encodeURIComponent(sessionId)}&touch=0`, { cache: 'no-store' })
+        if (!sceneResponse.ok) return
+        const scenePayload = await sceneResponse.json()
+        if (Number(scenePayload.revision) !== revision || !scenePayload.encryptedData) return
+        const { decrypt } = await import('@/utils/encryption')
+        const sceneData = JSON.parse(await decrypt(scenePayload.encryptedData, key))
+        normalizeSceneColorsForTheme(sceneData, useUIStore.getState().resolvedTheme)
+        window.__applyingAgentScene = true
+        serializer.load(sceneData)
+        const localKey = getLocalSaveKey()
+        if (localKey) writeLocalScene(localKey, sceneData)
+        if (scenePayload.workspaceName) useUIStore.getState().setWorkspaceName(scenePayload.workspaceName)
+        window.__cloudSceneRevision = revision
+        useUIStore.getState().setSaveStatus('cloud')
+        showRemoteSceneToast('MCP agent updated the canvas')
+        window.dispatchEvent(new CustomEvent('lix-agent-scene-applied', { detail: { revision } }))
+        setTimeout(() => { window.__applyingAgentScene = false }, 0)
+      } catch (error) {
+        console.warn('[AutoSave] Remote revision check failed:', error)
+      } finally {
+        applying = false
+      }
+    }
+
+    const interval = setInterval(checkRemoteRevision, 4000)
+    return () => clearInterval(interval)
+  }, [isInRoom])
+}
+
+function showRemoteSceneToast(message) {
+  const toast = document.getElementById('save-toast')
+  if (!toast) return
+  toast.textContent = message
+  toast.classList.remove('hidden')
+  clearTimeout(toast._hideTimer)
+  toast._hideTimer = setTimeout(() => toast.classList.add('hidden'), 3500)
 }

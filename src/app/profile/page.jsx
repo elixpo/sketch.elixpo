@@ -12,6 +12,7 @@ import CloudinaryIntegrationCard from '@/components/profile/CloudinaryIntegratio
 import PollinationsIntegrationCard from '@/components/profile/PollinationsIntegrationCard'
 import PersonalDetailsCard from '@/components/profile/PersonalDetailsCard'
 import LandingNav from '@/components/landing/LandingNav'
+import McpWorkspaceAccessModal from '@/components/profile/McpWorkspaceAccessModal'
 
 function reconcileActiveWorkspaceName(workspaces) {
   if (typeof window === 'undefined' || !Array.isArray(workspaces)) return workspaces || []
@@ -175,7 +176,7 @@ function MetricCard({ icon, label, value, detail, color = '#8B88E8' }) {
 
 // ── Workspace card ───────────────────────────────────────────────────────────
 
-function WorkspaceCard({ workspace, index, onDelete }) {
+function WorkspaceCard({ workspace, index, onDelete, onMcpAccess }) {
   const sizeKB = ((workspace.size_bytes || 0) / 1024).toFixed(1)
   const lastAccessedDate = parseDatabaseDate(workspace.last_accessed_at)
   const lastAccessed = lastAccessedDate
@@ -254,6 +255,7 @@ function WorkspaceCard({ workspace, index, onDelete }) {
             >
               Open
             </Link>
+            {onMcpAccess && <button type="button" onClick={() => onMcpAccess(workspace)} className="cursor-pointer rounded-lg border border-[#8B88E8]/30 px-3 py-1.5 text-xs text-[#A99CF1] transition-all hover:bg-[#8B88E8]/10" title="Remote MCP access"><i className="bx bx-plug text-sm" /></button>}
             <button
               onClick={handleDelete}
               onMouseLeave={() => setConfirmDelete(false)}
@@ -318,6 +320,7 @@ export default function ProfilePage() {
   const [publishedTemplates, setPublishedTemplates] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('personal')
+  const [mcpWorkspace, setMcpWorkspace] = useState(null)
 
   const headerRef = useRef(null)
   const headerInView = useInView(headerRef, { once: true })
@@ -631,7 +634,7 @@ export default function ProfilePage() {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {workspaces.map((ws, i) => (
-                    <WorkspaceCard key={ws.id || ws.session_id} workspace={ws} index={i} onDelete={handleDeleteWorkspace} />
+                    <WorkspaceCard key={ws.id || ws.session_id} workspace={ws} index={i} onDelete={handleDeleteWorkspace} onMcpAccess={isAuthenticated ? setMcpWorkspace : null} />
                   ))}
                 </div>
               )}
@@ -804,6 +807,7 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+      {mcpWorkspace && <McpWorkspaceAccessModal workspace={mcpWorkspace} onClose={() => setMcpWorkspace(null)} />}
     </div>
   )
 }

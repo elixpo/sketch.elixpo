@@ -185,6 +185,27 @@ The CLI can also be started directly:
 npx @elixpo/lixsketch --scene ./architecture.lixjson
 ```
 
+### Remote encrypted workspace
+
+Signed-in workspace owners can create a scoped grant from **Profile → Workspaces → Remote MCP**. Copy the configuration when the grant is created; its token is shown once. Remote secrets are environment variables so they do not appear in the process argument list:
+
+```json
+{
+  "mcpServers": {
+    "lixsketch": {
+      "command": "npx",
+      "args": ["-y", "@elixpo/lixsketch", "--remote", "https://sketch.elixpo.com", "--workspace", "lx-..."],
+      "env": {
+        "LIXSKETCH_AGENT_TOKEN": "lixmcp_...",
+        "LIXSKETCH_ENCRYPTION_KEY": "..."
+      }
+    }
+  }
+}
+```
+
+The server authorizes the grant but never receives the encryption key. Decryption and encryption happen inside the local package process. Remote writes use conditional revisions, update an active collaboration room immediately, and are detected by an otherwise-open canvas through encrypted revision polling.
+
 The stdio channel is reserved for MCP JSON-RPC. Server status is written to stderr.
 
 ### MCP tools
@@ -196,10 +217,12 @@ The stdio channel is reserved for MCP JSON-RPC. Server status is written to stde
 | `canvas_validate` | Validate format, geometry, IDs, and limits |
 | `canvas_preview` | Produce a lightweight SVG preview |
 | `canvas_new` | Create a blank canvas after explicit confirmation |
+| `lixscript_apply` | Compile LixScript into a validated atomic scene patch |
 | `templates_search` | Search public marketplace templates |
 | `template_insert` | Insert a template with remapped shape and relationship IDs |
 
 Mutations accept `expectedRevision` for conflict detection. `canvas_apply_patch` and `template_insert` support `dryRun: true`. A single patch is either fully stored or not stored at all.
+`lixscript_apply` supports the same revision and dry-run controls; LixScript is a compact macro over the patch engine rather than a separate mutation path.
 
 Supported structured shape types are rectangle, circle, line, arrow, frame, freehand stroke, and text. Images and arbitrary SVG markup are intentionally excluded from direct MCP writes.
 
