@@ -304,6 +304,7 @@ export default function ProfilePage() {
   const login = useAuthStore((s) => s.login)
   const logout = useAuthStore((s) => s.logout)
   const init = useAuthStore((s) => s.init)
+  const authLoading = useAuthStore((s) => s.loading)
 
   const [quotaData, setQuotaData] = useState(null)
   const [workspaces, setWorkspaces] = useState([])
@@ -341,6 +342,7 @@ export default function ProfilePage() {
 
   // Fetch quota + workspaces
   useEffect(() => {
+    if (authLoading) return
     const fetchData = async () => {
       setLoading(true)
       try {
@@ -380,7 +382,7 @@ export default function ProfilePage() {
       setLoading(false)
     }
     fetchData()
-  }, [isAuthenticated, user?.id])
+  }, [authLoading, isAuthenticated, user?.id])
 
   const handleDeleteWorkspace = async (workspace) => {
     try {
@@ -519,7 +521,7 @@ export default function ProfilePage() {
           })}
         </nav>
 
-        {loading ? (
+        {loading || authLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="relative w-8 h-8">
               <div className="absolute inset-0 rounded-full border-2 border-accent-blue/20" />
