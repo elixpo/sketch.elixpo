@@ -6,7 +6,7 @@ const CLIENT_CONFIG = `{
       "command": "npx",
       "args": [
         "-y",
-        "@elixpo/lixsketch",
+        "@elixpo/lixsketch@latest",
         "--scene",
         "/absolute/path/to/architecture.lixjson"
       ]
@@ -19,7 +19,47 @@ const REMOTE_CONFIG = `{
     "lixsketch": {
       "command": "npx",
       "args": [
-        "-y", "@elixpo/lixsketch",
+        "-y", "@elixpo/lixsketch@latest",
+        "--remote", "https://sketch.elixpo.com",
+        "--workspace", "lx-..."
+      ],
+      "env": {
+        "LIXSKETCH_AGENT_TOKEN": "lixmcp_...",
+        "LIXSKETCH_ENCRYPTION_KEY": "workspace-key"
+      }
+    }
+  }
+}`
+
+const CODEX_CONFIG = `[mcp_servers.lixsketch]
+command = "npx"
+args = ["-y", "@elixpo/lixsketch@latest", "--remote", "https://sketch.elixpo.com", "--workspace", "lx-..."]
+
+[mcp_servers.lixsketch.env]
+LIXSKETCH_AGENT_TOKEN = "lixmcp_..."
+LIXSKETCH_ENCRYPTION_KEY = "workspace-key"`
+
+const CODEX_COMMAND = `codex mcp add lixsketch \\
+  --env LIXSKETCH_AGENT_TOKEN="lixmcp_..." \\
+  --env LIXSKETCH_ENCRYPTION_KEY="workspace-key" \\
+  -- npx -y @elixpo/lixsketch@latest \\
+  --remote https://sketch.elixpo.com \\
+  --workspace lx-...`
+
+const CLAUDE_COMMAND = `claude mcp add --scope user lixsketch \\
+  --env LIXSKETCH_AGENT_TOKEN="lixmcp_..." \\
+  --env LIXSKETCH_ENCRYPTION_KEY="workspace-key" \\
+  -- npx -y @elixpo/lixsketch@latest \\
+  --remote https://sketch.elixpo.com \\
+  --workspace lx-...`
+
+const VSCODE_CONFIG = `{
+  "servers": {
+    "lixsketch": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y", "@elixpo/lixsketch@latest",
         "--remote", "https://sketch.elixpo.com",
         "--workspace", "lx-..."
       ],
@@ -117,7 +157,9 @@ export default function McpDocsPage() {
           <nav className="sticky top-24 space-y-1 rounded-xl border border-white/[0.06] bg-surface-card p-3 text-sm">
             {[
               ['overview', 'Overview'],
-              ['setup', 'Client setup'],
+              ['quick-start', 'Quick start'],
+              ['agents', 'Agent setup'],
+              ['setup', 'Local scene'],
               ['remote', 'Remote workspace'],
               ['tools', 'Tools'],
               ['workflow', 'Safe workflow'],
@@ -146,10 +188,55 @@ export default function McpDocsPage() {
             </div>
           </section>
 
-          <DocSection id="setup" title="Client setup">
+          <DocSection id="quick-start" title="Connect a workspace in three steps">
+            <ol className="list-decimal space-y-3 pl-5">
+              <li>Open <Link href="/profile?tab=workspaces" className="text-accent hover:underline">Profile → Workspaces</Link>, choose a workspace, and open <strong className="font-normal text-text-secondary">Remote MCP</strong>.</li>
+              <li>Create access with only the permissions your agent needs. LixSketch generates the workspace ID, token, and E2E key for you.</li>
+              <li>Select your client format and copy the <strong className="font-normal text-text-secondary">entire configuration</strong>. Do not copy individual lines or edit the generated secrets.</li>
+            </ol>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-accent/20 bg-accent/5 p-4"><p className="text-text-secondary">Codex TOML</p><p className="mt-2 text-xs leading-6">Paste the complete output, including both square-bracket headings, into <code className="font-[lixCode] text-accent">~/.codex/config.toml</code>. Restart Codex and run <code className="font-[lixCode] text-accent">codex mcp list</code>.</p></div>
+              <div className="rounded-xl border border-accent/20 bg-accent/5 p-4"><p className="text-text-secondary">MCP JSON</p><p className="mt-2 text-xs leading-6">Paste the complete JSON object into Cursor, Claude Desktop, Windsurf, or another client that accepts a top-level <code className="font-[lixCode] text-accent">mcpServers</code> object.</p></div>
+            </div>
+          </DocSection>
+
+          <DocSection id="agents" title="Set up common agent clients">
+            <div className="space-y-7">
+              <div>
+                <h3 className="text-base text-text-secondary">Codex CLI, IDE, and desktop</h3>
+                <p className="mb-3 mt-1 text-xs">Easiest: copy <strong className="font-normal text-text-secondary">Codex TOML</strong> from LixSketch and paste the whole block into <code className="font-[lixCode] text-accent">~/.codex/config.toml</code> (or a trusted project’s <code className="font-[lixCode] text-accent">.codex/config.toml</code>).</p>
+                <CodeBlock>{CODEX_CONFIG}</CodeBlock>
+                <p className="mb-3 mt-4 text-xs">CLI alternative:</p>
+                <CodeBlock>{CODEX_COMMAND}</CodeBlock>
+                <p className="mt-3 text-xs">Verify with <code className="font-[lixCode] text-accent">codex mcp list</code>, then restart the active Codex session. See the <a href="https://developers.openai.com/codex/mcp/" target="_blank" rel="noreferrer" className="text-accent hover:underline">Codex MCP guide</a>.</p>
+              </div>
+
+              <div className="border-t border-white/[0.07] pt-6">
+                <h3 className="text-base text-text-secondary">Claude Code and Claude Desktop</h3>
+                <p className="mb-3 mt-1 text-xs">Claude Desktop accepts the generated <strong className="font-normal text-text-secondary">MCP JSON</strong>. Claude Code can use that JSON or this command:</p>
+                <CodeBlock>{CLAUDE_COMMAND}</CodeBlock>
+                <p className="mt-3 text-xs">Verify with <code className="font-[lixCode] text-accent">claude mcp get lixsketch</code>. See Anthropic’s <a href="https://docs.anthropic.com/en/docs/claude-code/mcp" target="_blank" rel="noreferrer" className="text-accent hover:underline">Claude Code MCP guide</a>.</p>
+              </div>
+
+              <div className="border-t border-white/[0.07] pt-6">
+                <h3 className="text-base text-text-secondary">Cursor and Windsurf</h3>
+                <p className="mt-1 text-xs">Paste the generated <strong className="font-normal text-text-secondary">MCP JSON</strong> unchanged into <code className="font-[lixCode] text-accent">~/.cursor/mcp.json</code> for Cursor or <code className="font-[lixCode] text-accent">~/.codeium/windsurf/mcp_config.json</code> for Windsurf. Restart the MCP server from the client after saving.</p>
+              </div>
+
+              <div className="border-t border-white/[0.07] pt-6">
+                <h3 className="text-base text-text-secondary">VS Code agent mode</h3>
+                <p className="mb-3 mt-1 text-xs">VS Code uses a different top-level key. Create <code className="font-[lixCode] text-accent">.vscode/mcp.json</code> for the current project, replace the placeholders with values from the generated configuration, and use:</p>
+                <CodeBlock>{VSCODE_CONFIG}</CodeBlock>
+                <p className="mt-3 text-xs">Run <strong className="font-normal text-text-secondary">MCP: List Servers</strong> from the Command Palette. See the <a href="https://code.visualstudio.com/docs/agents/reference/mcp-configuration" target="_blank" rel="noreferrer" className="text-accent hover:underline">VS Code MCP reference</a>.</p>
+              </div>
+            </div>
+            <div className="mt-6 rounded-xl border border-amber-400/20 bg-amber-400/5 p-4 text-xs leading-6 text-amber-100/75">Generated configurations contain workspace credentials. Keep personal config files out of source control, grant only necessary scopes, and revoke access from LixSketch when a client is no longer used.</div>
+          </DocSection>
+
+          <DocSection id="setup" title="Work with a local scene file">
             <p className="mb-4">Add the server to a client that supports local stdio MCP servers. Use an absolute scene path so the same canvas is opened on every launch.</p>
             <CodeBlock>{CLIENT_CONFIG}</CodeBlock>
-            <p className="mt-4">The equivalent terminal command is <code className="font-[lixCode] text-accent">npx @elixpo/lixsketch --scene ./architecture.lixjson</code>. JSON-RPC uses stdout; status messages use stderr.</p>
+            <p className="mt-4">The equivalent terminal command is <code className="font-[lixCode] text-accent">npx @elixpo/lixsketch@latest --scene ./architecture.lixjson</code>. JSON-RPC uses stdout; status messages use stderr.</p>
           </DocSection>
 
           <DocSection id="remote" title="Remote encrypted workspace">
