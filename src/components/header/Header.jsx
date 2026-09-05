@@ -104,36 +104,17 @@ function ProfileStatusAvatar({ avatar }) {
   )
 }
 
-function ProfileDropdown() {
+function ProfileControls() {
   const profile = useProfileStore((s) => s.profile)
-  const setDisplayName = useProfileStore((s) => s.setDisplayName)
-  const regenerateProfile = useProfileStore((s) => s.regenerateProfile)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const authUser = useAuthStore((s) => s.user)
   const closeMenu = useUIStore((s) => s.closeMenu)
-  const [open, setOpen] = useState(false)
   const [testingE2E, setTestingE2E] = useState(false)
   const [e2eResult, setE2EResult] = useState('idle')
-  const ref = useRef(null)
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
 
   // Use auth user if signed in, otherwise guest profile
   const displayName = isAuthenticated ? (authUser?.displayName || authUser?.email) : profile?.displayName
   const avatar = isAuthenticated ? authUser?.avatar : profile?.avatar
-  const isGuest = !isAuthenticated
-
-  const toggleProfileDropdown = () => {
-    if (!open) closeMenu()
-    setOpen((current) => !current)
-  }
 
   if (!profile && !isAuthenticated) return null
 
@@ -205,19 +186,20 @@ function ProfileDropdown() {
   }
 
   return (
-    <div ref={ref} className="relative flex items-center rounded-lg border border-border-light bg-surface/70">
-      <button
-        onClick={toggleProfileDropdown}
+    <div className="relative flex items-center rounded-lg border border-border-light bg-surface/70">
+      <Link
+        href="/profile"
+        onClick={closeMenu}
         className="flex items-center gap-1.5 pl-1 pr-1.5 py-0.5 rounded-l-lg hover:bg-surface-hover transition-all duration-200 cursor-pointer"
-        title={`${displayName} · canvas and encryption status`}
+        title={`Open ${displayName || 'profile'} profile`}
+        aria-label="Open profile"
       >
         <ProfileStatusAvatar avatar={avatar} />
         <span className="e2e-badge flex items-center gap-0.5 px-1.5 py-0.5 rounded border select-none" title="End-to-end encryption enabled">
           <i className="bx bxs-shield text-[11px]" />
           <span className="text-[9px] font-medium">E2E</span>
         </span>
-        <i className={`bx bx-chevron-down text-text-dim text-xs transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
-      </button>
+      </Link>
 
       <span className="w-px h-6 bg-border-light shrink-0" aria-hidden="true" />
 
@@ -234,82 +216,6 @@ function ProfileDropdown() {
         <span className="text-[10px] hidden lg:inline">{e2eResult === 'passed' ? 'Verified' : e2eResult === 'failed' ? 'Retry' : 'Test'}</span>
       </button>
 
-      {open && (
-        <div className="absolute top-full right-0 mt-2 w-[244px] overflow-hidden bg-surface/95 backdrop-blur-xl border border-border-light rounded-xl p-2 z-[1002] font-[lixFont] shadow-2xl shadow-black/35">
-          <div className="flex items-center gap-3 px-2 py-2">
-            {avatar ? (
-              <img src={avatar} alt="" className="w-11 h-11 rounded-xl border border-border-light" referrerPolicy="no-referrer" />
-            ) : (
-              <div className="w-11 h-11 rounded-xl border border-border-light bg-accent-blue/15 flex items-center justify-center">
-                <i className="bx bx-user text-xl text-accent" />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              {isGuest ? (
-                <input
-                  type="text"
-                  value={profile?.displayName || ''}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  aria-label="Profile display name"
-                  className="w-full bg-transparent text-text-primary text-sm outline-none border-b border-transparent focus:border-accent transition-colors cursor-text"
-                  spellCheck={false}
-                />
-              ) : (
-                <p className="text-text-primary text-sm truncate" title={displayName}>{displayName}</p>
-              )}
-              <span className="mt-1 inline-flex items-center rounded-full border border-border-light bg-surface-hover/70 px-1.5 py-0.5 text-text-dim text-[9px] uppercase tracking-wider">
-                {isGuest ? 'Guest' : 'Signed in'}
-              </span>
-              {!isGuest && authUser?.email && (
-                <p className="mt-1 text-text-dim text-[10px] truncate" title={authUser.email}>{authUser.email}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-1 border-t border-border-light">
-            <Link
-              href="/profile"
-              onClick={() => setOpen(false)}
-              className="w-full flex items-center gap-2.5 px-2 py-2.5 rounded-lg text-text-secondary text-xs hover:bg-surface-hover hover:text-text-primary transition-colors cursor-pointer"
-            >
-              <i className="bx bx-user text-base text-text-muted" />
-              Profile & Usage
-            </Link>
-          </div>
-
-          {isGuest && (
-            <div className="border-t border-border-light">
-              <button
-                onClick={() => { regenerateProfile(); setOpen(false) }}
-                className="w-full flex items-center gap-2.5 px-2 py-2.5 rounded-lg text-text-secondary text-xs hover:bg-surface-hover hover:text-text-primary transition-colors cursor-pointer"
-              >
-                <i className="bx bx-refresh text-base text-text-muted" />
-                New identity
-              </button>
-            </div>
-          )}
-
-          <div className="border-t border-border-light">
-            {isGuest ? (
-              <button
-                onClick={() => { useAuthStore.getState().login(); setOpen(false) }}
-                className="w-full flex items-center gap-2.5 px-2 py-2.5 rounded-lg text-accent text-xs hover:bg-accent/10 transition-colors cursor-pointer"
-              >
-                <i className="bx bx-log-in text-base" />
-                Sign in
-              </button>
-            ) : (
-              <button
-                onClick={() => { useAuthStore.getState().logout(); setOpen(false) }}
-                className="w-full flex items-center gap-2.5 px-2 py-2.5 rounded-lg text-red-400/80 text-xs hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer"
-              >
-                <i className="bx bx-log-out text-base" />
-                Sign out
-              </button>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -336,15 +242,6 @@ export default function Header() {
   if (viewMode || zenMode) {
     return (
       <div className="fixed top-3 right-4 z-[1001] flex items-center gap-2 font-[lixFont]">
-        <Link
-          href="/templates"
-          title="Browse template marketplace"
-          aria-label="Browse template marketplace"
-          className="flex h-8 items-center gap-1.5 rounded-lg bg-surface px-2.5 text-xs text-text-muted transition-all duration-200 hover:bg-surface-hover hover:text-text-primary"
-        >
-          <i className="bx bx-store-alt text-base" />
-          <span className="hidden sm:inline">Templates</span>
-        </Link>
         <button
           onClick={toggleMenu}
           className="w-8 h-8 flex items-center justify-center rounded-lg bg-surface text-text-muted hover:text-text-primary hover:bg-surface-hover transition-all duration-200 cursor-pointer"
@@ -398,18 +295,8 @@ export default function Header() {
 
       {/* Right side */}
       <div className="flex items-center gap-2">
-        <Link
-          href="/templates"
-          title="Browse template marketplace"
-          aria-label="Browse template marketplace"
-          className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm text-text-muted transition-all duration-200 hover:bg-surface-hover hover:text-text-primary"
-        >
-          <i className="bx bx-store-alt text-base" aria-hidden="true" />
-          <span className="hidden xl:inline">Templates</span>
-        </Link>
-
         {/* Profile pill owns identity, save state, and E2E status. */}
-        <ProfileDropdown />
+        <ProfileControls />
 
         {/* Command palette */}
         <button
