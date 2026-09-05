@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import useAuthStore from '@/store/useAuthStore'
 import { showToast } from '@/utils/toast'
 import { codexConfigFromMcpJson, createCodexTomlConfig, createMcpJsonConfig } from '@/lib/mcpClientConfig'
@@ -50,7 +50,7 @@ function RevokeAccessDialog({ grant, busy, onCancel, onConfirm }) {
   )
 }
 
-export default function McpWorkspaceAccessModal({ workspace, onClose }) {
+export default function McpWorkspaceAccessModal({ workspace, onClose, onGrantCountChange }) {
   const [grants, setGrants] = useState([])
   const [savedConfigs, setSavedConfigs] = useState({})
   const [loading, setLoading] = useState(true)
@@ -69,6 +69,13 @@ export default function McpWorkspaceAccessModal({ workspace, onClose }) {
     if (typeof window === 'undefined' || !sessionId) return ''
     return localStorage.getItem(`lixsketch-enc-key-${sessionId}`) || ''
   }, [sessionId])
+
+  const notifyGrantCount = useCallback((count) => {
+    onGrantCountChange?.(sessionId, count)
+    window.dispatchEvent(new CustomEvent('lixsketch:mcp-grants-changed', {
+      detail: { sessionId, count },
+    }))
+  }, [onGrantCountChange, sessionId])
 
   useEffect(() => {
     setSavedConfigs(readSavedConfigs(sessionId))
@@ -89,6 +96,7 @@ export default function McpWorkspaceAccessModal({ workspace, onClose }) {
         if (!response.ok) throw new Error(body.error || 'Could not load agent access')
         const activeGrants = body.grants || []
         setGrants(activeGrants)
+        notifyGrantCount(activeGrants.length)
         setSavedConfigs((current) => {
           const activeIds = new Set(activeGrants.map((grant) => grant.id))
           const next = Object.fromEntries(Object.entries(current).filter(([grantId]) => activeIds.has(grantId)))
@@ -99,7 +107,7 @@ export default function McpWorkspaceAccessModal({ workspace, onClose }) {
       .catch((failure) => { if (failure.name !== 'AbortError') setError(failure.message) })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
-  }, [sessionId, sessionToken])
+  }, [notifyGrantCount, sessionId, sessionToken])
 
   useEffect(() => {
     const close = (event) => {
@@ -141,6 +149,7 @@ export default function McpWorkspaceAccessModal({ workspace, onClose }) {
       setSavedConfigs(nextConfigs)
       setVisibleGrantId(body.grant.id)
       setGrants((current) => [body.grant, ...current])
+      notifyGrantCount(grants.length + 1)
       showToast('Remote MCP access created', { tone: 'success', duration: 2200 })
     } catch (failure) {
       setError(failure.message)
@@ -167,6 +176,7 @@ export default function McpWorkspaceAccessModal({ workspace, onClose }) {
       writeSavedConfigs(sessionId, nextConfigs)
       setSavedConfigs(nextConfigs)
       setGrants((current) => current.filter((grant) => grant.id !== grantId))
+      notifyGrantCount(Math.max(0, grants.length - 1))
       if (visibleGrantId === grantId) setVisibleGrantId(null)
       setRevokeTarget(null)
       showToast('Remote MCP access revoked', { tone: 'success', duration: 2200 })

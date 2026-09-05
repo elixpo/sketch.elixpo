@@ -229,6 +229,41 @@ export default function Header() {
   const toggleSaveModal = useUIStore((s) => s.toggleSaveModal)
   const viewMode = useSketchStore((s) => s.viewMode)
   const zenMode = useSketchStore((s) => s.zenMode)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const sessionToken = useAuthStore((s) => s.sessionToken)
+  const [activeMcpClients, setActiveMcpClients] = useState(0)
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setActiveMcpClients(0)
+      return undefined
+    }
+    const sessionId = getSessionID()
+    if (!sessionId) return undefined
+    const controller = new AbortController()
+    const refresh = async () => {
+      try {
+        const response = await fetch(`/api/mcp/grants?sessionId=${encodeURIComponent(sessionId)}`, {
+          headers: sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {},
+          signal: controller.signal,
+        })
+        if (!response.ok) return
+        const body = await response.json()
+        setActiveMcpClients(body.grants?.length || 0)
+      } catch (error) {
+        if (error.name !== 'AbortError') setActiveMcpClients(0)
+      }
+    }
+    const handleGrantChange = (event) => {
+      if (event.detail?.sessionId === sessionId) setActiveMcpClients(Number(event.detail.count) || 0)
+    }
+    void refresh()
+    window.addEventListener('lixsketch:mcp-grants-changed', handleGrantChange)
+    return () => {
+      controller.abort()
+      window.removeEventListener('lixsketch:mcp-grants-changed', handleGrantChange)
+    }
+  }, [isAuthenticated, sessionToken])
 
   const finishWorkspaceNameEdit = () => {
     if (workspaceName === workspaceNameAtFocus.current) return
@@ -290,6 +325,13 @@ export default function Header() {
             spellCheck={false}
           />
         </label>
+
+        {activeMcpClients > 0 && (
+          <span className="hidden items-center gap-1 rounded-full border border-[#54D6A0]/20 bg-[#54D6A0]/10 px-2 py-1 text-[9px] text-[#70DFB3] sm:inline-flex" title={`${activeMcpClients} active Remote MCP client${activeMcpClients === 1 ? '' : 's'}`}>
+            <i className="bx bx-plug text-xs" />
+            MCP active
+          </span>
+        )}
 
       </div>
 

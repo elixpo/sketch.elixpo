@@ -657,6 +657,9 @@ async function handleSceneList(request: Request, env: Env): Promise<Response> {
     const scenes = await env.DB.prepare(
       `SELECT s.id, s.session_id, s.workspace_name, s.created_at, s.updated_at,
               s.last_accessed_at, s.size_bytes, s.view_count,
+              (SELECT COUNT(*) FROM mcp_workspace_grants mg
+               WHERE mg.scene_id = s.id AND mg.revoked_at IS NULL
+                 AND mg.expires_at > datetime('now')) AS active_mcp_grants,
               sp.token
        FROM scenes s
        LEFT JOIN scene_permissions sp ON sp.scene_id = s.id
