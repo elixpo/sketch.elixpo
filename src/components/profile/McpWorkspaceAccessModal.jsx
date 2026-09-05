@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import useAuthStore from '@/store/useAuthStore'
 import { showToast } from '@/utils/toast'
-import { codexConfigFromMcpJson, createCodexTomlConfig, createMcpJsonConfig } from '@/lib/mcpClientConfig'
+import { MCP_CONNECTION_TEST_PROMPT, codexConfigFromMcpJson, createCodexTomlConfig, createMcpJsonConfig } from '@/lib/mcpClientConfig'
 
 function authenticatedHeaders(sessionToken, headers = {}) {
   return sessionToken ? { ...headers, Authorization: `Bearer ${sessionToken}` } : headers
@@ -58,6 +58,7 @@ export default function McpWorkspaceAccessModal({ workspace, onClose, onGrantCou
   const [error, setError] = useState('')
   const [visibleGrantId, setVisibleGrantId] = useState(null)
   const [copiedGrantId, setCopiedGrantId] = useState(null)
+  const [testPromptCopied, setTestPromptCopied] = useState(false)
   const [configFormat, setConfigFormat] = useState('json')
   const [revokeTarget, setRevokeTarget] = useState(null)
   const [label, setLabel] = useState('Local MCP')
@@ -212,6 +213,17 @@ export default function McpWorkspaceAccessModal({ workspace, onClose, onGrantCou
     }
   }
 
+  const copyTestPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(MCP_CONNECTION_TEST_PROMPT)
+      setTestPromptCopied(true)
+      showToast('Workspace test prompt copied', { tone: 'success', duration: 2000 })
+      setTimeout(() => setTestPromptCopied(false), 2200)
+    } catch {
+      setError('Could not copy the test prompt. Open the MCP guide to copy it manually.')
+    }
+  }
+
   if (!workspace) return null
   const visibleConfig = visibleGrantId ? configFor(visibleGrantId) : null
 
@@ -257,6 +269,11 @@ export default function McpWorkspaceAccessModal({ workspace, onClose, onGrantCou
             <pre className="mt-3 max-h-52 min-h-0 overflow-auto rounded-lg bg-black/30 p-3 text-[10px] leading-5 text-[#d8c9f5]"><code>{visibleConfig}</code></pre>
           </> : <div className="flex min-h-56 flex-1 flex-col items-center justify-center px-5 text-center"><i className="bx bx-code-block text-3xl text-[#A99CF1]" /><p className="mt-3 text-sm text-text-secondary">Your copy-ready configuration appears here</p><p className="mt-2 max-w-sm text-[10px] leading-5 text-text-dim">Create access or open a saved configuration. Choose MCP JSON for Cursor and similar clients, or Codex TOML for direct use in Codex.</p></div>}
         </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#8B88E8]/20 bg-[#8B88E8]/[0.045] p-3.5">
+          <div className="flex min-w-0 items-start gap-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#8B88E8]/10 text-[#B6ACF4]"><i className="bx bx-test-tube text-lg" /></span><div><p className="text-xs text-text-secondary">Test the connection in your agent</p><p className="mt-0.5 text-[9px] leading-4 text-text-dim">No separate skill is required—the MCP server provides its workflow instructions. Restart your agent, then paste the verification prompt.</p></div></div>
+          <div className="flex shrink-0 items-center gap-2"><a href="/docs/mcp#test" target="_blank" rel="noreferrer" className="cursor-pointer rounded-lg border border-white/10 px-3 py-2 text-[10px] text-text-muted hover:bg-white/5 hover:text-text-primary"><i className="bx bx-book-open mr-1" />Guide</a><button type="button" onClick={copyTestPrompt} className="cursor-pointer rounded-lg bg-[#8B88E8] px-3 py-2 text-[10px] text-white hover:bg-[#9E91EE]"><i className={`bx ${testPromptCopied ? 'bx-check' : 'bx-copy'} mr-1`} />{testPromptCopied ? 'Copied' : 'Copy test prompt'}</button></div>
         </div>
 
         <section className="mt-4 rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">

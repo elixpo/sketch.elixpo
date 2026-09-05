@@ -180,7 +180,7 @@ export class LixSketchMcpServer {
     if (method === 'initialize') {
       const requested = request.params?.protocolVersion;
       const protocolVersion = SUPPORTED_PROTOCOL_VERSIONS.has(requested) ? requested : PROTOCOL_VERSION;
-      return { protocolVersion, capabilities: { tools: { listChanged: false }, resources: { subscribe: false, listChanged: false } }, serverInfo: this.serverInfo, instructions: 'Read canvas_get before mutations. Use expectedRevision and dryRun for safe edits. Prefer template_insert for reusable component packs.' };
+      return { protocolVersion, capabilities: { tools: { listChanged: false }, resources: { subscribe: false, listChanged: false } }, serverInfo: this.serverInfo, instructions: 'Before any mutation, call canvas_get and retain its revision. Preserve unrelated shapes. Send expectedRevision and dryRun: true first, inspect canvas_preview for layout changes, then commit the same validated operation with dryRun: false. Never clear or replace a canvas unless the user explicitly requests it. Prefer lixscript_apply for diagrams and template_insert for reusable component packs.' };
     }
     if (method === 'ping') return {};
     if (method === 'tools/list') return { tools: this.listTools() };

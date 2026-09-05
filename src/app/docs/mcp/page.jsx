@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { MCP_CONNECTION_TEST_PROMPT } from '@/lib/mcpClientConfig'
 
 const CLIENT_CONFIG = `{
   "mcpServers": {
@@ -70,17 +71,6 @@ const VSCODE_CONFIG = `{
     }
   }
 }`
-
-const CONNECTION_TEST_PROMPT = `Use the LixSketch MCP tools on my connected workspace.
-
-1. Call canvas_get and report the workspace name, revision, and shape count.
-2. Preserve every existing shape.
-3. Use lixscript_apply with dryRun enabled to place a small lavender card in an empty area. Add the text "MCP connected" with readable contrast.
-4. Call canvas_preview and check that the new card does not overlap existing content.
-5. Apply the same change for real.
-6. Call canvas_get again and confirm that the revision and shape count increased.
-
-Stop and explain the error if any step fails. Do not replace or clear the canvas.`
 
 const PATCH_EXAMPLE = `{
   "expectedRevision": 0,
@@ -247,7 +237,7 @@ export default function McpDocsPage() {
 
           <DocSection id="test" title="Test the workspace connection">
             <p className="mb-4">Start a fresh session after adding the MCP server, then send this prompt. It verifies reading, decryption, dry-run validation, previewing, writing, and revision persistence without changing existing content.</p>
-            <CodeBlock>{CONNECTION_TEST_PROMPT}</CodeBlock>
+            <CodeBlock>{MCP_CONNECTION_TEST_PROMPT}</CodeBlock>
             <p className="mt-4">Keep the canvas open in another tab while testing. The lavender card should appear after the committed step. If only the first step works, recreate the grant with <strong className="font-normal text-text-secondary">Edit canvas</strong> enabled.</p>
           </DocSection>
 
