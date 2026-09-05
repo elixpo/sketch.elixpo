@@ -194,7 +194,10 @@ export default function useCollaboration(roomId) {
           if (msg.serverSeq && msg.serverSeq <= lastServerSeqRef.current) break
           lastServerSeqRef.current = msg.serverSeq || lastServerSeqRef.current
           await applyScenePayload(msg.payload)
-          if (Number.isInteger(msg.revision)) window.__cloudSceneRevision = msg.revision
+          if (Number.isInteger(msg.revision)) {
+            window.__cloudSceneRevisionSession = roomId
+            window.__cloudSceneRevision = msg.revision
+          }
           showAgentEditToast(msg.displayName || 'MCP agent')
           window.dispatchEvent(new CustomEvent('lix-agent-scene-applied', { detail: { agent: msg.displayName, revision: msg.revision } }))
           break

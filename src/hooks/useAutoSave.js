@@ -79,6 +79,17 @@ function getLocalSaveMetaKey() {
   return sessionId ? `${LOCAL_SAVE_META_KEY_PREFIX}-${sessionId}` : null
 }
 
+function getCloudSceneRevision(sessionId) {
+  if (!sessionId || window.__cloudSceneRevisionSession !== sessionId) return undefined
+  return Number.isInteger(window.__cloudSceneRevision) ? window.__cloudSceneRevision : undefined
+}
+
+function setCloudSceneRevision(sessionId, revision) {
+  if (!sessionId || !Number.isInteger(revision)) return
+  window.__cloudSceneRevisionSession = sessionId
+  window.__cloudSceneRevision = revision
+}
+
 // ── Intervals ──
 const LOCAL_BUFFER_INTERVAL = 3_000    // localStorage buffer: every 3 seconds
 const CLOUD_SYNC_INTERVAL = 5 * 60_000 // DB sync: every 5 minutes
@@ -223,13 +234,13 @@ async function saveToDb({ force = false } = {}) {
         workspaceName,
         createdBy,
         ownerType: authState.isAuthenticated ? 'user' : 'guest',
-        expectedRevision: Number.isInteger(window.__cloudSceneRevision) ? window.__cloudSceneRevision : undefined,
+        expectedRevision: getCloudSceneRevision(sessionId),
       }),
     })
 
     if (res.ok) {
       const saved = await res.json().catch(() => ({}))
-      if (Number.isInteger(saved.revision)) window.__cloudSceneRevision = saved.revision
+      setCloudSceneRevision(sessionId, saved.revision)
       _automaticCloudSyncBlocked.delete(sessionId)
       recordDbSave()
       useUIStore.getState().setSaveStatus('cloud')
@@ -372,7 +383,7 @@ export default function useAutoSave() {
         const res = await fetch(`${WORKER_URL}/api/scenes/load?sessionId=${sessionId}`)
         if (!res.ok || cancelled) return { status: 'unavailable' }
         const data = await res.json()
-        if (Number.isInteger(data.revision)) window.__cloudSceneRevision = data.revision
+        setCloudSceneRevision(sessionId, data.revision)
         if (data.missing || !data.encryptedData) {
           _automaticCloudSyncBlocked.add(sessionId)
           return { status: 'missing', metadata: data }
@@ -684,7 +695,7 @@ export default function useAutoSave() {
 
         if (res.ok) {
           const saved = await res.json().catch(() => ({}))
-          if (Number.isInteger(saved.revision)) window.__cloudSceneRevision = saved.revision
+          setCloudSceneRevision(sessionId, saved.revision)
           useUIStore.getState().setSaveStatus('cloud')
           useUIStore.getState().setSessionEncryptionKey?.(key, sessionId)
           console.log('[AutoSave] New workspace saved to cloud')
@@ -722,15 +733,16 @@ export default function useAutoSave() {
         const data = await response.json()
         const revision = Number(data.revision)
         if (!Number.isInteger(revision)) return
-        if (!Number.isInteger(window.__cloudSceneRevision)) {
-          window.__cloudSceneRevision = revision
+        const localRevision = getCloudSceneRevision(sessionId)
+        if (!Number.isInteger(localRevision)) {
+          setCloudSceneRevision(sessionId, revision)
           return
         }
-        if (revision <= window.__cloudSceneRevision) return
+        if (revision <= localRevision) return
         if (useUIStore.getState().saveStatus !== 'cloud') {
           if (warnedRevision !== revision) {
             warnedRevision = revision
-            window.__remoteSceneConflict = { currentRevision: revision, localRevision: window.__cloudSceneRevision }
+            window.__remoteSceneConflict = { currentRevision: revision, localRevision }
             window.dispatchEvent(new CustomEvent('lix-remote-scene-conflict', { detail: window.__remoteSceneConflict }))
             showRemoteSceneToast('A remote edit is waiting — reload to avoid overwriting it')
           }
@@ -751,7 +763,7 @@ export default function useAutoSave() {
         const localKey = getLocalSaveKey()
         if (localKey) writeLocalScene(localKey, sceneData)
         if (scenePayload.workspaceName) useUIStore.getState().setWorkspaceName(scenePayload.workspaceName)
-        window.__cloudSceneRevision = revision
+        setCloudSceneRevision(sessionId, revision)
         useUIStore.getState().setSaveStatus('cloud')
         showRemoteSceneToast('MCP agent updated the canvas')
         window.dispatchEvent(new CustomEvent('lix-agent-scene-applied', { detail: { revision } }))
