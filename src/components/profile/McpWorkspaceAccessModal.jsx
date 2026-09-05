@@ -1,6 +1,13 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import useAuthStore from '@/store/useAuthStore'
+
+function authenticatedHeaders(sessionToken, headers = {}) {
+  return sessionToken
+    ? { ...headers, Authorization: `Bearer ${sessionToken}` }
+    : headers
+}
 
 export default function McpWorkspaceAccessModal({ workspace, onClose }) {
   const [grants, setGrants] = useState([])
@@ -9,6 +16,7 @@ export default function McpWorkspaceAccessModal({ workspace, onClose }) {
   const [error, setError] = useState('')
   const [issued, setIssued] = useState(null)
   const [confirmGrantId, setConfirmGrantId] = useState(null)
+  const sessionToken = useAuthStore((state) => state.sessionToken)
   const sessionId = workspace?.session_id
   const encryptionKey = useMemo(() => {
     if (typeof window === 'undefined' || !sessionId) return ''
@@ -17,15 +25,22 @@ export default function McpWorkspaceAccessModal({ workspace, onClose }) {
 
   useEffect(() => {
     if (!sessionId) return
-    fetch(`/api/mcp/grants?sessionId=${encodeURIComponent(sessionId)}`)
+    const controller = new AbortController()
+    setLoading(true)
+    setError('')
+    fetch(`/api/mcp/grants?sessionId=${encodeURIComponent(sessionId)}`, {
+      headers: authenticatedHeaders(sessionToken),
+      signal: controller.signal,
+    })
       .then(async (response) => {
         const body = await response.json().catch(() => ({}))
         if (!response.ok) throw new Error(body.error || 'Could not load agent access')
         setGrants(body.grants || [])
       })
-      .catch((failure) => setError(failure.message))
-      .finally(() => setLoading(false))
-  }, [sessionId])
+      .catch((failure) => { if (failure.name !== 'AbortError') setError(failure.message) })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    return () => controller.abort()
+  }, [sessionId, sessionToken])
 
   useEffect(() => {
     const close = (event) => { if (event.key === 'Escape' && !busy) onClose() }
@@ -42,7 +57,7 @@ export default function McpWorkspaceAccessModal({ workspace, onClose }) {
     try {
       const response = await fetch('/api/mcp/grants', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authenticatedHeaders(sessionToken, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({ sessionId, label: 'Local MCP', permission: 'edit', expiresInDays: 30 }),
       })
       const body = await response.json().catch(() => ({}))
@@ -70,7 +85,7 @@ export default function McpWorkspaceAccessModal({ workspace, onClose }) {
     }
     setBusy(true); setError('')
     try {
-      const response = await fetch('/api/mcp/grants', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ grantId }) })
+      const response = await fetch('/api/mcp/grants', { method: 'DELETE', headers: authenticatedHeaders(sessionToken, { 'Content-Type': 'application/json' }), body: JSON.stringify({ grantId }) })
       const body = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(body.error || 'Could not revoke access')
       setGrants((current) => current.map((grant) => grant.id === grantId ? { ...grant, revokedAt: new Date().toISOString() } : grant))
