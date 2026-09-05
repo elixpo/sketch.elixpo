@@ -14,6 +14,23 @@ const CLIENT_CONFIG = `{
   }
 }`
 
+const REMOTE_CONFIG = `{
+  "mcpServers": {
+    "lixsketch": {
+      "command": "npx",
+      "args": [
+        "-y", "@elixpo/lixsketch",
+        "--remote", "https://sketch.elixpo.com",
+        "--workspace", "lx-..."
+      ],
+      "env": {
+        "LIXSKETCH_AGENT_TOKEN": "lixmcp_...",
+        "LIXSKETCH_ENCRYPTION_KEY": "workspace-key"
+      }
+    }
+  }
+}`
+
 const PATCH_EXAMPLE = `{
   "expectedRevision": 0,
   "dryRun": true,
@@ -52,6 +69,7 @@ const TOOLS = [
   ['canvas_validate', 'Check scene format, geometry, unique IDs, and package limits.'],
   ['canvas_preview', 'Render a lightweight SVG preview before or after a change.'],
   ['canvas_new', 'Replace the scene with a blank canvas after explicit confirmation.'],
+  ['lixscript_apply', 'Compile LixScript into the validated atomic patch pipeline.'],
   ['templates_search', 'Search public workspace and component templates.'],
   ['template_insert', 'Insert a published template with remapped shape and relationship IDs.'],
 ]
@@ -100,11 +118,13 @@ export default function McpDocsPage() {
             {[
               ['overview', 'Overview'],
               ['setup', 'Client setup'],
+              ['remote', 'Remote workspace'],
               ['tools', 'Tools'],
               ['workflow', 'Safe workflow'],
               ['templates', 'Templates'],
               ['embedding', 'Package API'],
               ['limits', 'Limits'],
+              ['deployment', 'Deployment'],
             ].map(([id, label]) => (
               <a key={id} href={`#${id}`} className="block rounded-lg px-3 py-2 text-text-muted hover:bg-surface-hover hover:text-text-primary">{label}</a>
             ))}
@@ -122,7 +142,7 @@ export default function McpDocsPage() {
               The LixSketch package includes a local MCP server that lets compatible tools inspect and edit structured canvas scenes, validate changes, render previews, and reuse published templates.
             </p>
             <div className="mt-5 rounded-xl border border-accent/20 bg-accent/5 p-4 text-sm leading-6 text-text-muted">
-              MCP edits an atomic local scene file. LixScript remains a separate, coming-soon interface and is not required to use the MCP server.
+              MCP can edit an atomic local scene file or an explicitly authorized encrypted cloud workspace. The workspace UI for LixScript remains separate; MCP exposes LixScript as an optional batch-input tool.
             </div>
           </section>
 
@@ -130,6 +150,17 @@ export default function McpDocsPage() {
             <p className="mb-4">Add the server to a client that supports local stdio MCP servers. Use an absolute scene path so the same canvas is opened on every launch.</p>
             <CodeBlock>{CLIENT_CONFIG}</CodeBlock>
             <p className="mt-4">The equivalent terminal command is <code className="font-[lixCode] text-accent">npx @elixpo/lixsketch --scene ./architecture.lixjson</code>. JSON-RPC uses stdout; status messages use stderr.</p>
+          </DocSection>
+
+          <DocSection id="remote" title="Remote encrypted workspace">
+            <ol className="mb-4 list-decimal space-y-2 pl-5">
+              <li>Sign in and open <Link href="/profile?tab=workspaces" className="text-accent hover:underline">Profile → Workspaces</Link>.</li>
+              <li>Open the plug action for a workspace and create 30-day edit access.</li>
+              <li>Copy the generated client configuration. The grant token is shown once.</li>
+              <li>Revoke the client from the same panel whenever it is no longer needed.</li>
+            </ol>
+            <CodeBlock>{REMOTE_CONFIG}</CodeBlock>
+            <p className="mt-4">The grant is scoped to one workspace. LixSketch stores only a hash of the token. The AES key remains in the browser and local MCP environment, so the server persists and relays ciphertext without being able to read the canvas.</p>
           </DocSection>
 
           <DocSection id="tools" title="Available tools">
@@ -159,6 +190,7 @@ export default function McpDocsPage() {
             </ol>
             <CodeBlock>{PATCH_EXAMPLE}</CodeBlock>
             <p className="mt-4">A patch is stored in full or not at all. A stale revision returns a conflict instead of overwriting a newer edit.</p>
+            <p className="mt-3"><code className="font-[lixCode] text-accent">lixscript_apply</code> follows this exact workflow: source is compiled into structured operations, validated, previewable through a dry run, and committed atomically.</p>
           </DocSection>
 
           <DocSection id="templates" title="Published templates">
@@ -180,6 +212,15 @@ export default function McpDocsPage() {
               <li>Maximum 5,000 shapes per scene and 500 operations per patch.</li>
               <li>Local scene files are capped at 20 MB, requests at 10 MB, and SVG previews at 5 MB.</li>
               <li><code className="font-[lixCode] text-accent">canvas_new</code> requires explicit confirmation because it replaces the current scene.</li>
+            </ul>
+          </DocSection>
+
+          <DocSection id="deployment" title="Deployment configuration">
+            <ul className="space-y-2">
+              <li>Apply D1 migration <code className="font-[lixCode] text-accent">0010_mcp_workspace_grants.sql</code> before deploying the routes.</li>
+              <li>Set the same high-entropy <code className="font-[lixCode] text-accent">MCP_RELAY_SECRET</code> on the Pages and collaboration Worker deployments.</li>
+              <li>Set <code className="font-[lixCode] text-accent">MCP_RELAY_URL</code> on Pages to the collaboration Worker origin.</li>
+              <li>Do not expose either deployment value through a <code className="font-[lixCode] text-accent">NEXT_PUBLIC_</code> variable.</li>
             </ul>
           </DocSection>
 
