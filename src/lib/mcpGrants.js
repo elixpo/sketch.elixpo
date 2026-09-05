@@ -25,6 +25,25 @@ export function readBearerToken(request) {
   return authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : ''
 }
 
+export function normalizeMcpGrantScopes(scopes, legacyPermission) {
+  if (scopes === undefined) {
+    const permission = legacyPermission === 'read' ? 'read' : 'edit'
+    return {
+      permission,
+      scopes: permission === 'edit' ? ['canvas:read', 'canvas:write'] : ['canvas:read'],
+    }
+  }
+  if (!Array.isArray(scopes)) throw new Error('MCP scopes must be an array')
+  const normalized = [...new Set(scopes.map((scope) => String(scope)))]
+  const invalidScope = normalized.find((scope) => !['canvas:read', 'canvas:write'].includes(scope))
+  if (invalidScope) throw new Error(`Unsupported MCP scope: ${invalidScope}`)
+  if (!normalized.includes('canvas:read')) throw new Error('canvas:read is required')
+  return {
+    permission: normalized.includes('canvas:write') ? 'edit' : 'read',
+    scopes: normalized.includes('canvas:write') ? ['canvas:read', 'canvas:write'] : ['canvas:read'],
+  }
+}
+
 export async function authorizeMcpWorkspace(DB, request, sessionId, requiredPermission = 'read') {
   const tokenHash = await hashMcpGrantToken(readBearerToken(request))
   if (!tokenHash) return null
@@ -44,11 +63,13 @@ export async function authorizeMcpWorkspace(DB, request, sessionId, requiredPerm
 }
 
 export function sanitizeGrant(grant) {
+  const { permission, scopes } = normalizeMcpGrantScopes(undefined, grant.permission)
   return {
     id: grant.id,
     sessionId: grant.session_id,
     label: grant.label,
-    permission: grant.permission,
+    permission,
+    scopes,
     createdAt: grant.created_at,
     expiresAt: grant.expires_at,
     lastUsedAt: grant.last_used_at || null,

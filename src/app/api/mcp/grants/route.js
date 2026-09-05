@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getCloudflareBindings } from '@/lib/cloudflare'
 import { getAuthenticatedUser } from '@/lib/serverAuth'
-import { createMcpGrantToken, hashMcpGrantToken, sanitizeGrant } from '@/lib/mcpGrants'
+import { createMcpGrantToken, hashMcpGrantToken, normalizeMcpGrantScopes, sanitizeGrant } from '@/lib/mcpGrants'
 
 export const runtime = 'edge'
 
@@ -24,6 +24,7 @@ export async function GET(request) {
     `SELECT g.*, s.session_id FROM mcp_workspace_grants g
      JOIN scenes s ON s.id = g.scene_id
      WHERE g.user_id = ? AND s.session_id = ?
+       AND g.revoked_at IS NULL AND g.expires_at > datetime('now')
      ORDER BY g.created_at DESC`
   ).bind(user.id, sessionId).all()
   return NextResponse.json({ grants: (grants.results || []).map(sanitizeGrant) }, { headers: { 'Cache-Control': 'no-store' } })
@@ -36,7 +37,12 @@ export async function POST(request) {
   if (!cloudflare?.DB) return unavailable()
   const body = await request.json().catch(() => ({}))
   const sessionId = String(body.sessionId || '')
-  const permission = body.permission === 'read' ? 'read' : 'edit'
+  let permission
+  try {
+    permission = normalizeMcpGrantScopes(body.scopes, body.permission).permission
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 })
+  }
   const label = String(body.label || 'MCP client').trim().slice(0, 48) || 'MCP client'
   const expiresInDays = Math.max(1, Math.min(90, Number(body.expiresInDays) || 30))
   const scene = await cloudflare.DB.prepare(

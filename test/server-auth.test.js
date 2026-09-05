@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { getAuthenticatedUser } from '../src/lib/serverAuth.js'
+import { normalizeMcpGrantScopes, sanitizeGrant } from '../src/lib/mcpGrants.js'
 
 function requestWith({ bearer, cookie } = {}) {
   return {
@@ -47,4 +48,13 @@ test('server auth accepts the current bearer token and falls back to its cookie'
   } finally {
     globalThis.fetch = originalFetch
   }
+})
+
+test('MCP grants expose the effective canvas scopes', () => {
+  assert.deepEqual(sanitizeGrant({ id: 'read', permission: 'read' }).scopes, ['canvas:read'])
+  assert.deepEqual(sanitizeGrant({ id: 'edit', permission: 'edit' }).scopes, ['canvas:read', 'canvas:write'])
+  assert.equal(normalizeMcpGrantScopes(['canvas:read'], 'edit').permission, 'read')
+  assert.equal(normalizeMcpGrantScopes(['canvas:read', 'canvas:write'], 'read').permission, 'edit')
+  assert.throws(() => normalizeMcpGrantScopes([], 'edit'), /canvas:read is required/)
+  assert.throws(() => normalizeMcpGrantScopes(['canvas:read', 'admin'], 'read'), /Unsupported MCP scope/)
 })
