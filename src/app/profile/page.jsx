@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, useInView } from 'framer-motion'
 import Link from 'next/link'
@@ -187,6 +187,7 @@ function WorkspaceCard({ workspace, index, onDelete, onMcpAccess }) {
   const accessLabel = workspace.permission === 'edit'
     ? 'Editable link'
     : workspace.permission === 'view' ? 'View link' : 'Private'
+  const hasActiveMcp = Number(workspace.active_mcp_grants || 0) > 0
 
   const handleDelete = async () => {
     if (!confirmDelete) {
@@ -210,8 +211,9 @@ function WorkspaceCard({ workspace, index, onDelete, onMcpAccess }) {
       className="group rounded-xl border border-white/[0.08] bg-[#141120]/80 p-3 transition-colors hover:border-[#8B88E8]/35 hover:bg-[#181426]"
     >
       <div className="flex items-start gap-2.5">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#8B88E8]/12 text-[#A99CF1]">
+        <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#8B88E8]/12 text-[#A99CF1]">
           <i className="bx bx-shape-square text-base" />
+          {hasActiveMcp && <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-[#141120] bg-[#54D6A0] text-[#141120]" title="Remote MCP active"><i className="bx bx-plug text-[9px]" /></span>}
         </span>
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-sm font-medium text-text-primary" title={workspace.workspace_name || 'Untitled'}>
@@ -223,9 +225,10 @@ function WorkspaceCard({ workspace, index, onDelete, onMcpAccess }) {
             <span>{accessLabel}</span>
           </p>
         </div>
-        <span className="shrink-0 rounded-full bg-green-500/10 px-1.5 py-0.5 text-[8px] uppercase tracking-wide text-green-400" title="End-to-end encrypted">
-          E2E
-        </span>
+        <div className="flex shrink-0 items-center gap-1">
+          {hasActiveMcp && <span className="inline-flex items-center gap-1 rounded-full border border-[#54D6A0]/20 bg-[#54D6A0]/10 px-1.5 py-0.5 text-[8px] uppercase tracking-wide text-[#70DFB3]" title={`${workspace.active_mcp_grants} active Remote MCP client${Number(workspace.active_mcp_grants) === 1 ? '' : 's'}`}><i className="bx bx-plug text-[9px]" />MCP</span>}
+          <span className="rounded-full bg-green-500/10 px-1.5 py-0.5 text-[8px] uppercase tracking-wide text-green-400" title="End-to-end encrypted">E2E</span>
+        </div>
       </div>
 
       {workspace.template_mode === 'fork' && workspace.template_slug && (
@@ -312,6 +315,14 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('personal')
   const [mcpWorkspace, setMcpWorkspace] = useState(null)
+
+  const handleMcpGrantCountChange = useCallback((sessionId, count) => {
+    setWorkspaces((current) => current.map((workspace) => (
+      workspace.session_id === sessionId
+        ? { ...workspace, active_mcp_grants: count }
+        : workspace
+    )))
+  }, [])
 
   const headerRef = useRef(null)
   const headerInView = useInView(headerRef, { once: true })
@@ -810,7 +821,7 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
-      {mcpWorkspace && <McpWorkspaceAccessModal workspace={mcpWorkspace} onClose={() => setMcpWorkspace(null)} />}
+      {mcpWorkspace && <McpWorkspaceAccessModal workspace={mcpWorkspace} onClose={() => setMcpWorkspace(null)} onGrantCountChange={handleMcpGrantCountChange} />}
     </div>
   )
 }

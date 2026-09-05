@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import useAuthStore from '@/store/useAuthStore'
 import { showToast } from '@/utils/toast'
-import { codexConfigFromMcpJson, createCodexTomlConfig, createMcpJsonConfig } from '@/lib/mcpClientConfig'
+import { MCP_CONNECTION_TEST_PROMPT, codexConfigFromMcpJson, createCodexTomlConfig, createMcpJsonConfig } from '@/lib/mcpClientConfig'
 
 function authenticatedHeaders(sessionToken, headers = {}) {
   return sessionToken ? { ...headers, Authorization: `Bearer ${sessionToken}` } : headers
@@ -50,7 +50,7 @@ function RevokeAccessDialog({ grant, busy, onCancel, onConfirm }) {
   )
 }
 
-export default function McpWorkspaceAccessModal({ workspace, onClose }) {
+export default function McpWorkspaceAccessModal({ workspace, onClose, onGrantCountChange }) {
   const [grants, setGrants] = useState([])
   const [savedConfigs, setSavedConfigs] = useState({})
   const [loading, setLoading] = useState(true)
@@ -58,6 +58,7 @@ export default function McpWorkspaceAccessModal({ workspace, onClose }) {
   const [error, setError] = useState('')
   const [visibleGrantId, setVisibleGrantId] = useState(null)
   const [copiedGrantId, setCopiedGrantId] = useState(null)
+  const [testPromptCopied, setTestPromptCopied] = useState(false)
   const [configFormat, setConfigFormat] = useState('json')
   const [revokeTarget, setRevokeTarget] = useState(null)
   const [label, setLabel] = useState('Local MCP')
@@ -69,6 +70,13 @@ export default function McpWorkspaceAccessModal({ workspace, onClose }) {
     if (typeof window === 'undefined' || !sessionId) return ''
     return localStorage.getItem(`lixsketch-enc-key-${sessionId}`) || ''
   }, [sessionId])
+
+  const notifyGrantCount = useCallback((count) => {
+    onGrantCountChange?.(sessionId, count)
+    window.dispatchEvent(new CustomEvent('lixsketch:mcp-grants-changed', {
+      detail: { sessionId, count },
+    }))
+  }, [onGrantCountChange, sessionId])
 
   useEffect(() => {
     setSavedConfigs(readSavedConfigs(sessionId))
@@ -89,6 +97,7 @@ export default function McpWorkspaceAccessModal({ workspace, onClose }) {
         if (!response.ok) throw new Error(body.error || 'Could not load agent access')
         const activeGrants = body.grants || []
         setGrants(activeGrants)
+        notifyGrantCount(activeGrants.length)
         setSavedConfigs((current) => {
           const activeIds = new Set(activeGrants.map((grant) => grant.id))
           const next = Object.fromEntries(Object.entries(current).filter(([grantId]) => activeIds.has(grantId)))
@@ -99,7 +108,7 @@ export default function McpWorkspaceAccessModal({ workspace, onClose }) {
       .catch((failure) => { if (failure.name !== 'AbortError') setError(failure.message) })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
-  }, [sessionId, sessionToken])
+  }, [notifyGrantCount, sessionId, sessionToken])
 
   useEffect(() => {
     const close = (event) => {
@@ -141,6 +150,7 @@ export default function McpWorkspaceAccessModal({ workspace, onClose }) {
       setSavedConfigs(nextConfigs)
       setVisibleGrantId(body.grant.id)
       setGrants((current) => [body.grant, ...current])
+      notifyGrantCount(grants.length + 1)
       showToast('Remote MCP access created', { tone: 'success', duration: 2200 })
     } catch (failure) {
       setError(failure.message)
@@ -167,6 +177,7 @@ export default function McpWorkspaceAccessModal({ workspace, onClose }) {
       writeSavedConfigs(sessionId, nextConfigs)
       setSavedConfigs(nextConfigs)
       setGrants((current) => current.filter((grant) => grant.id !== grantId))
+      notifyGrantCount(Math.max(0, grants.length - 1))
       if (visibleGrantId === grantId) setVisibleGrantId(null)
       setRevokeTarget(null)
       showToast('Remote MCP access revoked', { tone: 'success', duration: 2200 })
@@ -202,6 +213,17 @@ export default function McpWorkspaceAccessModal({ workspace, onClose }) {
     }
   }
 
+  const copyTestPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(MCP_CONNECTION_TEST_PROMPT)
+      setTestPromptCopied(true)
+      showToast('Workspace test prompt copied', { tone: 'success', duration: 2000 })
+      setTimeout(() => setTestPromptCopied(false), 2200)
+    } catch {
+      setError('Could not copy the test prompt. Open the MCP guide to copy it manually.')
+    }
+  }
+
   if (!workspace) return null
   const visibleConfig = visibleGrantId ? configFor(visibleGrantId) : null
 
@@ -213,12 +235,12 @@ export default function McpWorkspaceAccessModal({ workspace, onClose }) {
           <button type="button" onClick={onClose} disabled={busy} className="cursor-pointer rounded-lg p-2 text-text-dim hover:bg-white/5 hover:text-text-primary"><i className="bx bx-x text-xl" /></button>
         </div>
 
-        <div className="mt-5 rounded-xl border border-[#8B88E8]/20 bg-[#8B88E8]/5 p-4 text-xs leading-5 text-text-muted">Each token is limited to this workspace. Recoverable configurations are stored only in this browser; the server stores a token hash and never receives the E2E key.</div>
+        <div className="mt-5 flex items-start gap-3 rounded-xl border border-[#8B88E8]/20 bg-[#8B88E8]/5 p-3.5 text-xs leading-5 text-text-muted"><span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#8B88E8]/10 text-[#B6ACF4]"><i className="bx bx-shield-quarter text-lg" /></span><div><p className="text-text-secondary">Private, workspace-scoped access</p><p className="mt-0.5 text-[10px] leading-5 text-text-dim">Configurations stay in this browser. The server stores a token hash and never receives your workspace E2E key.</p></div></div>
         {!encryptionKey && <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/5 p-3 text-xs text-amber-300">This browser does not have the workspace encryption key. Open the canvas once, then return here.</div>}
         {error && <div className="mt-3 rounded-xl border border-red-500/25 bg-red-500/5 p-3 text-xs text-red-300">{error}</div>}
 
-        <div className="mt-5 grid items-start gap-4 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
-        <section className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-4">
+        <div className="mt-4 grid items-stretch gap-4 lg:grid-cols-2">
+        <section className="flex h-full flex-col rounded-xl border border-white/[0.07] bg-white/[0.025] p-4">
           <div><p className="text-sm text-text-primary">New client access</p><p className="mt-1 text-[10px] text-text-dim">Name the client, choose its scopes, and set an expiry.</p></div>
           <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto]">
             <label className="text-[10px] text-text-dim">Client name <span className="text-red-300">*</span><input value={label} maxLength={48} onChange={(event) => setLabel(event.target.value)} className="mt-1 block w-full rounded-lg border border-white/10 bg-black/15 px-3 py-2 text-xs text-text-primary outline-none focus:border-[#8B88E8]/60" placeholder="Desktop agent" /></label>
@@ -228,36 +250,41 @@ export default function McpWorkspaceAccessModal({ workspace, onClose }) {
             <label className="flex cursor-not-allowed items-start gap-2 rounded-lg border border-[#8B88E8]/20 bg-[#8B88E8]/5 p-2.5"><input type="checkbox" checked disabled className="mt-0.5 accent-[#8B88E8]" /><span><span className="block text-xs text-text-secondary">Read canvas</span><span className="text-[9px] text-text-dim">Required to inspect revisions and shapes</span></span></label>
             <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-[#8B88E8]/20 bg-[#8B88E8]/5 p-2.5"><input type="checkbox" checked={writeAccess} onChange={(event) => setWriteAccess(event.target.checked)} className="mt-0.5 accent-[#8B88E8]" /><span><span className="block text-xs text-text-secondary">Edit canvas</span><span className="text-[9px] text-text-dim">Apply patches and LixScript</span></span></label>
           </div>
-          <div className="mt-3 flex justify-end"><button type="button" onClick={createGrant} disabled={busy || !encryptionKey || !label.trim()} className="cursor-pointer rounded-lg bg-[#8B88E8] px-3 py-2 text-xs text-white hover:bg-[#9E91EE] disabled:cursor-not-allowed disabled:opacity-40"><i className="bx bx-plus mr-1" />Create access</button></div>
+          <div className="mt-auto flex items-end justify-between gap-3 pt-4"><p className="max-w-52 text-[9px] leading-4 text-text-dim">You can revoke a client instantly without deleting canvas content.</p><button type="button" onClick={createGrant} disabled={busy || !encryptionKey || !label.trim()} className="shrink-0 cursor-pointer rounded-lg bg-[#8B88E8] px-3 py-2 text-xs text-white hover:bg-[#9E91EE] disabled:cursor-not-allowed disabled:opacity-40"><i className="bx bx-plus mr-1" />Create access</button></div>
         </section>
 
-        <div className={`rounded-xl border p-4 ${visibleConfig ? 'border-green-500/25 bg-green-500/5' : 'border-[#8B88E8]/20 bg-[#8B88E8]/5'}`}>
+        <div className={`flex h-full min-w-0 flex-col rounded-xl border p-4 ${visibleConfig ? 'border-[#54D6A0]/25 bg-[#54D6A0]/[0.045]' : 'border-[#8B88E8]/20 bg-[#8B88E8]/5'}`}>
           {visibleConfig ? <>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div><p className="text-sm text-green-300">Configuration ready</p><p className="mt-1 text-[10px] text-text-dim">Choose your client format, then copy the entire block.</p></div>
-              <div className="flex items-center gap-2">
+            <div><p className="text-sm text-[#70DFB3]">Configuration ready</p><p className="mt-1 text-[10px] text-text-dim">Choose a client format and copy the complete block.</p></div>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex rounded-lg border border-white/10 bg-black/15 p-0.5">
                   <button type="button" onClick={() => { setConfigFormat('json'); setCopiedGrantId(null) }} className={`cursor-pointer rounded-md px-2.5 py-1.5 text-[10px] ${configFormat === 'json' ? 'bg-[#8B88E8]/25 text-[#d8c9f5]' : 'text-text-dim hover:text-text-secondary'}`}>MCP JSON</button>
                   <button type="button" onClick={() => { setConfigFormat('codex'); setCopiedGrantId(null) }} className={`cursor-pointer rounded-md px-2.5 py-1.5 text-[10px] ${configFormat === 'codex' ? 'bg-[#8B88E8]/25 text-[#d8c9f5]' : 'text-text-dim hover:text-text-secondary'}`}>Codex TOML</button>
                 </div>
                 <button type="button" onClick={() => copy(visibleGrantId)} className="cursor-pointer rounded-lg bg-[#8B88E8] px-3 py-2 text-xs text-white hover:bg-[#9E91EE]"><i className={`bx ${copiedGrantId === visibleGrantId ? 'bx-check' : 'bx-copy'} mr-1`} />{copiedGrantId === visibleGrantId ? 'Copied' : 'Copy config'}</button>
-              </div>
             </div>
-            <div className="mt-3 rounded-lg border border-white/[0.07] bg-black/20 px-3 py-2 text-[10px] leading-5 text-text-muted">
+            <div className="mt-3 rounded-lg border border-white/[0.07] bg-black/20 px-3 py-2 text-[9px] leading-4 text-text-muted">
               {configFormat === 'codex' ? <>Paste this entire block—including both <code className="font-[lixCode] text-[#d8c9f5]">[mcp_servers.lixsketch]</code> headings—into <code className="font-[lixCode] text-[#d8c9f5]">~/.codex/config.toml</code>.</> : <>Paste this complete JSON object into a client that accepts <code className="font-[lixCode] text-[#d8c9f5]">mcpServers</code> configuration.</>}
             </div>
-            <pre className="mt-3 max-h-72 overflow-auto rounded-lg bg-black/30 p-3 text-[10px] leading-5 text-[#d8c9f5]"><code>{visibleConfig}</code></pre>
-          </> : <div className="flex min-h-52 flex-col items-center justify-center px-5 text-center"><i className="bx bx-code-block text-3xl text-[#A99CF1]" /><p className="mt-3 text-sm text-text-secondary">Your copy-ready configuration appears here</p><p className="mt-2 max-w-sm text-[10px] leading-5 text-text-dim">Create access or open a saved configuration. Choose MCP JSON for Cursor and similar clients, or Codex TOML for direct use in Codex.</p></div>}
+            <pre className="mt-3 max-h-52 min-h-0 overflow-auto rounded-lg bg-black/30 p-3 text-[10px] leading-5 text-[#d8c9f5]"><code>{visibleConfig}</code></pre>
+          </> : <div className="flex min-h-56 flex-1 flex-col items-center justify-center px-5 text-center"><i className="bx bx-code-block text-3xl text-[#A99CF1]" /><p className="mt-3 text-sm text-text-secondary">Your copy-ready configuration appears here</p><p className="mt-2 max-w-sm text-[10px] leading-5 text-text-dim">Create access or open a saved configuration. Choose MCP JSON for Cursor and similar clients, or Codex TOML for direct use in Codex.</p></div>}
         </div>
         </div>
 
-        <div className="mt-5 border-b border-white/[0.07] pb-3"><p className="text-sm text-text-primary">Authorized clients</p><p className="text-[10px] text-text-dim">Only currently active grants are shown.</p></div>
-        <div className="mt-3 space-y-2">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#8B88E8]/20 bg-[#8B88E8]/[0.045] p-3.5">
+          <div className="flex min-w-0 items-start gap-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#8B88E8]/10 text-[#B6ACF4]"><i className="bx bx-test-tube text-lg" /></span><div><p className="text-xs text-text-secondary">Test the connection in your agent</p><p className="mt-0.5 text-[9px] leading-4 text-text-dim">No separate skill is required—the MCP server provides its workflow instructions. Restart your agent, then paste the verification prompt.</p></div></div>
+          <div className="flex shrink-0 items-center gap-2"><a href="/docs/mcp#test" target="_blank" rel="noreferrer" className="cursor-pointer rounded-lg border border-white/10 px-3 py-2 text-[10px] text-text-muted hover:bg-white/5 hover:text-text-primary"><i className="bx bx-book-open mr-1" />Guide</a><button type="button" onClick={copyTestPrompt} className="cursor-pointer rounded-lg bg-[#8B88E8] px-3 py-2 text-[10px] text-white hover:bg-[#9E91EE]"><i className={`bx ${testPromptCopied ? 'bx-check' : 'bx-copy'} mr-1`} />{testPromptCopied ? 'Copied' : 'Copy test prompt'}</button></div>
+        </div>
+
+        <section className="mt-4 rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
+        <div className="flex items-center justify-between gap-3 border-b border-white/[0.07] pb-3"><div><p className="text-sm text-text-primary">Authorized clients</p><p className="mt-0.5 text-[10px] text-text-dim">Only currently active grants are shown.</p></div><span className="rounded-full border border-white/[0.07] bg-black/15 px-2.5 py-1 text-[9px] text-text-dim">{grants.length} active</span></div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {loading ? <p className="py-5 text-center text-xs text-text-dim">Loading access…</p> : grants.length === 0 ? <p className="py-5 text-center text-xs text-text-dim">No clients are authorized for this workspace.</p> : grants.map((grant) => {
             const hasConfig = Boolean(savedConfigs[grant.id]?.config)
             return <div key={grant.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.07] bg-white/[0.025] p-3"><div className="min-w-0 flex-1"><p className="truncate text-xs text-text-secondary">{grant.label}</p><p className="mt-1 text-[9px] text-text-dim">{grant.scopes?.join(' + ') || grant.permission} · expires {new Date(grant.expiresAt).toLocaleDateString()} {grant.lastUsedAt ? `· used ${new Date(grant.lastUsedAt).toLocaleDateString()}` : ''}</p></div><div className="flex items-center gap-1.5">{hasConfig ? <button type="button" onClick={() => setVisibleGrantId((current) => current === grant.id ? null : grant.id)} className="cursor-pointer rounded-lg border border-[#8B88E8]/30 px-2.5 py-1.5 text-[10px] text-[#B6ACF4] hover:bg-[#8B88E8]/10"><i className="bx bx-code-alt mr-1" />{visibleGrantId === grant.id ? 'Hide config' : 'Show config'}</button> : <span className="px-1 text-[9px] text-text-dim" title="This grant was created before configs were saved on this browser">Config not saved</span>}<button type="button" onClick={() => setRevokeTarget(grant)} disabled={busy} className="cursor-pointer rounded-lg border border-red-500/25 px-2.5 py-1.5 text-[10px] text-red-300 hover:bg-red-500/10">Revoke</button></div></div>
           })}
         </div>
+        </section>
       </div>
       <RevokeAccessDialog grant={revokeTarget} busy={busy} onCancel={() => setRevokeTarget(null)} onConfirm={revoke} />
     </div>

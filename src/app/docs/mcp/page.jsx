@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { MCP_CONNECTION_TEST_PROMPT } from '@/lib/mcpClientConfig'
 
 const CLIENT_CONFIG = `{
   "mcpServers": {
@@ -159,6 +160,7 @@ export default function McpDocsPage() {
               ['overview', 'Overview'],
               ['quick-start', 'Quick start'],
               ['agents', 'Agent setup'],
+              ['test', 'Test connection'],
               ['setup', 'Local scene'],
               ['remote', 'Remote workspace'],
               ['tools', 'Tools'],
@@ -231,6 +233,12 @@ export default function McpDocsPage() {
               </div>
             </div>
             <div className="mt-6 rounded-xl border border-amber-400/20 bg-amber-400/5 p-4 text-xs leading-6 text-amber-100/75">Generated configurations contain workspace credentials. Keep personal config files out of source control, grant only necessary scopes, and revoke access from LixSketch when a client is no longer used.</div>
+          </DocSection>
+
+          <DocSection id="test" title="Test the workspace connection">
+            <p className="mb-4">Start a fresh session after adding the MCP server, then send this prompt. It verifies reading, decryption, dry-run validation, previewing, writing, and revision persistence without changing existing content.</p>
+            <CodeBlock>{MCP_CONNECTION_TEST_PROMPT}</CodeBlock>
+            <p className="mt-4">Keep the canvas open in another tab while testing. The lavender card should appear after the committed step. If only the first step works, recreate the grant with <strong className="font-normal text-text-secondary">Edit canvas</strong> enabled.</p>
           </DocSection>
 
           <DocSection id="setup" title="Work with a local scene file">
