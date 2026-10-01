@@ -274,18 +274,21 @@ export default function LandingNav() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const dropdownRef = useRef(null)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const initAuth = useAuthStore((state) => state.init)
   const stars = useGitHubStars(GH_REPO)
   const starsLabel = formatStars(stars)
   const { t } = useTranslation()
 
+  useEffect(() => { initAuth() }, [initAuth])
+
   useEffect(() => {
-    const handleOutsideClick = (e) => {
+    function handleOutsideClick(e) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setResourcesOpen(false)
       }
     }
-    document.addEventListener('click', handleOutsideClick)
-    return () => document.removeEventListener('click', handleOutsideClick)
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [])
 
   return (
