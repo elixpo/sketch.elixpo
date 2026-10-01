@@ -1,4 +1,4 @@
-# @lixsketch/engine
+# @elixpo/lixsketch
 
 Open-source SVG whiteboard engine with a hand-drawn aesthetic. The core drawing engine behind [LixSketch](https://sketch.elixpo.com).
 
@@ -7,7 +7,7 @@ Build your own whiteboard, diagramming tool, or collaborative canvas with a few 
 ## Install
 
 ```bash
-npm install @lixsketch/engine
+npm install @elixpo/lixsketch
 ```
 
 ## Quick Start
@@ -16,7 +16,7 @@ npm install @lixsketch/engine
 <svg id="my-canvas" xmlns="http://www.w3.org/2000/svg" width="100%" height="100vh"></svg>
 
 <script type="module">
-  import { createSketchEngine, TOOLS } from '@lixsketch/engine';
+  import { createSketchEngine, TOOLS } from '@elixpo/lixsketch';
 
   const svg = document.getElementById('my-canvas');
   svg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`);
@@ -106,7 +106,7 @@ The `onEvent` callback receives:
 ### Available Tools
 
 ```javascript
-import { TOOLS } from '@lixsketch/engine';
+import { TOOLS } from '@elixpo/lixsketch';
 
 TOOLS.SELECT      // Selection/move tool
 TOOLS.PAN         // Pan/hand tool
@@ -133,7 +133,7 @@ import {
   Rectangle, Circle, Arrow, Line,
   TextShape, CodeShape, ImageShape,
   IconShape, Frame, FreehandStroke
-} from '@lixsketch/engine';
+} from '@elixpo/lixsketch';
 ```
 
 ## Fonts
@@ -141,7 +141,7 @@ import {
 Optional hand-drawn fonts for the authentic LixSketch look:
 
 ```javascript
-import '@lixsketch/engine/fonts';
+import '@elixpo/lixsketch/fonts';
 ```
 
 ## File Format
@@ -158,6 +158,129 @@ The `.lixsketch` format is JSON:
 ```
 
 Files are fully interoperable between the web app, VS Code extension, and any custom integration.
+
+## MCP server
+
+The same package includes a local MCP server for structured canvas operations. It edits an atomic `.lixjson` file; open that file in LixSketch, or provide a custom scene store when embedding the server in another host.
+
+```json
+{
+  "mcpServers": {
+    "lixsketch": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@elixpo/lixsketch",
+        "--scene",
+        "/absolute/path/to/architecture.lixjson"
+      ]
+    }
+  }
+}
+```
+
+The CLI can also be started directly:
+
+```bash
+npx @elixpo/lixsketch --scene ./architecture.lixjson
+```
+
+### Remote encrypted workspace
+
+Signed-in workspace owners can create a scoped grant from **Profile → Workspaces → Remote MCP**. Copy the configuration when the grant is created; its token is shown once. Remote secrets are environment variables so they do not appear in the process argument list:
+
+```json
+{
+  "mcpServers": {
+    "lixsketch": {
+      "command": "npx",
+      "args": ["-y", "@elixpo/lixsketch", "--remote", "https://sketch.elixpo.com", "--workspace", "lx-..."],
+      "env": {
+        "LIXSKETCH_AGENT_TOKEN": "lixmcp_...",
+        "LIXSKETCH_ENCRYPTION_KEY": "..."
+      }
+    }
+  }
+}
+```
+
+The server authorizes the grant but never receives the encryption key. Decryption and encryption happen inside the local package process. Remote writes use conditional revisions, update an active collaboration room immediately, and are detected by an otherwise-open canvas through encrypted revision polling.
+
+Deployment requires migration `0010_mcp_workspace_grants.sql`, a shared `MCP_RELAY_SECRET` on both the Pages and collaboration Worker deployments, and `MCP_RELAY_URL` on Pages pointing to the collaboration Worker origin.
+
+The stdio channel is reserved for MCP JSON-RPC. Server status is written to stderr.
+
+Before configuring a client, verify the executable from the same terminal used to
+launch that client:
+
+```bash
+type -a codex
+node --version
+command -v npx
+npx -y @elixpo/lixsketch@latest --help
+```
+
+Node.js 20 or newer is required. If a desktop or sandboxed client cannot resolve
+`npx`, set its MCP `command` to the absolute path returned by `command -v npx`.
+The generated website configuration uses the portable `npx` command because a
+website cannot inspect local executable paths. When multiple Codex installations
+exist, use the first installation that shares the working Node.js environment.
+For Codex TOML configurations, set `startup_timeout_sec = 30` so the first package
+download has enough time to complete. `codex mcp list` confirms registration;
+restart Codex and use `/mcp` in a fresh session to confirm the handshake.
+
+### MCP tools
+
+| Tool | Purpose |
+|------|---------|
+| `canvas_get` | Read canvas summary, revision, and optional shapes |
+| `canvas_apply_patch` | Atomically add, update, translate, or delete shapes |
+| `canvas_validate` | Validate format, geometry, IDs, and limits |
+| `canvas_preview` | Produce a lightweight SVG preview |
+| `canvas_new` | Create a blank canvas after explicit confirmation |
+| `lixscript_apply` | Compile LixScript into a validated atomic scene patch |
+| `templates_search` | Search public marketplace templates |
+| `template_insert` | Insert a template with remapped shape and relationship IDs |
+
+Mutations accept `expectedRevision` for conflict detection. `canvas_apply_patch` and `template_insert` support `dryRun: true`. A single patch is either fully stored or not stored at all.
+`lixscript_apply` supports the same revision and dry-run controls; LixScript is a compact macro over the patch engine rather than a separate mutation path.
+
+Supported structured shape types are rectangle, circle, line, arrow, frame, freehand stroke, and text. Images and arbitrary SVG markup are intentionally excluded from direct MCP writes.
+
+### Programmatic server
+
+Use a memory store in tests, or implement the same asynchronous `read()` and `write(scene)` interface to connect another persistence layer:
+
+```javascript
+import {
+  createLixSketchMcpServer,
+  MemorySceneStore,
+  createEmptyScene,
+} from '@elixpo/lixsketch/mcp';
+
+const server = createLixSketchMcpServer({
+  store: new MemorySceneStore(createEmptyScene('Architecture')),
+});
+
+const result = await server.callTool('canvas_apply_patch', {
+  expectedRevision: 0,
+  operations: [
+    {
+      op: 'add',
+      shape: {
+        type: 'rectangle',
+        x: 120,
+        y: 80,
+        width: 220,
+        height: 100,
+        options: { stroke: '#a78bfa', fill: '#2f2442' },
+      },
+    },
+  ],
+});
+```
+
+The browser engine and hosted platform can provide their own store adapter. Node hosts can import `FileSceneStore` and `serveLixSketchStdio` from `@elixpo/lixsketch/mcp/node`; browser and Worker bundles should continue to use the runtime-neutral `@elixpo/lixsketch/mcp` entry point.
 
 ## Requirements
 
