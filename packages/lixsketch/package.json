@@ -1,11 +1,13 @@
 {
   "name": "@elixpo/lixsketch",
-  "version": "5.5.22",
+  "version": "5.6.5",
   "description": "Open-source SVG whiteboard engine + React canvas component with hand-drawn aesthetics — the core of LixSketch",
   "type": "module",
   "main": "src/index.js",
   "exports": {
     ".": "./src/index.js",
+    "./mcp": "./dist/mcp/index.js",
+    "./mcp/node": "./dist/mcp/node.js",
     "./react": {
       "import": "./dist/react/index.js",
       "default": "./dist/react/index.js"
@@ -14,6 +16,9 @@
     "./src/*": "./src/*",
     "./fonts": "./fonts/fonts.css",
     "./fonts/*": "./fonts/*"
+  },
+  "bin": {
+    "lixsketch-mcp": "./dist/mcp/stdio.js"
   },
   "sideEffects": [
     "**/*.css"
@@ -43,6 +48,9 @@
     "url": "https://github.com/elixpo"
   },
   "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "homepage": "https://sketch.elixpo.com",
   "repository": {
     "type": "git",
@@ -78,6 +86,7 @@
   },
   "scripts": {
     "build": "node build.mjs",
+    "test:mcp": "node --test test/mcp-*.test.js",
     "prepublishOnly": "npm run build"
   }
 }
