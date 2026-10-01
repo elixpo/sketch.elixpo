@@ -1,5 +1,10 @@
 # Implementation TODO
 
+- [x] Move Draw to shape, Paint bucket, Frame, and Laser into a right-opening More tools flyout while preserving global shortcuts.
+- [x] Add a client-only draw-to-shape tool with live dotted rectangle, ellipse, line, and arrow prediction.
+- [x] Preserve unrecognized draw-to-shape gestures as normal editable freehand strokes.
+- [x] Keep gesture recognition O(N) over a capped sample buffer with one requestAnimationFrame preview.
+- [x] Add an undoable paint bucket with existing fill colors and styles for closed rectangle and circle shapes.
 - [x] Consolidate Canvas and Document shortcuts under `Ctrl + /`.
 - [x] Remove the standalone Help and Shortcuts modals.
 - [x] Replace the profile name with a save-status border on the avatar.
@@ -113,3 +118,23 @@
 - [x] Add publisher controls to update, unpublish, and inspect public workspace templates.
 - [x] Warn publishers about public content and handle unavailable or private media before publishing.
 - [x] Organize workspace actions into Save, Export, Share, and Publish tabs with concise guidance for each workflow.
+- [x] Keep the grabbed text resize handle locked to the pointer across canvas zoom, pan, and rotation.
+- [x] Port the Blogs production CI deployment flow for the collaboration Worker and Cloudflare Pages.
+- [x] Cancel an active marquee before Ctrl/Cmd+A selects every canvas shape.
+- [x] Prioritize Space + primary-button dragging as temporary canvas panning.
+- [x] Inject the repository auth client ID secret into Actions Pages builds.
+- [x] Remove the redundant Integrations action from the Pollinations image-generation gate.
+- [x] Route the signed-in My Canvases navbar action directly to the profile Workspaces tab.
+- [x] Keep AI image generation running and preserve modal state while the generator is closed.
+- [x] Explain AI-generated canvas media when users hover its provenance badge.
+- [x] Scale AI provenance badges with images and collapse them to hoverable dots at small sizes.
+- [x] Clear successful AI image prompts and show live Flux and Klein costs in their model buttons.
+- [x] Clarify that Pollinations AI image generation has no extra LixSketch charge on the Free plan.
+- [x] Add a bounded freehand lasso for selecting shapes fully enclosed by a gesture.
+- [x] Add one-site web embed frames with HTTPS allowlisting and restore-time URL validation.
+- [x] Keep the last selected secondary tool visible on the More toolbar trigger.
+- [x] Add an unsupported-embed whitelist request action and structured GitHub issue form.
+- [x] Backlink the public template marketplace from canvas, view, and zen modes.
+- [x] Ship a structured MCP server, stdio CLI, atomic scene patches, previews, and marketplace imports in `@elixpo/lixsketch`.
+- [x] Publish the MCP setup, tools, safety workflow, templates, package API, and limits under `/docs/mcp`.
+- [x] Add scoped remote MCP workspace grants, encrypted live edits, revision conflicts, and LixScript batch application.
