@@ -785,7 +785,7 @@ class Arrow {
 
     addAnchors() {
         const anchorSize = 5 / currentZoom;
-        const anchorStrokeWidth = 2 / currentZoom;
+        const anchorStrokeWidth = 2;
 
         let anchorPositions = [this.startPoint, this.endPoint];
 

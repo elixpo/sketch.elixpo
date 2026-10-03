@@ -439,7 +439,7 @@ removeSelection() {
     this.anchors = [];
     
     const anchorSize = 10 / (currentZoom || 1);
-    const anchorStrokeWidth = 2 / (currentZoom || 1);
+    const anchorStrokeWidth = 2;
     
     // Start point anchor
     const startAnchor = document.createElementNS('http://www.w3.org/2000/svg', 'circle');

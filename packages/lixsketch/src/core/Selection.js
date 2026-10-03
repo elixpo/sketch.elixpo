@@ -491,7 +491,6 @@ class MultiSelection {
     }
 
     createOutline(x, y, width, height) {
-        const zoom = window.currentZoom || 1;
         const outlinePoints = [
             [x, y],
             [x + width, y],
@@ -501,11 +500,12 @@ class MultiSelection {
         ];
 
         this.outline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        this.outline.setAttribute('class', 'multi-selection-outline');
         this.outline.setAttribute('points', outlinePoints.map(p => p.join(',')).join(' '));
         this.outline.setAttribute('fill', 'none');
         this.outline.setAttribute('stroke', '#5B57D1');
-        this.outline.setAttribute('stroke-width', 2);
-        this.outline.setAttribute('stroke-dasharray', `${8 / zoom} ${4 / zoom}`);
+        this.outline.setAttribute('stroke-width', 1.5);
+        this.outline.setAttribute('stroke-dasharray', '4 2');
         this.outline.setAttribute('vector-effect', 'non-scaling-stroke');
         this.outline.setAttribute('style', 'pointer-events: none;');
         this.group.appendChild(this.outline);
@@ -513,7 +513,7 @@ class MultiSelection {
 
     createResizeAnchors(x, y, width, height) {
         const zoom = window.currentZoom || 1;
-        const anchorSize = 12 / zoom;
+        const anchorSize = 10 / zoom;
         const anchorPositions = [
             { x: x, y: y, index: 0 },
             { x: x + width, y: y, index: 1 },
@@ -574,7 +574,7 @@ class MultiSelection {
         this.rotationLine.setAttribute('y2', y);
         this.rotationLine.setAttribute('stroke', '#5B57D1');
         this.rotationLine.setAttribute('stroke-width', 1);
-        this.rotationLine.setAttribute('stroke-dasharray', `${3 / zoom} ${3 / zoom}`);
+        this.rotationLine.setAttribute('stroke-dasharray', '4 2');
         this.rotationLine.setAttribute('vector-effect', 'non-scaling-stroke');
         this.rotationLine.setAttribute('style', 'pointer-events: none;');
 
@@ -1052,10 +1052,12 @@ createRotatedControls(angleDiff = 0) {
             rect.setAttribute('width', b.width + 6);
             rect.setAttribute('height', b.height + 6);
             rect.setAttribute('fill', 'none');
+            rect.setAttribute('class', 'selection-sub-outline');
             rect.setAttribute('stroke', '#5B57D1');
             rect.setAttribute('stroke-width', 1);
             rect.setAttribute('stroke-opacity', 0.35);
-            rect.setAttribute('stroke-dasharray', '4 3');
+            rect.setAttribute('stroke-dasharray', '4 2');
+            rect.setAttribute('vector-effect', 'non-scaling-stroke');
             rect.setAttribute('rx', 3);
             rect.setAttribute('style', 'pointer-events: none;');
             this.group.appendChild(rect);

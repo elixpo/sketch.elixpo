@@ -798,7 +798,7 @@ startLabelEdit(labelElement) {
 
     addAnchors() {
     const anchorSize = 8 / currentZoom;
-    const anchorStrokeWidth = 2 / currentZoom;
+    const anchorStrokeWidth = 2;
 
     // Calculate anchor positions (corners + midpoints + rotation handle)
     const anchorPositions = [
@@ -824,6 +824,7 @@ startLabelEdit(labelElement) {
 
     // Create selection outline first (behind anchors)
     const outline = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    outline.setAttribute('class', 'selection-outline');
     outline.setAttribute('x', this.x);
     outline.setAttribute('y', this.y);
     outline.setAttribute('width', this.width);
@@ -858,6 +859,7 @@ startLabelEdit(labelElement) {
             anchor.setAttribute("stroke", "#5B57D1"); 
             anchor.setAttribute("stroke-width", anchorStrokeWidth);
             anchor.setAttribute("vector-effect", "non-scaling-stroke");
+            anchor.setAttribute("class", "rotate-anchor");
 
             // Add rotation line
             const rotationLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -894,6 +896,7 @@ startLabelEdit(labelElement) {
             anchor.setAttribute("stroke", "#5B57D1"); 
             anchor.setAttribute("stroke-width", anchorStrokeWidth);
             anchor.setAttribute("vector-effect", "non-scaling-stroke");
+            anchor.setAttribute("class", "anchor");
         }
 
         // Apply rotation to anchor if needed

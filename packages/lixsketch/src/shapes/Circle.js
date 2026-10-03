@@ -344,6 +344,7 @@ class Circle {
         const pointsAttr = outlinePoints.map(p => p.join(',')).join(' ');
         const outline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
         outline.setAttribute('points', pointsAttr);
+        outline.setAttribute('class', 'selection-outline');
         outline.setAttribute('fill', 'none');
         outline.setAttribute('stroke', '#5B57D1');
         outline.setAttribute('stroke-width', 1.5);
