@@ -24,6 +24,7 @@ interface UserInfo {
 }
 
 interface RoomState {
+  roomId?: string;
   ownerId: string | null;
   ownerIp: string | null;
   createdAt: string;
@@ -138,6 +139,9 @@ export class RoomDurableObject {
     const userId = authSession?.userId
       || url.searchParams.get('userId')
       || `guest-${crypto.randomUUID().slice(0, 8)}`;
+    const connectionId = url.searchParams.get('clientId') || crypto.randomUUID();
+    const suppliedInviteToken = url.searchParams.get('invite') || '';
+    const suppliedAdminToken = url.searchParams.get('adminToken') || '';
     const displayName = authSession?.displayName
       || decodeParam(url.searchParams.get('displayName') || '');
     const avatar = authSession?.avatar || url.searchParams.get('avatar') || '';
@@ -147,7 +151,7 @@ export class RoomDurableObject {
 
     // Get or initialize room
     const roomId = url.pathname.split('/room/')[1];
-    await this.ensureRoomState(roomId, authSession?.userId || null, clientIp, workspaceName);
+    const roomCreated = await this.ensureRoomState(roomId, userId, clientIp, workspaceName);
 
     // Check room status
     if (this.roomState!.status !== 'active') {
@@ -159,12 +163,31 @@ export class RoomDurableObject {
 
     // The room owner's plan controls total room occupancy (owner included).
     // Never trust a client-provided tier.
-    const maxUsers = this.roomState!.maxUsers || 1;
+    const maxUsers = Math.min(this.roomState!.maxUsers || 1, ABSOLUTE_MAX_USERS);
+
+    // A stable per-tab connection ID lets reconnects replace their stale
+    // socket instead of consuming another seat in the room.
+    for (const [existingWs, existingUser] of this.sessions) {
+      if (existingUser.connectionId === connectionId) {
+        try { existingWs.close(1000, 'reconnected'); } catch {}
+        this.handleDisconnect(existingWs, false);
+      }
+    }
+
+    const isAdmin = roomCreated
+      || (!!authSession && authSession.userId === this.roomState!.ownerId)
+      || (!authSession && !!suppliedAdminToken && suppliedAdminToken === this.roomState!.adminToken);
+    if (!isAdmin) {
+      if (!this.roomState!.sharingEnabled) {
+        return jsonError('ROOM_SHARING_DISABLED', 403);
+      }
+      if (!suppliedInviteToken || suppliedInviteToken !== this.roomState!.inviteToken) {
+        return jsonError('INVALID_INVITE', 403);
+      }
+    }
+
     if (this.sessions.size >= maxUsers) {
-      return new Response(JSON.stringify({ error: 'ROOM_FULL' }), {
-        status: 429,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('ROOM_FULL', 429);
     }
 
     // 1 room per user (guest or authenticated)
@@ -193,9 +216,12 @@ export class RoomDurableObject {
 
     const userInfo: UserInfo = {
       userId,
+      connectionId,
       displayName: displayName || `User ${this.sessions.size + 1}`,
       avatar,
       color,
+      role: isAdmin ? 'editor' : (this.roomState!.access?.[userId] || 'editor'),
+      isAdmin,
       joinedAt: new Date().toISOString(),
       lastActivity: new Date().toISOString(),
     };
@@ -208,7 +234,15 @@ export class RoomDurableObject {
     this.sendTo(server, {
       type: 'room-info',
       roomId,
+      connectionId,
       adminUserId: this.roomState!.ownerId,
+      isAdmin,
+      role: userInfo.role,
+      adminToken: isAdmin ? this.roomState!.adminToken : undefined,
+      inviteToken: isAdmin ? this.roomState!.inviteToken : undefined,
+      inviteVersion: this.roomState!.inviteVersion,
+      sharingEnabled: this.roomState!.sharingEnabled,
+      maxUsers,
       expiresAt: this.roomState!.expiresAt,
       yourColor: color,
       users: Array.from(this.sessions.values()),
@@ -218,9 +252,12 @@ export class RoomDurableObject {
     this.broadcast(server, {
       type: 'join',
       from: userId,
+      connectionId,
       displayName: userInfo.displayName,
       avatar: userInfo.avatar,
       color,
+      role: userInfo.role,
+      isAdmin,
       serverSeq: ++this.serverSeq,
     });
 
@@ -241,6 +278,10 @@ export class RoomDurableObject {
 
     switch (msg.type) {
       case 'op':
+        if (user.role !== 'editor') {
+          this.sendTo(ws, { type: 'error', code: 'READ_ONLY' });
+          break;
+        }
         if (typeof msg.payload !== 'string' || msg.payload.length > 900_000) {
           this.sendTo(ws, { type: 'error', code: 'INVALID_OPERATION' });
           break;
@@ -251,6 +292,7 @@ export class RoomDurableObject {
         this.broadcast(ws, {
           type: 'op',
           from: user.userId,
+          connectionId: user.connectionId,
           seq: msg.seq,
           serverSeq: ++this.serverSeq,
           payload: msg.payload,
@@ -258,9 +300,17 @@ export class RoomDurableObject {
         break;
 
       case 'presence':
+        if (!isValidCursor(msg.cursor)) break;
+        {
+          const now = Date.now();
+          const previous = this.lastPresenceAt.get(user.connectionId) || 0;
+          if (now - previous < PRESENCE_MIN_INTERVAL_MS) break;
+          this.lastPresenceAt.set(user.connectionId, now);
+        }
         this.broadcast(ws, {
           type: 'presence',
           from: user.userId,
+          connectionId: user.connectionId,
           cursor: msg.cursor,
           displayName: user.displayName,
           color: user.color,
@@ -273,7 +323,7 @@ export class RoomDurableObject {
           if (otherWs !== ws) {
             this.sendTo(otherWs, {
               type: 'sync-needed',
-              requestedBy: user.userId,
+              requestedBy: user.connectionId,
               lastServerSeq: msg.lastServerSeq || 0,
             });
             break;
@@ -288,7 +338,7 @@ export class RoomDurableObject {
         }
         // Relay full sync to the requesting user
         for (const [otherWs, otherUser] of this.sessions) {
-          if (otherUser.userId === msg.targetUserId) {
+          if (otherUser.connectionId === (msg.targetConnectionId || msg.targetUserId)) {
             this.sendTo(otherWs, {
               type: 'sync-response',
               serverSeq: this.serverSeq,
@@ -300,20 +350,85 @@ export class RoomDurableObject {
         break;
 
       case 'kick':
-        // Only the room admin can kick users
-        if (user.userId !== this.roomState?.ownerId) {
+        if (!user.isAdmin) {
           this.sendTo(ws, { type: 'error', code: 'NOT_AUTHORIZED' });
           break;
         }
-        // Find the target user's WebSocket
         for (const [targetWs, targetUser] of this.sessions) {
-          if (targetUser.userId === msg.userId) {
+          if (!targetUser.isAdmin && (targetUser.connectionId === msg.connectionId || targetUser.userId === msg.userId)) {
             this.sendTo(targetWs, { type: 'kicked', reason: 'Removed by admin' });
             try { targetWs.close(1000, 'kicked'); } catch {}
             this.handleDisconnect(targetWs);
             break;
           }
         }
+        break;
+
+      case 'access-update': {
+        if (!user.isAdmin) {
+          this.sendTo(ws, { type: 'error', code: 'NOT_AUTHORIZED' });
+          break;
+        }
+        const role: RoomRole = msg.role === 'viewer' ? 'viewer' : 'editor';
+        let targetUserId = typeof msg.userId === 'string' ? msg.userId : '';
+        for (const [targetWs, targetUser] of this.sessions) {
+          if (targetUser.isAdmin) continue;
+          if (targetUser.connectionId === msg.connectionId || (!!targetUserId && targetUser.userId === targetUserId)) {
+            targetUserId = targetUser.userId;
+            targetUser.role = role;
+            targetWs.serializeAttachment(targetUser);
+          }
+        }
+        if (!targetUserId) {
+          this.sendTo(ws, { type: 'error', code: 'USER_NOT_FOUND' });
+          break;
+        }
+        this.roomState!.access = { ...(this.roomState!.access || {}), [targetUserId]: role };
+        await this.persistRoomState();
+        this.broadcast(null, { type: 'access-updated', userId: targetUserId, role });
+        break;
+      }
+
+      case 'sharing-update': {
+        if (!user.isAdmin) {
+          this.sendTo(ws, { type: 'error', code: 'NOT_AUTHORIZED' });
+          break;
+        }
+        this.roomState!.sharingEnabled = msg.enabled !== false;
+        await this.persistRoomState();
+        this.broadcast(null, {
+          type: 'room-settings',
+          sharingEnabled: this.roomState!.sharingEnabled,
+          inviteVersion: this.roomState!.inviteVersion,
+        });
+        if (!this.roomState!.sharingEnabled) {
+          for (const [targetWs, targetUser] of Array.from(this.sessions)) {
+            if (targetUser.isAdmin) continue;
+            this.sendTo(targetWs, { type: 'sharing-disabled' });
+            try { targetWs.close(1000, 'sharing-disabled'); } catch {}
+            this.handleDisconnect(targetWs);
+          }
+        }
+        break;
+      }
+
+      case 'rotate-invite':
+        if (!user.isAdmin) {
+          this.sendTo(ws, { type: 'error', code: 'NOT_AUTHORIZED' });
+          break;
+        }
+        this.roomState!.inviteToken = createCapability();
+        this.roomState!.inviteVersion = (this.roomState!.inviteVersion || 1) + 1;
+        await this.persistRoomState();
+        this.sendTo(ws, {
+          type: 'invite-rotated',
+          inviteToken: this.roomState!.inviteToken,
+          inviteVersion: this.roomState!.inviteVersion,
+        });
+        this.broadcast(ws, {
+          type: 'invite-invalidated',
+          inviteVersion: this.roomState!.inviteVersion,
+        });
         break;
 
       case 'ping':
@@ -359,23 +474,33 @@ export class RoomDurableObject {
 
   // --- Private helpers ---
 
-  private async ensureRoomState(roomId: string, ownerId: string | null, ownerIp: string, workspaceName: string): Promise<void> {
-    if (this.roomState) return;
+  private async ensureRoomState(roomId: string, ownerId: string, ownerIp: string, workspaceName: string): Promise<boolean> {
+    if (this.roomState) return false;
     const stored = await this.state.storage.get<RoomState>('roomState');
     if (stored) {
       this.roomState = stored;
+      let changed = false;
       if (!stored.maxUsers) {
         const tier = await this.getOwnerTier(stored.ownerId);
         stored.tier = tier;
         stored.maxUsers = this.getCollaboratorLimit(tier);
-        await this.state.storage.put('roomState', stored);
+        changed = true;
       }
-      return;
+      if (!stored.inviteToken) { stored.inviteToken = createCapability(); changed = true; }
+      if (!stored.adminToken) { stored.adminToken = createCapability(); changed = true; }
+      if (!stored.inviteVersion) { stored.inviteVersion = 1; changed = true; }
+      if (stored.sharingEnabled === undefined) { stored.sharingEnabled = true; changed = true; }
+      if (!stored.access) { stored.access = {}; changed = true; }
+      if (!stored.roomId) { stored.roomId = roomId; changed = true; }
+      stored.maxUsers = Math.min(stored.maxUsers || 1, ABSOLUTE_MAX_USERS);
+      if (changed) await this.persistRoomState();
+      return false;
     }
     await this.initRoom(roomId, ownerId, ownerIp, workspaceName);
+    return true;
   }
 
-  private async initRoom(roomId: string, ownerId: string | null, ownerIp: string, workspaceName: string = 'Untitled'): Promise<void> {
+  private async initRoom(roomId: string, ownerId: string, ownerIp: string, workspaceName: string = 'Untitled'): Promise<void> {
     const ttlHours = parseInt(this.env.ROOM_TTL_HOURS || '3');
     const now = new Date();
     const expiresAt = new Date(now.getTime() + ttlHours * 3600 * 1000);
@@ -383,6 +508,7 @@ export class RoomDurableObject {
     const tier = await this.getOwnerTier(ownerId);
     const maxUsers = this.getCollaboratorLimit(tier);
     this.roomState = {
+      roomId,
       ownerId,
       ownerIp,
       createdAt: now.toISOString(),
@@ -390,6 +516,11 @@ export class RoomDurableObject {
       status: 'active',
       tier,
       maxUsers,
+      sharingEnabled: true,
+      inviteToken: createCapability(),
+      inviteVersion: 1,
+      adminToken: createCapability(),
+      access: {},
     };
     await this.state.storage.put('roomState', this.roomState);
 
@@ -414,7 +545,7 @@ export class RoomDurableObject {
   }
 
   private getCollaboratorLimit(tier: 'guest' | 'free' | 'pro'): number {
-    if (tier === 'pro') return 5;
+    if (tier === 'pro') return ABSOLUTE_MAX_USERS;
     if (tier === 'free') return 3;
     return 1;
   }
@@ -430,20 +561,24 @@ export class RoomDurableObject {
     }
   }
 
-  private handleDisconnect(ws: WebSocket): void {
-    const user = this.getUser(ws);
+  private handleDisconnect(ws: WebSocket, announce = true): void {
+    const user = this.sessions.get(ws);
     if (!user) return;
 
     // Recycle color
     this.availableColors.push(user.color);
     this.sessions.delete(ws);
+    this.lastPresenceAt.delete(user.connectionId);
 
     // Broadcast leave
-    this.broadcast(null, {
-      type: 'leave',
-      from: user.userId,
-      serverSeq: ++this.serverSeq,
-    });
+    if (announce) {
+      this.broadcast(null, {
+        type: 'leave',
+        from: user.userId,
+        connectionId: user.connectionId,
+        serverSeq: ++this.serverSeq,
+      });
+    }
 
     // If room is empty, we let it expire naturally via alarm
   }
@@ -462,6 +597,15 @@ export class RoomDurableObject {
       this.roomState.status = 'expired';
       await this.state.storage.put('roomState', this.roomState);
     }
+  }
+
+  private async persistRoomState(): Promise<void> {
+    if (!this.roomState) return;
+    await this.state.storage.put('roomState', this.roomState);
+    const ttlSeconds = Math.max(60, Math.floor((new Date(this.roomState.expiresAt).getTime() - Date.now()) / 1000));
+    const roomId = this.roomState.roomId;
+    if (!roomId) return;
+    await this.env.KV.put(`room:${roomId}:state`, JSON.stringify(this.roomState), { expirationTtl: ttlSeconds });
   }
 
   private getUser(ws: WebSocket): UserInfo | null {
@@ -499,6 +643,25 @@ function decodeParam(value: string): string {
   } catch {
     try { return decodeURIComponent(value); } catch { return value; }
   }
+}
+
+function createCapability(): string {
+  return `${crypto.randomUUID()}${crypto.randomUUID()}`.replaceAll('-', '');
+}
+
+function isValidCursor(cursor: unknown): cursor is { x: number; y: number } {
+  if (!cursor || typeof cursor !== 'object') return false;
+  const value = cursor as { x?: unknown; y?: unknown };
+  return typeof value.x === 'number' && Number.isFinite(value.x)
+    && typeof value.y === 'number' && Number.isFinite(value.y)
+    && Math.abs(value.x) < 10_000_000 && Math.abs(value.y) < 10_000_000;
+}
+
+function jsonError(error: string, status: number): Response {
+  return new Response(JSON.stringify({ error }), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
 function isAllowedOrigin(origin: string | null, env: Env): boolean {

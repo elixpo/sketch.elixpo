@@ -116,6 +116,35 @@ export function clearUndoHistory() {
     redoStack.length = 0;
 }
 
+// Collaboration scene loads rebuild shape instances. Keep this client's
+// history private, but point its actions at the newly materialized objects so
+// Ctrl+Z never mutates detached SVG nodes after a peer update.
+export function rebindUndoHistory(currentShapes = []) {
+    const shapeById = new Map(currentShapes
+        .filter(shape => shape?.shapeID)
+        .map(shape => [shape.shapeID, shape]));
+    const visited = new WeakSet();
+
+    const rebind = (value) => {
+        if (!value || typeof value !== 'object') return value;
+        if (value.shapeID) return shapeById.get(value.shapeID) || value;
+        if (visited.has(value)) return value;
+        visited.add(value);
+        if (Array.isArray(value)) {
+            for (let index = 0; index < value.length; index += 1) value[index] = rebind(value[index]);
+            return value;
+        }
+        for (const key of Object.keys(value)) {
+            const child = value[key];
+            if (child && typeof child === 'object') value[key] = rebind(child);
+        }
+        return value;
+    };
+
+    undoStack.forEach(rebind);
+    redoStack.forEach(rebind);
+}
+
 // Enhanced delete action to clean up attached arrows
 export function pushDeleteActionWithAttachments(shape) {
     let affectedArrows = [];
@@ -1648,6 +1677,7 @@ window.pushDeleteAction = pushDeleteAction;
 window.pushCanvasResetAction = pushCanvasResetAction;
 window.invalidateCanvasResetUndo = invalidateCanvasResetUndo;
 window.clearUndoHistory = clearUndoHistory;
+window.rebindUndoHistory = rebindUndoHistory;
 window.pushDeleteActionWithAttachments = pushDeleteActionWithAttachments;
 window.pushTransformAction = pushTransformAction;
 window.pushOptionsChangeAction = pushOptionsChangeAction;
