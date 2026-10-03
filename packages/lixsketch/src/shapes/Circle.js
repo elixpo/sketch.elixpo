@@ -1,6 +1,7 @@
 /* eslint-disable */
 import { registerRotationAnchor } from '../core/ScreenSpaceControls.js';
 import { canvasToLocal, localToCanvas } from '../core/CanvasSpace.js';
+import { resolveThemeLabelColor } from '../utils/themeColors.js';
 // Circle shape class - extracted from drawCircle.js
 // Depends on globals: svg, shapes, rough, currentShape, currentZoom, rc
 
@@ -48,7 +49,7 @@ class Circle {
         // Embedded label support
         this.label = options.label || '';
         this.labelElement = null;
-        this.labelColor = options.labelColor || '#e0e0e0';
+        this.labelColor = resolveThemeLabelColor(options.labelColor);
         this.labelFontSize = options.labelFontSize || 14;
         this._isEditingLabel = false;
         this._hitArea = null;

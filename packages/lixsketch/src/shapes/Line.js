@@ -2,6 +2,7 @@
 // Line shape class - extracted from lineTool.js
 // Depends on globals: svg, shapes, rough, currentShape, currentZoom
 import { updateAttachedArrows as updateArrowsForShape } from '../tools/arrowTool.js';
+import { resolveThemeLabelColor } from '../utils/themeColors.js';
 
 const rc = rough.svg(svg);
 // Issue #38 follow-up: read the default stroke from the active theme
@@ -37,7 +38,7 @@ class Line {
         // Embedded label support
         this.label = options.label || '';
         this.labelElement = null;
-        this.labelColor = options.labelColor || '#e0e0e0';
+        this.labelColor = resolveThemeLabelColor(options.labelColor);
         this.labelFontSize = options.labelFontSize || 12;
         this._isEditingLabel = false;
         this._hitArea = null;
