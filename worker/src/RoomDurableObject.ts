@@ -6,12 +6,19 @@ const CURSOR_COLORS = [
 ];
 
 const MAX_WORKSPACE_NAME_LENGTH = 20;
+const ABSOLUTE_MAX_USERS = 5;
+const PRESENCE_MIN_INTERVAL_MS = 30;
+
+type RoomRole = 'editor' | 'viewer';
 
 interface UserInfo {
   userId: string;
+  connectionId: string;
   displayName: string;
   avatar: string;
   color: string;
+  role: RoomRole;
+  isAdmin: boolean;
   joinedAt: string;
   lastActivity: string;
 }
@@ -24,6 +31,11 @@ interface RoomState {
   status: string;
   tier?: 'guest' | 'free' | 'pro';
   maxUsers?: number;
+  sharingEnabled?: boolean;
+  inviteToken?: string;
+  inviteVersion?: number;
+  adminToken?: string;
+  access?: Record<string, RoomRole>;
 }
 
 interface AuthSession {
@@ -40,6 +52,7 @@ export class RoomDurableObject {
   private roomState: RoomState | null = null;
   private lastActivityAt = Date.now();
   private availableColors: string[] = [...CURSOR_COLORS];
+  private lastPresenceAt: Map<string, number> = new Map();
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
