@@ -31,6 +31,11 @@ class Circle {
             strokeDasharray: "",
             ...options
         };
+        // RoughJS otherwise generates a different contour on every redraw.
+        // Keep a stable contour for later edits and the final drawing render.
+        if (!Number.isInteger(this.options.seed) || this.options.seed <= 0) {
+            this.options.seed = Math.floor(Math.random() * 0x7fffffff) + 1;
+        }
         this.element = null;
         this.isSelected = false;
         this.rotation = 0;
@@ -61,6 +66,9 @@ class Circle {
         this.shadeDirection = options.shadeDirection || 'bottom';
         this._shadeEllipse = null;
         this._shadeGradient = null;
+        this.isBeingDrawn = false;
+        this._drawingRenderFrame = null;
+        this._isLivePreviewElement = false;
 
         if(!this.group.parentNode) {
             svg.appendChild(this.group);
@@ -106,7 +114,27 @@ class Circle {
         const isInitialDraw = this.element === null;
         const sizeChanged = this.rx !== this._lastDrawn.rx || this.ry !== this._lastDrawn.ry;
         const optionsChanged = optionsString !== this._lastDrawn.options;
-        if (isInitialDraw || optionsChanged || sizeChanged) {
+        if (this.isBeingDrawn) {
+            if (!this._isLivePreviewElement) {
+                if (this.element && this.element.parentNode === this.group) {
+                    this.group.removeChild(this.element);
+                }
+                this.element = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+                this.element.setAttribute('class', 'circle-drawing-preview');
+                this.element.setAttribute('pointer-events', 'none');
+                this.group.appendChild(this.element);
+                this._isLivePreviewElement = true;
+            }
+
+            this.element.setAttribute('cx', 0);
+            this.element.setAttribute('cy', 0);
+            this.element.setAttribute('rx', this.rx);
+            this.element.setAttribute('ry', this.ry);
+            this.element.setAttribute('fill', this.options.fill || 'transparent');
+            this.element.setAttribute('stroke', this.options.stroke || '#fff');
+            this.element.setAttribute('stroke-width', this.options.strokeWidth || 2);
+            this.element.setAttribute('stroke-dasharray', this.options.strokeDasharray || '');
+        } else if (isInitialDraw || optionsChanged || sizeChanged || this._isLivePreviewElement) {
             if (this.element && this.element.parentNode === this.group) {
                 this.group.removeChild(this.element);
             }
@@ -114,6 +142,7 @@ class Circle {
             const roughEllipse = rc.ellipse(0, 0, this.rx * 2, this.ry * 2, this.options);
             this.element = roughEllipse;
             this.group.appendChild(roughEllipse);
+            this._isLivePreviewElement = false;
 
             this._lastDrawn.rx = this.rx;
             this._lastDrawn.ry = this.ry;
@@ -150,6 +179,31 @@ class Circle {
         if (!this.group.parentNode) {
             svg.appendChild(this.group);
         }
+    }
+
+    scheduleDrawingRender() {
+        if (this._drawingRenderFrame !== null) return;
+        if (typeof requestAnimationFrame !== 'function') {
+            this.draw();
+            return;
+        }
+        this._drawingRenderFrame = requestAnimationFrame(() => {
+            this._drawingRenderFrame = null;
+            this.draw();
+        });
+    }
+
+    cancelDrawingRender() {
+        if (this._drawingRenderFrame !== null && typeof cancelAnimationFrame === 'function') {
+            cancelAnimationFrame(this._drawingRenderFrame);
+        }
+        this._drawingRenderFrame = null;
+        this.isBeingDrawn = false;
+    }
+
+    finalizeDrawing() {
+        this.cancelDrawingRender();
+        this.draw();
     }
 
     move(dx, dy) {
