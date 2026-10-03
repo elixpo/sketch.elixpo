@@ -4,6 +4,7 @@
 
 import { cleanupAttachments } from '../tools/arrowTool.js';
 import { registerRotationAnchor } from '../core/ScreenSpaceControls.js';
+import { captureFrameChildStates } from '../core/UndoRedo.js';
 
 function getSVGCoordsFromMouse(e) {
     const viewBox = svg.viewBox.baseVal;
@@ -768,6 +769,7 @@ startLabelEdit(labelElement) {
 
         const padding = 20;
         const oldState = { x: this.x, y: this.y, width: this.width, height: this.height, rotation: this.rotation };
+        oldState.containedShapes = captureFrameChildStates(this);
 
         this.x = minX - padding;
         this.y = minY - padding;
@@ -918,7 +920,8 @@ startLabelEdit(labelElement) {
             y: this.y,
             width: this.width,
             height: this.height,
-            rotation: this.rotation
+            rotation: this.rotation,
+            containedShapes: captureFrameChildStates(this),
         };
 
         const startMousePos = getSVGCoordsFromMouse(e);

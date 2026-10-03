@@ -2,7 +2,7 @@
 // Multi-selection system - copied from selection.js
 
 import { cleanupAttachments } from '../tools/arrowTool.js';
-import { beginUndoBatch, endUndoBatch, pushCreateAction, pushTransformAction, pushFrameAttachmentAction, pushDeleteAction } from './UndoRedo.js';
+import { beginUndoBatch, captureFrameChildStates, endUndoBatch, pushCreateAction, pushTransformAction, pushFrameAttachmentAction, pushDeleteAction } from './UndoRedo.js';
 import { calculateSnap, clearSnapGuides } from './SnapGuides.js';
 import { registerRotationAnchor } from './ScreenSpaceControls.js';
 
@@ -270,6 +270,15 @@ class MultiSelection {
     }
 
     _captureShapeState(shape) {
+        if (shape.shapeName === 'frame') {
+            return {
+                x: shape.x, y: shape.y,
+                width: shape.width || 0, height: shape.height || 0,
+                rotation: shape.rotation || 0,
+                parentFrame: shape.parentFrame || null,
+                containedShapes: captureFrameChildStates(shape),
+            };
+        }
         switch (shape.shapeName) {
             case 'line':
             case 'arrow':
@@ -300,6 +309,13 @@ class MultiSelection {
             // Check if anything actually changed
             const changed = Object.keys(oldState).some(key => {
                 if (key === 'points' || key === 'startPoint' || key === 'endPoint') return JSON.stringify(oldState[key]) !== JSON.stringify(newState[key]);
+                if (key === 'containedShapes') {
+                    const compact = entries => (entries || []).map(entry => ({
+                        shapeID: entry.shape?.shapeID,
+                        state: entry.state,
+                    }));
+                    return JSON.stringify(compact(oldState[key])) !== JSON.stringify(compact(newState[key]));
+                }
                 return oldState[key] !== newState[key];
             });
             if (changed) {
