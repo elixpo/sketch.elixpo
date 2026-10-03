@@ -81,6 +81,8 @@ export default function SaveModal() {
   const collabRoomId = useCollabStore((s) => s.roomId)
   const collabInviteToken = useCollabStore((s) => s.inviteToken)
   const collabSharingEnabled = useCollabStore((s) => s.sharingEnabled)
+  const collabIsAdmin = useCollabStore((s) => s.isAdmin)
+  const collabWs = useCollabStore((s) => s.ws)
 
   useEffect(() => {
     if (!collabRoomId || !collabInviteToken) return
@@ -302,10 +304,17 @@ export default function SaveModal() {
   }
 
   const handleEndSession = () => {
-    window.__disconnectCollaboration?.()
-    useCollabStore.getState().stopRoom()
-    setCollabLink('')
-    setCollabCopied(false)
+    if (collabIsAdmin && collabWs?.readyState === WebSocket.OPEN) {
+      collabWs.send(JSON.stringify({ type: 'sharing-update', enabled: false }))
+    }
+    // Let the ordered WebSocket control frame leave the browser before the
+    // owner closes their connection.
+    setTimeout(() => {
+      window.__disconnectCollaboration?.()
+      useCollabStore.getState().stopRoom()
+      setCollabLink('')
+      setCollabCopied(false)
+    }, collabIsAdmin ? 60 : 0)
   }
 
   const handleSaveNow = async () => {

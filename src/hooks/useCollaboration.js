@@ -34,9 +34,9 @@ export default function useCollaboration(roomId) {
     anonymousIdRef.current = `anon-${crypto.randomUUID().slice(0, 12)}`
   }
   if (!clientIdRef.current && typeof window !== 'undefined') {
-    const stored = sessionStorage.getItem('lixsketch-collab-client-id')
-    clientIdRef.current = stored || crypto.randomUUID()
-    if (!stored) sessionStorage.setItem('lixsketch-collab-client-id', clientIdRef.current)
+    // Stable for reconnects in this tab, unique across tabs so one browser can
+    // join twice without one socket replacing the other.
+    clientIdRef.current = crypto.randomUUID()
   }
 
   useEffect(() => {

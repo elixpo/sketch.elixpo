@@ -151,7 +151,7 @@ export class RoomDurableObject {
 
     // Get or initialize room
     const roomId = url.pathname.split('/room/')[1];
-    const roomCreated = await this.ensureRoomState(roomId, userId, clientIp, workspaceName);
+    const roomCreated = await this.ensureRoomState(roomId, userId, authSession?.userId || null, clientIp, workspaceName);
 
     // Check room status
     if (this.roomState!.status !== 'active') {
@@ -176,7 +176,7 @@ export class RoomDurableObject {
 
     const isAdmin = roomCreated
       || (!!authSession && authSession.userId === this.roomState!.ownerId)
-      || (!authSession && !!suppliedAdminToken && suppliedAdminToken === this.roomState!.adminToken);
+      || (!!suppliedAdminToken && suppliedAdminToken === this.roomState!.adminToken);
     if (!isAdmin) {
       if (!this.roomState!.sharingEnabled) {
         return jsonError('ROOM_SHARING_DISABLED', 403);
@@ -192,11 +192,19 @@ export class RoomDurableObject {
 
     // 1 room per user (guest or authenticated)
     const isGuest = !authToken;
-    if (this.sessions.size === 0) {
+    if (roomCreated) {
       // First connection = room creation. Check if this user already has a room
       const limitKey = isGuest ? `ip-rooms:${clientIp}` : `user-rooms:${userId}`;
       const existingRoom = await this.env.KV.get(limitKey);
       if (existingRoom && existingRoom !== roomId) {
+        // The room record is initialized before its ownership quota can be
+        // checked. Expire a rejected record so a retry cannot bypass the
+        // one-live-room rule through the already-created Durable Object.
+        this.roomState!.status = 'expired';
+        await this.persistRoomState();
+        try {
+          await this.env.DB.prepare(`UPDATE rooms SET status = 'expired' WHERE id = ?`).bind(roomId).run();
+        } catch {}
         return new Response(JSON.stringify({ error: 'ROOM_LIMIT_REACHED' }), {
           status: 429,
           headers: { 'Content-Type': 'application/json' },
@@ -265,6 +273,7 @@ export class RoomDurableObject {
   }
 
   async webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer): Promise<void> {
+    await this.loadRoomState();
     const user = this.getUser(ws);
     if (!user) return;
 
@@ -449,6 +458,7 @@ export class RoomDurableObject {
   }
 
   async alarm(): Promise<void> {
+    await this.loadRoomState();
     if (!this.roomState) return;
 
     const now = Date.now();
@@ -474,14 +484,16 @@ export class RoomDurableObject {
 
   // --- Private helpers ---
 
-  private async ensureRoomState(roomId: string, ownerId: string, ownerIp: string, workspaceName: string): Promise<boolean> {
+  private async ensureRoomState(roomId: string, ownerId: string, authenticatedOwnerId: string | null, ownerIp: string, workspaceName: string): Promise<boolean> {
     if (this.roomState) return false;
     const stored = await this.state.storage.get<RoomState>('roomState');
     if (stored) {
       this.roomState = stored;
       let changed = false;
+      const claimedLegacyRoom = !stored.ownerId;
+      if (claimedLegacyRoom) { stored.ownerId = ownerId; changed = true; }
       if (!stored.maxUsers) {
-        const tier = await this.getOwnerTier(stored.ownerId);
+        const tier = await this.getOwnerTier(authenticatedOwnerId);
         stored.tier = tier;
         stored.maxUsers = this.getCollaboratorLimit(tier);
         changed = true;
@@ -494,18 +506,18 @@ export class RoomDurableObject {
       if (!stored.roomId) { stored.roomId = roomId; changed = true; }
       stored.maxUsers = Math.min(stored.maxUsers || 1, ABSOLUTE_MAX_USERS);
       if (changed) await this.persistRoomState();
-      return false;
+      return claimedLegacyRoom;
     }
-    await this.initRoom(roomId, ownerId, ownerIp, workspaceName);
+    await this.initRoom(roomId, ownerId, authenticatedOwnerId, ownerIp, workspaceName);
     return true;
   }
 
-  private async initRoom(roomId: string, ownerId: string, ownerIp: string, workspaceName: string = 'Untitled'): Promise<void> {
+  private async initRoom(roomId: string, ownerId: string, authenticatedOwnerId: string | null, ownerIp: string, workspaceName: string = 'Untitled'): Promise<void> {
     const ttlHours = parseInt(this.env.ROOM_TTL_HOURS || '3');
     const now = new Date();
     const expiresAt = new Date(now.getTime() + ttlHours * 3600 * 1000);
 
-    const tier = await this.getOwnerTier(ownerId);
+    const tier = await this.getOwnerTier(authenticatedOwnerId);
     const maxUsers = this.getCollaboratorLimit(tier);
     this.roomState = {
       roomId,
@@ -606,6 +618,12 @@ export class RoomDurableObject {
     const roomId = this.roomState.roomId;
     if (!roomId) return;
     await this.env.KV.put(`room:${roomId}:state`, JSON.stringify(this.roomState), { expirationTtl: ttlSeconds });
+  }
+
+  private async loadRoomState(): Promise<void> {
+    if (!this.roomState) {
+      this.roomState = await this.state.storage.get<RoomState>('roomState') || null;
+    }
   }
 
   private getUser(ws: WebSocket): UserInfo | null {

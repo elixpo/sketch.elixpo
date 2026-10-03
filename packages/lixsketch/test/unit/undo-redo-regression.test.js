@@ -45,6 +45,7 @@ const {
   pushDeleteAction,
   pushFrameAttachmentAction,
   pushTransformAction,
+  rebindUndoHistory,
   redo,
   setTextReferences,
   undo,
@@ -199,6 +200,25 @@ describe('UndoRedo regressions for recent tools', () => {
 
     redo()
     expect(sceneState()).toEqual(after)
+  })
+
+  it('keeps local undo attached after a collaboration scene reload', () => {
+    const original = rectangle('shared-shape', 10, 15)
+    shapes.push(original)
+    original.x = 80
+    pushTransformAction(
+      original,
+      { x: 10, y: 15, width: 40, height: 30, rotation: 0 },
+      { x: 80, y: 15, width: 40, height: 30, rotation: 0 },
+    )
+
+    const reloaded = rectangle('shared-shape', 80, 15)
+    shapes.splice(0, 1, reloaded)
+    rebindUndoHistory(shapes)
+    undo()
+
+    expect(reloaded.x).toBe(10)
+    expect(original.x).toBe(80)
   })
 
   it('restores lasso-deleted shapes in their exact z-order and redoes deletion', () => {
