@@ -1308,6 +1308,7 @@ createRotatedControls(angleDiff = 0) {
         this.selectedShapes.forEach(shape => {
             let shapeData;
             shape.removeSelection();
+            if (shape.shapeName === 'line') shape.scheduleDragRender?.();
             switch (shape.shapeName) {
                 case 'rectangle':
                 case 'icon':

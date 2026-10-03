@@ -435,8 +435,9 @@ move(dx, dy) {
                 shape.y += dy;
             }
 
-            // Force redraw for shapes whose move() doesn't auto-redraw
-            if (typeof shape.draw === 'function') {
+            // Line.move() batches its own render to one animation frame.
+            // Calling draw() here would regenerate it immediately as well.
+            if (shape.shapeName !== 'line' && typeof shape.draw === 'function') {
                 shape.draw();
             }
 
