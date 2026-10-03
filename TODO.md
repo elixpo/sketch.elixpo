@@ -142,3 +142,4 @@
 - [x] Preserve each collaborator's local undo/redo history across remote scene materialization.
 - [x] Show low-latency multi-user cursors and stacked participant avatars in the workspace navbar.
 - [x] Let room admins pause sharing, change access, kick participants, and rotate invite links immediately.
+- [x] Mark Remote MCP workspace connections as Coming soon and disable grant access in production.

@@ -12,6 +12,7 @@ import { triggerCloudSync } from '@/hooks/useAutoSave'
 import { getSessionID } from '@/hooks/useSessionID'
 import { decrypt } from '@/utils/encryption'
 import { showToast } from '@/utils/toast'
+import { REMOTE_MCP_ENABLED } from '@/lib/featureFlags'
 
 function LayoutModeToggle() {
   const layoutMode = useSketchStore((s) => s.layoutMode)
@@ -322,7 +323,7 @@ export default function Header() {
   const [activeMcpClients, setActiveMcpClients] = useState(0)
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!REMOTE_MCP_ENABLED || !isAuthenticated) {
       setActiveMcpClients(0)
       return undefined
     }
