@@ -2,6 +2,7 @@
 // Line shape class - extracted from lineTool.js
 // Depends on globals: svg, shapes, rough, currentShape, currentZoom
 import { updateAttachedArrows as updateArrowsForShape } from '../tools/arrowTool.js';
+import { DEFAULT_SHAPE_LABEL_FONT_SIZE } from '../core/ShapeLabelLayout.js';
 
 const rc = rough.svg(svg);
 // Issue #38 follow-up: read the default stroke from the active theme
@@ -38,7 +39,7 @@ class Line {
         this.label = options.label || '';
         this.labelElement = null;
         this.labelColor = options.labelColor || '#e0e0e0';
-        this.labelFontSize = options.labelFontSize || 12;
+        this.labelFontSize = options.labelFontSize || DEFAULT_SHAPE_LABEL_FONT_SIZE;
         this._isEditingLabel = false;
         this._hitArea = null;
         this._labelBg = null;

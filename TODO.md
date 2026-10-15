@@ -138,3 +138,8 @@
 - [x] Ship a structured MCP server, stdio CLI, atomic scene patches, previews, and marketplace imports in `@elixpo/lixsketch`.
 - [x] Publish the MCP setup, tools, safety workflow, templates, package API, and limits under `/docs/mcp`.
 - [x] Add scoped remote MCP workspace grants, encrypted live edits, revision conflicts, and LixScript batch application.
+- [x] Apply the persisted canvas theme and background before first paint.
+- [x] Grow rectangles to fit intentional multiline labels and use larger default shape text.
+- [x] Render toolbar option panels outside canvas overflow boundaries.
+- [x] Make the eraser cursor and trail contrast-aware in light and dark themes.
+- [x] Smooth eraser and laser trails with coalesced pointer input and frame-batched rendering.
