@@ -143,3 +143,8 @@
 - [x] Render toolbar option panels outside canvas overflow boundaries.
 - [x] Make the eraser cursor and trail contrast-aware in light and dark themes.
 - [x] Smooth eraser and laser trails with coalesced pointer input and frame-batched rendering.
+- [x] Enforce a five-person live-room ceiling with server-authorized editor and viewer access.
+- [x] Preserve each collaborator's local undo/redo history across remote scene materialization.
+- [x] Show low-latency multi-user cursors and stacked participant avatars in the workspace navbar.
+- [x] Let room admins pause sharing, change access, kick participants, and rotate invite links immediately.
+- [x] Mark Remote MCP workspace connections as Coming soon and disable grant access in production.
