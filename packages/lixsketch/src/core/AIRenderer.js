@@ -1318,6 +1318,17 @@ export function initAIRenderer() {
         return _fcCanvas(diagram);
     };
 
+    // Unified Mermaid import (native shapes or mermaid-rendered image,
+    // with mermaid's own syntax errors) — see MermaidRouter.js. The router
+    // is loaded lazily; the legacy bridges above stay as fallbacks.
+    const router = () => import('./MermaidRouter.js');
+    window.__setMermaidLoader = (loader) => router().then(r => r.setMermaidLoader(loader));
+    window.__mermaidCheck = async (src) => (await router()).planMermaid(src);
+    window.__mermaidPreviewDetailed = async (src) => (await router()).previewMermaid(src);
+    window.__mermaidRenderDetailed = async (src) => (await router()).renderMermaidOnCanvas(src);
+    window.__mermaidPreview = async (src) => (await (await router()).previewMermaid(src)).svg;
+    window.__mermaidRenderer = async (src) => (await (await router()).renderMermaidOnCanvas(src)).ok;
+
     // Pre-load renderers so they're ready
     loadSequenceRenderer();
     loadFlowchartRenderer();
