@@ -354,7 +354,11 @@ export function createAsyncSceneStore({ kv, assetMinLength = DEFAULT_ASSET_MIN_L
     };
 }
 
-/** Cheap fingerprint used to skip redundant cloud uploads. */
+/**
+ * Cheap fingerprint used to skip redundant cloud uploads. Ignores the
+ * per-snapshot `createdAt` stamp so an unchanged canvas fingerprints equal.
+ */
 export function sceneFingerprint(json) {
-    return `${hashString(json)}-${json.length.toString(36)}`;
+    const comparable = comparableSceneJSON(json);
+    return `${hashString(comparable)}-${comparable.length.toString(36)}`;
 }

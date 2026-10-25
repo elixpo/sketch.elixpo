@@ -69,6 +69,9 @@ export function markSceneLoaded() {
   _canvasObserver?.takeRecords()
   _tracker.markClean()
   _lastSnapshot = null
+  // The loaded scene may differ from what this tab last uploaded (remote
+  // agent edit, cloud reconcile), so the next cloud save must not be skipped.
+  _lastCloudFingerprint.clear()
 }
 
 function markCanvasDirty() {

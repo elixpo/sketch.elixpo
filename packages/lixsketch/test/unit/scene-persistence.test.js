@@ -213,6 +213,13 @@ describe('ScenePersistence', () => {
         }
     })
 
+    it('fingerprints ignore createdAt but see real edits', () => {
+        const scene = buildSyntheticScene({ total: 20, inlineImages: 0 })
+        const a = persistence.sceneFingerprint(JSON.stringify(scene))
+        expect(persistence.sceneFingerprint(JSON.stringify({ ...scene, createdAt: 'x' }))).toBe(a)
+        expect(persistence.sceneFingerprint(JSON.stringify({ ...scene, name: 'Renamed' }))).not.toBe(a)
+    })
+
     it('comparableSceneJSON ignores only the top-level createdAt', () => {
         const a = JSON.stringify({ format: 'lixsketch', name: 'x","createdAt":"y', createdAt: '1', shapes: [] })
         const b = JSON.stringify({ format: 'lixsketch', name: 'x","createdAt":"y', createdAt: '2', shapes: [] })
