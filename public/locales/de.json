@@ -14,6 +14,8 @@
     "signIn": "Anmelden",
     "signOut": "Abmelden",
     "theme": "Design",
+    "canvasTheme": "Leinwand-Design",
+    "interfaceTheme": "Oberflächen-Design",
     "canvasBackground": "Leinwand-Hintergrund",
     "canvasBg": {
       "black": "Schwarz",

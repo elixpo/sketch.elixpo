@@ -12,7 +12,8 @@ const CANVAS_COMMANDS = [
   { label: 'Find on canvas', icon: 'bx-search', section: 'App', shortcut: 'Ctrl+F', action: 'findOnCanvas' },
   { label: 'Live collaboration...', icon: 'bx-group', section: 'App' },
   { label: 'Share', icon: 'bx-share-alt', section: 'App' },
-  { label: 'Toggle theme', icon: 'bx-sun', section: 'App', action: 'toggleTheme' },
+  { label: 'Toggle canvas theme', icon: 'bx-sun', section: 'App', action: 'toggleTheme' },
+  { label: 'Toggle interface theme', icon: 'bx-palette', section: 'App', action: 'toggleUITheme' },
 
   // --- Export ---
   { label: 'Export image...', icon: 'bx-image', section: 'Export', shortcut: 'Ctrl+Shift+E', action: 'exportImage' },
@@ -203,7 +204,12 @@ export default function CommandPalette() {
       }
       case 'toggleTheme': {
         const store = useUIStore.getState()
-        store.setTheme(store.theme === 'dark' ? 'light' : 'dark')
+        store.setTheme(store.resolvedTheme === 'dark' ? 'light' : 'dark')
+        break
+      }
+      case 'toggleUITheme': {
+        const store = useUIStore.getState()
+        store.setUITheme(store.resolvedUITheme === 'dark' ? 'light' : 'dark')
         break
       }
       case 'toggleGrid':

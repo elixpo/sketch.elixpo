@@ -14,6 +14,8 @@
     "signIn": "Sign In",
     "signOut": "Sign Out",
     "theme": "Theme",
+    "canvasTheme": "Canvas Theme",
+    "interfaceTheme": "Interface Theme",
     "canvasBackground": "Canvas Background",
     "canvasBg": {
       "black": "Black",

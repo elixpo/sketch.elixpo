@@ -14,6 +14,8 @@
     "signIn": "Вход",
     "signOut": "Изход",
     "theme": "Тема",
+    "canvasTheme": "Тема на платното",
+    "interfaceTheme": "Тема на интерфейса",
     "canvasBackground": "Фон на платното",
     "canvasBg": {
       "white": "Бяло",
