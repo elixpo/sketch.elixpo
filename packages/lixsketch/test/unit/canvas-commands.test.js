@@ -12,6 +12,9 @@ import {
   pasteStyles,
   resetStyleClipboard,
   setSelectionAppearance,
+  beginAppearanceEdit,
+  previewAppearance,
+  commitAppearanceEdit,
 } from '../../src/core/CanvasCommands.js'
 import { getNextShapeOpacity, setNextShapeOpacity } from '../../src/core/ShapeAppearance.js'
 
@@ -242,5 +245,21 @@ describe('opacity / edges from the properties panel', () => {
     expect(pasteStyles(win)).toBe(1)
     expect(target).toMatchObject({ opacity: 0.3, edges: 'round' })
     expect(win.undo.some(u => u.type === 'appearance')).toBe(true)
+  })
+})
+
+describe('opacity slider drag', () => {
+  it('previews live and commits a single undo step per shape on release', () => {
+    const a = shape('a', { opacity: 1 })
+    const b = shape('b', { opacity: 0.5 })
+    const win = fakeWindow({ selected: [a, b] })
+    beginAppearanceEdit(win)
+    for (const value of [90, 70, 40]) previewAppearance({ opacity: value }, win)
+    expect([a.opacity, b.opacity]).toEqual([0.4, 0.4])
+    expect(win.undo).toEqual([])
+    expect(commitAppearanceEdit(win)).toBe(2)
+    expect(win.undo.map(u => [u.before.opacity, u.after.opacity])).toEqual([[1, 0.4], [0.5, 0.4]])
+    expect(commitAppearanceEdit(win)).toBe(0)
+    setNextShapeOpacity(1)
   })
 })

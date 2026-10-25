@@ -22,6 +22,7 @@ import TextSidebar from '@/components/sidebars/TextSidebar'
 import FrameSidebar from '@/components/sidebars/FrameSidebar'
 import IconSidebar from '@/components/sidebars/IconSidebar'
 import ImageSidebar from '@/components/sidebars/ImageSidebar'
+import IconPropertiesSidebar from '@/components/sidebars/IconPropertiesSidebar'
 import SVGCanvas from '@/components/canvas/SVGCanvas'
 import MultiSelectActions from '@/components/canvas/MultiSelectActions'
 import ImageSourcePicker from '@/components/canvas/ImageSourcePicker'
@@ -71,6 +72,7 @@ export default function RoomPage() {
       <FrameSidebar />
       <IconSidebar />
       <ImageSidebar />
+      <IconPropertiesSidebar />
 
       <SVGCanvas />
 

@@ -177,6 +177,7 @@ class SketchEngine {
                 'code': 'text',
                 'frame': 'frame',
                 'image': 'image',
+                'icon': 'icon',
             };
             const sidebar = sidebarMap[shapeName];
             // Emit to consumer callback

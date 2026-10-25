@@ -221,6 +221,47 @@ export function setSelectionAppearance(changes, win) {
     return count;
 }
 
+// Slider drags preview live and commit one undo step on release.
+let appearanceEdit = null;
+
+/** Start a live edit (e.g. opacity slider pointerdown): snapshot the selection. */
+export function beginAppearanceEdit(win) {
+    const targets = getSelectionTargets(win);
+    appearanceEdit = targets.map((shape) => [shape, captureAppearance(shape)]);
+    return appearanceEdit.length;
+}
+
+/** Apply without recording undo; starts an edit if none is running. */
+export function previewAppearance(changes, win) {
+    if (!appearanceEdit) beginAppearanceEdit(win);
+    if (changes?.opacity !== undefined) setNextShapeOpacity(changes.opacity);
+    for (const [shape] of appearanceEdit) {
+        const patch = {};
+        if (changes.opacity !== undefined) patch.opacity = normalizeOpacity(changes.opacity);
+        if (changes.edges !== undefined && supportsEdges(shape)) patch.edges = normalizeEdges(changes.edges);
+        if (Object.keys(patch).length) applyAppearance(shape, patch);
+    }
+    return appearanceEdit.length;
+}
+
+/** Finish a live edit: one undo batch covering every changed shape. */
+export function commitAppearanceEdit(win) {
+    if (!appearanceEdit) return 0;
+    const w = getWin(win);
+    const edit = appearanceEdit;
+    appearanceEdit = null;
+    const batch = typeof w.beginUndoBatch === 'function' ? w.beginUndoBatch() : null;
+    let count = 0;
+    for (const [shape, before] of edit) {
+        const after = captureAppearance(shape);
+        if (appearanceEquals(before, after)) continue;
+        count++;
+        if (typeof w.pushAppearanceChangeAction === 'function') w.pushAppearanceChangeAction(shape, before, after);
+    }
+    if (batch !== null && typeof w.endUndoBatch === 'function') w.endUndoBatch(batch, 'appearance');
+    return count;
+}
+
 /** Appearance shown in the panel: the first selected shape, else defaults. */
 export function getSelectionAppearance(win) {
     const [first] = getSelectionTargets(win);
@@ -304,6 +345,9 @@ export function initCanvasCommands() {
         clearSelection: () => clearSelection(window),
         setAppearance: (changes) => setSelectionAppearance(changes, window),
         getAppearance: () => getSelectionAppearance(window),
+        beginAppearanceEdit: () => beginAppearanceEdit(window),
+        previewAppearance: (changes) => previewAppearance(changes, window),
+        commitAppearanceEdit: () => commitAppearanceEdit(window),
         duplicate: (options) => (typeof window.duplicateSelected === 'function' ? window.duplicateSelected(options) : []),
     };
 }

@@ -28,7 +28,7 @@ export const PROPORTIONAL_RADIUS = 0.25;
 const CONTROL_CLASSES = [
     'anchor', 'rotate-anchor', 'rotation-anchor', 'resize-anchor', 'resize-handle',
     'selection-outline', 'selection-sub-outline', 'attachment-indicator',
-    'attachment-preview', 'upload-indicator',
+    'attachment-preview', 'upload-indicator', 'selection-box', 'ai-image-badge',
 ];
 
 // Opacity for the next shape the user draws (last value picked in the

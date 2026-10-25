@@ -2,6 +2,7 @@
 
 import useSketchStore, { TOOLS } from '@/store/useSketchStore'
 import ShapeSidebar, { ToolbarButton, Divider, LayerControls } from './ShapeSidebar'
+import { OpacityControl } from './AppearanceControls'
 import { useState, useCallback } from 'react'
 import { useTranslation } from '@/hooks/useTranslation'
 import useUIStore from '@/store/useUIStore'
@@ -114,6 +115,8 @@ export default function PaintbrushSidebar() {
           className="w-28 h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-accent"
         />
       </ToolbarButton>
+      <Divider />
+      <OpacityControl />
       <Divider />
       <LayerControls />
     </ShapeSidebar>
