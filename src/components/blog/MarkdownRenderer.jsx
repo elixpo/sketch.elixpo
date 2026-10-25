@@ -16,7 +16,7 @@ function CopyButton({ text }) {
       onClick={handleCopy}
       className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] transition-all duration-200 cursor-pointer ${
         copied
-          ? 'bg-green-500/20 text-green-400'
+          ? 'bg-green-500/20 text-green-700'
           : 'bg-ink/[0.03] text-muted hover:text-ink hover:bg-ink/[0.06]'
       }`}
     >

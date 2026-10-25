@@ -189,7 +189,7 @@ export default function PersonalDetailsCard() {
               <div key={index} className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,0.7fr)_minmax(0,1.5fr)_auto]">
                 <input className={inputClass.replace('mt-1.5 ', '')} value={link.label} maxLength={30} onChange={(event) => updateLink(index, 'label', event.target.value)} placeholder="Label" aria-label={`Link ${index + 1} label`} />
                 <input className={inputClass.replace('mt-1.5 ', '')} value={link.url} maxLength={300} onChange={(event) => updateLink(index, 'url', event.target.value)} placeholder="https://" inputMode="url" aria-label={`Link ${index + 1} URL`} />
-                <button type="button" onClick={() => removeLink(index)} className="min-h-9 cursor-pointer rounded-lg border border-red-500/20 px-3 text-red-400 hover:bg-red-500/10" aria-label={`Remove link ${index + 1}`}>
+                <button type="button" onClick={() => removeLink(index)} className="min-h-9 cursor-pointer rounded-lg border border-red-500/20 px-3 text-red-700 hover:bg-red-500/10" aria-label={`Remove link ${index + 1}`}>
                   <i className="bx bx-trash" />
                 </button>
               </div>
@@ -199,7 +199,7 @@ export default function PersonalDetailsCard() {
       </div>
 
       {message && (
-        <p className={`mt-4 rounded-lg px-3 py-2 text-xs ${message.ok ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`} role="status">
+        <p className={`mt-4 rounded-lg px-3 py-2 text-xs ${message.ok ? 'bg-green-500/10 text-green-700' : 'bg-red-500/10 text-red-700'}`} role="status">
           {message.text}
         </p>
       )}

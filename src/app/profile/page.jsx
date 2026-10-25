@@ -11,7 +11,7 @@ import { getRememberedCanvasId } from '@/utils/canvasSession'
 import CloudinaryIntegrationCard from '@/components/profile/CloudinaryIntegrationCard'
 import PollinationsIntegrationCard from '@/components/profile/PollinationsIntegrationCard'
 import PersonalDetailsCard from '@/components/profile/PersonalDetailsCard'
-import LandingNav from '@/components/landing/LandingNav'
+import { SiteShell } from '@/components/site/Site'
 import McpWorkspaceAccessModal from '@/components/profile/McpWorkspaceAccessModal'
 import { REMOTE_MCP_ENABLED } from '@/lib/featureFlags'
 
@@ -40,77 +40,12 @@ function parseDatabaseDate(value) {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
-// ── Dot grid background ──────────────────────────────────────────────────────
+// ── Card ─────────────────────────────────────────────────────────────────────
 
-function DotGrid() {
+function RoughCard({ children, className = '' }) {
   return (
-    <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-60" width="100%" height="100%">
-      <defs>
-        <pattern id="profile-dot-grid" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
-          <circle cx="12" cy="12" r="0.9" fill="rgba(74, 144, 217, 0.18)" />
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#profile-dot-grid)" />
-    </svg>
-  )
-}
-
-// ── Ambient glow ─────────────────────────────────────────────────────────────
-
-function AmbientGlow() {
-  return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      <div className="absolute -top-20 -left-32 w-[600px] h-[600px] rounded-full bg-[#4A90D9]/[0.05] blur-[130px]" />
-      <div className="absolute top-[20%] -right-40 w-[500px] h-[500px] rounded-full bg-lx-blue/[0.06] blur-[120px]" />
-      <div className="absolute bottom-[10%] left-1/2 -translate-x-1/3 w-[700px] h-[350px] rounded-full bg-lx-orange/[0.04] blur-[130px]" />
-    </div>
-  )
-}
-
-// ── RoughJS card ─────────────────────────────────────────────────────────────
-
-function RoughCard({ children, color = '#4A90D9', className = '' }) {
-  const canvasRef = useRef(null)
-  const containerRef = useRef(null)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    const container = containerRef.current
-    if (!canvas || !container) return
-
-    let raf
-    const draw = async () => {
-      const rough = (await import('roughjs')).default
-      const { width, height } = container.getBoundingClientRect()
-      canvas.width = width * 2
-      canvas.height = height * 2
-      canvas.style.width = width + 'px'
-      canvas.style.height = height + 'px'
-      const rc = rough.canvas(canvas)
-      const ctx = canvas.getContext('2d')
-      ctx.scale(2, 2)
-      ctx.clearRect(0, 0, width, height)
-
-      rc.rectangle(4, 4, width - 8, height - 8, {
-        stroke: color,
-        strokeWidth: 1.2,
-        roughness: 1.2,
-        bowing: 0.6,
-        fill: 'transparent',
-        fillStyle: 'solid',
-      })
-    }
-
-    raf = requestAnimationFrame(draw)
-    const ro = new ResizeObserver(() => { raf = requestAnimationFrame(draw) })
-    ro.observe(container)
-    return () => { cancelAnimationFrame(raf); ro.disconnect() }
-  }, [color])
-
-  return (
-    <div ref={containerRef} className={`relative ${className}`}>
-      <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
-      <div className="relative z-10">{children}</div>
+    <div className={`lx-panel relative ${className}`}>
+      {children}
     </div>
   )
 }
@@ -125,7 +60,7 @@ function UsageBar({ used, limit, color = '#4A90D9', label, unit = '', showRemain
     <div className="mb-4">
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-text-secondary text-xs">{label}</span>
-        <span className={`text-xs font-mono ${isNearLimit ? 'text-red-400' : 'text-text-dim'}`}>
+        <span className={`text-xs font-mono ${isNearLimit ? 'text-red-700' : 'text-text-dim'}`}>
           {showRemaining && `${Math.max(0, limit - used).toFixed(2)}${unit} remaining · `}
           {used}{unit} / {limit}{unit}
         </span>
@@ -147,12 +82,12 @@ function SectionIntro({ tab }) {
   return (
     <div className="flex flex-col gap-2 border-b border-line pb-5 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <p className="text-[10px] uppercase tracking-[0.2em] text-lx-blue">Profile</p>
-        <h2 className="mt-1 flex items-center gap-2 text-lg font-medium text-text-primary">
+        <p className="lx-eyebrow !mb-1">Profile</p>
+        <h2 className="mt-1 flex items-center gap-2 text-3xl font-semibold tracking-[-0.05em] text-ink">
           <i className={`bx ${tab.icon} text-lx-blue`} />
           {tab.label}
         </h2>
-        <p className="mt-1 max-w-xl text-xs leading-5 text-text-dim">{tab.description}</p>
+        <p className="mt-1 max-w-xl text-sm leading-6 text-muted">{tab.description}</p>
       </div>
     </div>
   )
@@ -228,7 +163,7 @@ function WorkspaceCard({ workspace, index, onDelete, onMcpAccess }) {
         </div>
         <div className="flex shrink-0 items-center gap-1">
           {hasActiveMcp && <span className="inline-flex items-center gap-1 rounded-full border border-lx-green/20 bg-lx-green/10 px-1.5 py-0.5 text-[8px] uppercase tracking-wide text-lx-green" title={`${workspace.active_mcp_grants} active Remote MCP client${Number(workspace.active_mcp_grants) === 1 ? '' : 's'}`}><i className="bx bx-plug text-[9px]" />MCP</span>}
-          <span className="rounded-full bg-green-500/10 px-1.5 py-0.5 text-[8px] uppercase tracking-wide text-green-400" title="End-to-end encrypted">E2E</span>
+          <span className="rounded-full bg-green-500/10 px-1.5 py-0.5 text-[8px] uppercase tracking-wide text-green-700" title="End-to-end encrypted">E2E</span>
         </div>
       </div>
 
@@ -265,8 +200,8 @@ function WorkspaceCard({ workspace, index, onDelete, onMcpAccess }) {
           disabled={deleting}
           className={`min-w-8 cursor-pointer rounded-lg border px-2 py-1.5 text-[10px] transition-all ${
             confirmDelete
-              ? 'border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20'
-              : 'border-line text-text-dim hover:border-red-500/30 hover:text-red-400'
+              ? 'border-red-500/40 bg-red-500/10 text-red-700 hover:bg-red-500/20'
+              : 'border-line text-text-dim hover:border-red-500/30 hover:text-red-700'
           } ${deleting ? 'cursor-not-allowed opacity-50' : ''}`}
           title={confirmDelete ? 'Click again to confirm' : 'Delete workspace'}
         >
@@ -447,12 +382,8 @@ export default function ProfilePage() {
     : 0
 
   return (
-    <div className="profile-page relative min-h-screen bg-[#0a0a12] text-text-primary overflow-hidden">
-      <LandingNav />
-      <DotGrid />
-      <AmbientGlow />
-
-      <div className="relative z-10 max-w-3xl mx-auto px-6 pb-16 pt-20 sm:pt-24">
+    <SiteShell className="profile-page">
+      <div className="lx-page lx-page-narrow">
         {/* Back link */}
         <motion.div
           ref={headerRef}
@@ -462,24 +393,25 @@ export default function ProfilePage() {
         >
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 text-text-dim text-xs hover:text-text-secondary transition-colors mb-8 bg-transparent border-none cursor-pointer"
+            className="lx-back mb-8 cursor-pointer border-none bg-transparent"
           >
             <i className="bx bx-arrow-back text-sm" />
             Back
           </button>
 
           {/* Profile header */}
-          <div className="flex items-start gap-4 mb-8">
-            <div className="w-14 h-14 rounded-xl bg-accent-blue/20 flex items-center justify-center shrink-0">
+          <div className="mb-10 flex flex-wrap items-end gap-5 border-b border-line pb-10">
+            <div className="w-16 h-16 rounded-full bg-blue-wash flex items-center justify-center shrink-0 overflow-hidden">
               {isAuthenticated && user?.avatar ? (
-                <img src={user.avatar} alt="" className="w-14 h-14 rounded-xl" referrerPolicy="no-referrer" />
+                <img src={user.avatar} alt="" className="w-16 h-16 rounded-full" referrerPolicy="no-referrer" />
               ) : (
                 <i className="bx bx-user text-2xl text-accent-blue" />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-xl font-medium text-text-primary truncate">
+              <p className="lx-eyebrow">Account</p>
+              <div className="flex flex-wrap items-center gap-3 mb-2">
+                <h1 className="lx-title !text-[clamp(2.2rem,5vw,4rem)] truncate">
                   {isAuthenticated ? (user?.displayName || user?.email || 'User') : 'Guest'}
                 </h1>
                 <span className={`px-2 py-0.5 text-[10px] rounded-full font-medium uppercase tracking-wider border ${tierStyle.bg} ${tierStyle.text} ${tierStyle.border}`}>
@@ -497,14 +429,14 @@ export default function ProfilePage() {
               {isAuthenticated ? (
                 <button
                   onClick={logout}
-                  className="px-3 py-1.5 rounded-lg text-xs text-text-dim border border-line hover:border-red-500/30 hover:text-red-400 transition-all"
+                  className="lx-btn lx-btn-sm cursor-pointer hover:!border-red-700 hover:!bg-red-50 hover:!text-red-700"
                 >
                   Sign out
                 </button>
               ) : (
                 <button
                   onClick={() => login()}
-                  className="px-4 py-1.5 rounded-lg text-xs text-white bg-accent-blue hover:bg-accent-blue/80 transition-all"
+                  className="lx-btn lx-btn-sm lx-btn-primary cursor-pointer"
                 >
                   Sign in
                 </button>
@@ -513,7 +445,7 @@ export default function ProfilePage() {
           </div>
         </motion.div>
 
-        <nav className="mb-8 flex gap-1 overflow-x-auto rounded-xl border border-lx-blue/20 bg-paper-deep/80 p-1.5" aria-label="Profile sections">
+        <nav className="mb-10 flex gap-1 overflow-x-auto rounded-full border border-line bg-white p-1.5 no-scrollbar" aria-label="Profile sections">
           {PROFILE_TABS.map((tab) => {
             const selected = activeTab === tab.id
             return (
@@ -521,9 +453,9 @@ export default function ProfilePage() {
                 key={tab.id}
                 type="button"
                 onClick={() => selectTab(tab.id)}
-                className={`flex min-w-max flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors ${selected
-                  ? 'bg-lx-blue/20 text-lx-blue'
-                  : 'text-text-dim hover:bg-ink/[0.06] hover:text-text-secondary'
+                className={`flex min-w-max flex-1 cursor-pointer items-center justify-center gap-2 rounded-full px-3 py-2 text-xs font-bold transition-colors ${selected
+                  ? 'bg-ink text-white'
+                  : 'text-muted hover:bg-paper hover:text-ink'
                 }`}
                 aria-current={selected ? 'page' : undefined}
               >
@@ -711,15 +643,15 @@ export default function ProfilePage() {
                       <p>You're using LixSketch as a guest. Your workspace data is stored locally and synced to the cloud under a guest session.</p>
                       <ul className="space-y-1.5 mt-3">
                         <li className="flex items-center gap-2">
-                          <i className="bx bx-check text-green-400" />
+                          <i className="bx bx-check text-green-700" />
                           <span className="text-text-secondary">1 workspace</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <i className="bx bx-check text-green-400" />
+                          <i className="bx bx-check text-green-700" />
                           <span className="text-text-secondary">2 MB image limit per workspace</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <i className="bx bx-x text-red-400" />
+                          <i className="bx bx-x text-red-700" />
                           <span className="text-text-secondary">Unused workspaces deleted after 1 month</span>
                         </li>
                       </ul>
@@ -824,6 +756,6 @@ export default function ProfilePage() {
         )}
       </div>
       {REMOTE_MCP_ENABLED && mcpWorkspace && <McpWorkspaceAccessModal workspace={mcpWorkspace} onClose={() => setMcpWorkspace(null)} onGrantCountChange={handleMcpGrantCountChange} />}
-    </div>
+    </SiteShell>
   )
 }

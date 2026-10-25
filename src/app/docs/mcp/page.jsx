@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { SiteShell } from '@/components/site/Site'
 import { MCP_CONNECTION_TEST_PROMPT } from '@/lib/mcpClientConfig'
 
 const CLIENT_CONFIG = `{
@@ -127,7 +128,7 @@ function CodeBlock({ children }) {
 function DocSection({ id, title, children }) {
   return (
     <section id={id} className="scroll-mt-24 rounded-2xl border border-line bg-surface-card p-5 sm:p-7">
-      <h2 className="text-xl text-text-primary">{title}</h2>
+      <h2 className="text-2xl font-semibold tracking-[-0.04em] text-ink">{title}</h2>
       <div className="mt-4 text-sm leading-7 text-text-muted">{children}</div>
     </section>
   )
@@ -135,28 +136,23 @@ function DocSection({ id, title, children }) {
 
 export default function McpDocsPage() {
   return (
-    <div className="min-h-screen bg-surface-dark text-text-primary">
-      <header className="sticky top-0 z-50 border-b border-line bg-surface-dark/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
-            <Link href="/?noredirect=1" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-              <img src="/icon.png" alt="LixSketch" className="h-7 w-7 rounded-md" />
-              <span>LixSketch</span>
-            </Link>
-            <span className="text-text-dim">/</span>
-            <Link href="/docs" className="text-text-muted hover:text-text-primary">Docs</Link>
-            <span className="text-text-dim">/</span>
-            <span className="text-text-secondary">MCP Server</span>
-          </div>
-          <Link href="/resources/npm-package" className="rounded-lg bg-accent px-3.5 py-2 text-xs text-ink transition hover:bg-accent/85">
-            Package docs
-          </Link>
-        </div>
-      </header>
+    <SiteShell>
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 pt-8 sm:px-6">
+        <nav className="lx-crumbs m-0" aria-label="Breadcrumb">
+          <Link href="/?noredirect=1">LixSketch</Link>
+          <span aria-hidden="true">/</span>
+          <Link href="/docs">Docs</Link>
+          <span aria-hidden="true">/</span>
+          <span className="text-ink">MCP Server</span>
+        </nav>
+        <Link href="/resources/npm-package" className="lx-btn lx-btn-sm lx-btn-primary">
+          Package docs
+        </Link>
+      </div>
 
-      <main className="mx-auto grid max-w-6xl gap-8 px-5 py-10 sm:px-6 lg:grid-cols-[210px_1fr]">
+      <div className="mx-auto grid max-w-6xl gap-8 px-5 py-10 sm:px-6 lg:grid-cols-[210px_1fr]">
         <aside className="hidden lg:block">
-          <nav className="sticky top-24 space-y-1 rounded-xl border border-line bg-surface-card p-3 text-sm">
+          <nav className="sticky top-28 space-y-1 rounded-[1.2rem] border border-line bg-white p-3 text-sm">
             {[
               ['overview', 'Overview'],
               ['quick-start', 'Quick start'],
@@ -179,12 +175,12 @@ export default function McpDocsPage() {
 
         <div className="min-w-0 space-y-7">
           <section id="overview" className="scroll-mt-24 pb-3">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-accent">
+            <div className="flex items-center gap-2 lx-eyebrow !mb-0">
               <i className="bx bx-plug text-base" />
               LixSketch Docs
             </div>
-            <h1 className="mt-3 text-3xl text-text-primary sm:text-4xl">MCP server</h1>
-            <div className="mt-4 flex max-w-3xl items-start gap-3 rounded-xl border border-amber-400/25 bg-amber-400/[0.06] p-4 text-sm text-amber-200">
+            <h1 className="lx-title mt-3">MCP server</h1>
+            <div className="mt-4 flex max-w-3xl items-start gap-3 rounded-xl border border-amber-400/25 bg-amber-400/[0.06] p-4 text-sm text-amber-700">
               <i className="bx bx-time-five mt-0.5 text-lg" aria-hidden="true" />
               <div><p className="text-text-primary">Remote workspace connection is coming soon</p><p className="mt-1 text-xs leading-6 text-text-muted">The package-local scene server remains available for development. Production workspace grants and remote canvas edits are disabled while the connector completes validation.</p></div>
             </div>
@@ -239,7 +235,7 @@ export default function McpDocsPage() {
                 <p className="mt-3 text-xs">Run <strong className="font-normal text-text-secondary">MCP: List Servers</strong> from the Command Palette. See the <a href="https://code.visualstudio.com/docs/agents/reference/mcp-configuration" target="_blank" rel="noreferrer" className="text-accent hover:underline">VS Code MCP reference</a>.</p>
               </div>
             </div>
-            <div className="mt-6 rounded-xl border border-amber-400/20 bg-amber-400/5 p-4 text-xs leading-6 text-amber-100/75">Generated configurations contain workspace credentials. Keep personal config files out of source control, grant only necessary scopes, and revoke access from LixSketch when a client is no longer used.</div>
+            <div className="mt-6 rounded-xl border border-amber-400/20 bg-amber-400/5 p-4 text-xs leading-6 text-amber-700/75">Generated configurations contain workspace credentials. Keep personal config files out of source control, grant only necessary scopes, and revoke access from LixSketch when a client is no longer used.</div>
           </DocSection>
 
           <DocSection id="troubleshooting" title="Troubleshoot server startup">
@@ -251,7 +247,7 @@ export default function McpDocsPage() {
               <li>If <code className="font-[lixCode] text-accent">npx</code> works in your shell but not in the client, replace <code className="font-[lixCode] text-accent">command = &quot;npx&quot;</code> with the absolute path returned by <code className="font-[lixCode] text-accent">command -v npx</code>. The LixSketch website cannot detect local executable paths, so this replacement is intentionally manual.</li>
               <li>For Codex, keep <code className="font-[lixCode] text-accent">startup_timeout_sec = 30</code> in the generated TOML and restart Codex completely. <code className="font-[lixCode] text-accent">codex mcp list</code> confirms that the configuration was registered; <code className="font-[lixCode] text-accent">/mcp</code> in a fresh session confirms that the server actually started.</li>
             </ol>
-            <div className="mt-5 rounded-xl border border-amber-400/20 bg-amber-400/5 p-4 text-xs leading-6 text-amber-100/75">
+            <div className="mt-5 rounded-xl border border-amber-400/20 bg-amber-400/5 p-4 text-xs leading-6 text-amber-700/75">
               Avoid unofficial or confined Codex packages when they cannot inherit your Node.js PATH. Install Codex through an official OpenAI distribution, then repeat the preflight commands above.
             </div>
           </DocSection>
@@ -345,7 +341,7 @@ export default function McpDocsPage() {
             <Link href="/templates" className="text-accent hover:underline">Explore templates</Link>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </SiteShell>
   )
 }

@@ -204,7 +204,7 @@ export default function CloudinaryIntegrationCard({ managedUsage }) {
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-sm font-medium text-text-primary">Personal Cloudinary storage</h2>
               {status && (
-                <span className={`rounded-full px-2 py-0.5 text-[9px] uppercase tracking-wider ${status.connected ? 'bg-green-500/10 text-green-400' : 'bg-ink/[0.03] text-text-dim'}`}>
+                <span className={`rounded-full px-2 py-0.5 text-[9px] uppercase tracking-wider ${status.connected ? 'bg-green-500/10 text-green-700' : 'bg-ink/[0.03] text-text-dim'}`}>
                   {status.connected ? 'Connected' : 'Not connected'}
                 </span>
               )}
@@ -236,7 +236,7 @@ export default function CloudinaryIntegrationCard({ managedUsage }) {
       </div>
 
       {oauthMessage && (
-        <p className={`mt-4 rounded-lg px-3 py-2 text-xs ${oauthMessage.ok ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+        <p className={`mt-4 rounded-lg px-3 py-2 text-xs ${oauthMessage.ok ? 'bg-green-500/10 text-green-700' : 'bg-red-500/10 text-red-700'}`}>
           {oauthMessage.text}{oauthReference && !oauthMessage.ok ? ` Reference: ${oauthReference}` : ''}
         </p>
       )}
@@ -275,22 +275,22 @@ export default function CloudinaryIntegrationCard({ managedUsage }) {
               <button type="button" disabled={busy} onClick={toggleStorage} className="cursor-pointer rounded-lg border border-lx-blue/30 px-3 py-2 text-xs text-lx-blue hover:bg-lx-blue/10 disabled:opacity-50">
                 {status.useForUploads ? 'Use LixSketch storage' : 'Use personal storage'}
               </button>
-              <button type="button" disabled={busy} onClick={() => { setError(''); setConfirmDisconnect(true) }} className="cursor-pointer rounded-lg border border-red-500/25 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 disabled:opacity-50">
+              <button type="button" disabled={busy} onClick={() => { setError(''); setConfirmDisconnect(true) }} className="cursor-pointer rounded-lg border border-red-500/25 px-3 py-2 text-xs text-red-700 hover:bg-red-500/10 disabled:opacity-50">
                 Disconnect
               </button>
             </div>
           </div>
           {status.providerUsageUnavailable && (
-            <p className="mt-3 text-[10px] text-amber-300/80">
+            <p className="mt-3 text-[10px] text-amber-700/80">
               Cloudinary usage details are available in its dashboard. LixSketch has tracked {formatBytes(status.trackedBytes)} of uploaded media.
             </p>
           )}
-          <p className={`mt-4 rounded-lg px-3 py-2 text-xs ${status.useForUploads ? 'bg-green-500/10 text-green-400' : 'bg-ink/[0.03] text-text-dim'}`}>
+          <p className={`mt-4 rounded-lg px-3 py-2 text-xs ${status.useForUploads ? 'bg-green-500/10 text-green-700' : 'bg-ink/[0.03] text-text-dim'}`}>
             New media will use {status.useForUploads ? status.cloudName : 'LixSketch managed storage'}. Existing images stay where they were uploaded.
           </p>
         </div>
       )}
-      {error && <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">{error}</p>}
+      {error && <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-700">{error}</p>}
 
       {confirmDisconnect && (
         <div
@@ -311,7 +311,7 @@ export default function CloudinaryIntegrationCard({ managedUsage }) {
             aria-describedby="cloudinary-disconnect-description"
           >
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500/10 text-red-400">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500/10 text-red-700">
                 <i className="bx bx-unlink text-xl" />
               </div>
               <div>
@@ -322,7 +322,7 @@ export default function CloudinaryIntegrationCard({ managedUsage }) {
               </div>
             </div>
 
-            {error && <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">{error}</p>}
+            {error && <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-700">{error}</p>}
 
             <div className="mt-5 flex justify-end gap-2 border-t border-line pt-4">
               <button

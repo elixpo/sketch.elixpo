@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
+import LandingNav from '@/components/landing/LandingNav'
 import { LIXSCRIPT_LLM_SPEC } from '@/lib/lixscript-llm-spec'
 import { blogPosts } from '@/content/blog'
 
@@ -19,7 +20,7 @@ function CopyButton({ text, label = 'Copy' }) {
       onClick={handleCopy}
       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
         copied
-          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+          ? 'bg-green-500/20 text-green-700 border border-green-500/30'
           : 'bg-surface-hover text-text-muted border border-line hover:border-ink/30 hover:text-text-primary'
       }`}
     >
@@ -118,43 +119,31 @@ export default function DocsPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-surface-dark text-text-primary">
-      {/* Top bar */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-surface-dark/80 backdrop-blur-xl border-b border-line">
-        <div className="max-w-[1400px] mx-auto flex items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-3">
-            <a href="/?noredirect=1" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <img src="/icon.png" alt="LixSketch" className="w-7 h-7 rounded-md" />
-              <span className="text-text-primary font-medium">LixSketch</span>
-            </a>
-            <span className="text-text-dim">/</span>
-            <span className="text-text-muted">Docs</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <a href="/" className="text-text-muted text-sm hover:text-text-primary transition-colors">
-              <i className="bx bx-arrow-back mr-1" />
-              Back to Home
-            </a>
-          </div>
-        </div>
-      </header>
+    <div className="lx-site h-screen !min-h-0 overflow-hidden">
+      <LandingNav />
+      <nav className="lx-crumbs mx-auto w-[min(calc(100%-2rem),1400px)] px-1 pt-3" aria-label="Breadcrumb">
+        <a href="/?noredirect=1">LixSketch</a>
+        <span aria-hidden="true">/</span>
+        <span className="text-ink">Docs</span>
+        <a href="/" className="ml-auto normal-case tracking-normal text-lx-green"><i className="bx bx-arrow-back mr-1" />Back to Home</a>
+      </nav>
 
-      <div className="flex max-w-[1400px] mx-auto pt-14">
+      <div className="flex w-[min(calc(100%-2rem),1400px)] mx-auto mt-3 min-h-0 flex-1 overflow-hidden rounded-t-[1.4rem] border border-b-0 border-line bg-white">
         {/* Sidebar */}
-        <nav className="hidden lg:block w-64 shrink-0 sticky top-14 h-[calc(100vh-56px)] overflow-y-auto docs-scroll p-4 border-r border-line">
+        <nav className="hidden lg:block w-64 shrink-0 h-full overflow-y-auto docs-scroll p-4 border-r border-line bg-paper">
           <div className="space-y-1">
-            <p className="text-text-dim text-[10px] uppercase tracking-widest px-3 pt-3 pb-2">Getting Started</p>
+            <p className="lx-eyebrow !mb-0 !text-[10px] px-3 pt-3 pb-2">Getting Started</p>
             <NavItem href="#overview" label="Overview" icon="bx-info-circle" active={activeSection === 'overview'} />
             <NavItem href="#quickstart" label="Quick Start" icon="bx-rocket" active={activeSection === 'quickstart'} />
 
-            <p className="text-text-dim text-[10px] uppercase tracking-widest px-3 pt-5 pb-2">Language Reference</p>
+            <p className="lx-eyebrow !mb-0 !text-[10px] px-3 pt-5 pb-2">Language Reference</p>
             <NavItem href="#shapes" label="Shapes" icon="bx-shape-square" active={activeSection === 'shapes'} />
             <NavItem href="#arrows" label="Arrows & Lines" icon="bx-right-arrow-alt" active={activeSection === 'arrows'} />
             <NavItem href="#positioning" label="Positioning" icon="bx-move" active={activeSection === 'positioning'} />
             <NavItem href="#frames" label="Frames" icon="bx-border-all" active={activeSection === 'frames'} />
             <NavItem href="#styling" label="Styling" icon="bx-palette" active={activeSection === 'styling'} />
 
-            <p className="text-text-dim text-[10px] uppercase tracking-widest px-3 pt-5 pb-2">Integration</p>
+            <p className="lx-eyebrow !mb-0 !text-[10px] px-3 pt-5 pb-2">Integration</p>
             <Link
               href="/docs/connectors"
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary hover:bg-ink/[0.06] transition-all"
@@ -172,7 +161,7 @@ export default function DocsPage() {
             <NavItem href="#api" label="JavaScript API" icon="bx-code-alt" active={activeSection === 'api'} />
             <NavItem href="#llm" label="LixScript Spec" icon="bx-code-block" active={activeSection === 'llm'} />
 
-            <p className="text-text-dim text-[10px] uppercase tracking-widest px-3 pt-5 pb-2">Install</p>
+            <p className="lx-eyebrow !mb-0 !text-[10px] px-3 pt-5 pb-2">Install</p>
             <Link
               href="/resources/npm-package"
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary hover:bg-ink/[0.06] transition-all"
@@ -188,7 +177,7 @@ export default function DocsPage() {
               VS Code Extension
             </Link>
 
-            <p className="text-text-dim text-[10px] uppercase tracking-widest px-3 pt-5 pb-2">Blog</p>
+            <p className="lx-eyebrow !mb-0 !text-[10px] px-3 pt-5 pb-2">Blog</p>
             <NavItem href="#blog" label="All Posts" icon="bx-news" active={activeSection === 'blog'} />
             {blogPosts.map(post => (
               <Link
@@ -204,7 +193,7 @@ export default function DocsPage() {
 
           {/* MCP link in sidebar */}
           <div className="mt-8 p-3 rounded-xl bg-surface-card border border-line">
-            <p className="text-text-dim text-[10px] uppercase tracking-widest mb-2">Package MCP</p>
+            <p className="lx-eyebrow !mb-0 !text-[10px] mb-2">Package MCP</p>
             <Link
               href="/docs/mcp"
               className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium bg-accent/15 text-accent border border-accent/25 hover:bg-accent/20"
@@ -219,14 +208,14 @@ export default function DocsPage() {
         </nav>
 
         {/* Main content */}
-        <main id="docs-scroll" className="flex-1 min-w-0 overflow-y-auto docs-scroll h-[calc(100vh-56px)] px-6 lg:px-12 py-8">
+        <main id="docs-scroll" className="flex-1 min-w-0 overflow-y-auto docs-scroll h-full px-6 lg:px-12 py-10">
           {/* Hero */}
           <div id="overview" className="mb-12">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-3xl font-semibold text-text-primary">LixScript</h1>
-                  <span className="px-2 py-0.5 text-[10px] rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium uppercase">Coming soon</span>
+                  <h1 className="lx-title">LixScript</h1>
+                  <span className="px-2 py-0.5 text-[10px] rounded-md bg-amber-500/10 text-amber-700 border border-amber-500/20 font-medium uppercase">Coming soon</span>
                 </div>
                 <p className="text-text-muted text-lg max-w-2xl leading-relaxed">
                   LixScript is being prepared as the programmable MCP interface for LixSketch.
@@ -241,22 +230,22 @@ export default function DocsPage() {
                 <span className="text-text-muted">7 shape types</span>
               </div>
               <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-card border border-line text-sm">
-                <i className="bx bx-link text-green-400" />
+                <i className="bx bx-link text-green-700" />
                 <span className="text-text-muted">Auto-attached arrows</span>
               </div>
               <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-card border border-line text-sm">
-                <i className="bx bx-move text-purple-400" />
+                <i className="bx bx-move text-purple-700" />
                 <span className="text-text-muted">Relative positioning</span>
               </div>
               <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-card border border-line text-sm">
-                <i className="bx bx-bot text-orange-400" />
+                <i className="bx bx-bot text-orange-700" />
                 <span className="text-text-muted">LLM-optimized spec</span>
               </div>
             </div>
           </div>
 
           <div className="mb-10 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-4 flex items-start gap-3">
-            <i className="bx bx-info-circle text-xl text-amber-400 mt-0.5" />
+            <i className="bx bx-info-circle text-xl text-amber-700 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-text-primary">LixScript MCP is coming soon</p>
               <p className="text-xs leading-relaxed text-text-muted mt-1">Syntax and APIs shown on this page are previews and may change before the MCP integration is released.</p>
@@ -297,7 +286,7 @@ arrow a1 from start.bottom to end.top {
 
           {/* Shapes */}
           <div id="shapes" className="mb-10 space-y-4">
-            <h2 className="text-xl font-semibold text-text-primary mb-4">Shapes</h2>
+            <h2 className="mb-5 text-3xl font-semibold tracking-[-0.05em] text-ink">Shapes</h2>
 
             <Section id="shape-rect" title="rect — Rectangle" icon="bx-rectangle" defaultOpen={false}>
               <CodeBlock code={`rect <id> at <x>, <y> size <w>x<h> {
@@ -364,7 +353,7 @@ circle e1 at 100, 100 size 120x80 { ... }`} />
 
           {/* Arrows & Lines */}
           <div id="arrows" className="mb-10 space-y-4">
-            <h2 className="text-xl font-semibold text-text-primary mb-4">Arrows & Lines</h2>
+            <h2 className="mb-5 text-3xl font-semibold tracking-[-0.05em] text-ink">Arrows & Lines</h2>
 
             <Section id="arrow-ref" title="arrow — Directed Arrow" icon="bx-right-arrow-alt" defaultOpen={false}>
               <CodeBlock code={`arrow <id> from <source> to <target> {
@@ -459,8 +448,8 @@ rect node3 at node1.x, node1.bottom + 30 size 160x60 {
 }`} />
               <div className="mt-4 p-4 rounded-xl bg-green-500/5 border border-green-500/10">
                 <p className="text-text-secondary text-sm leading-relaxed">
-                  <strong className="text-green-400">Auto-frame:</strong> If you don't define a frame, one is automatically created wrapping all shapes with 40px padding.
-                  If <code className="font-[lixCode] text-green-400">contains</code> is omitted, all shapes are added to the frame.
+                  <strong className="text-green-700">Auto-frame:</strong> If you don't define a frame, one is automatically created wrapping all shapes with 40px padding.
+                  If <code className="font-[lixCode] text-green-700">contains</code> is omitted, all shapes are added to the frame.
                 </p>
               </div>
             </Section>
@@ -468,7 +457,7 @@ rect node3 at node1.x, node1.bottom + 30 size 160x60 {
 
           {/* Styling */}
           <div id="styling" className="mb-10 space-y-4">
-            <h2 className="text-xl font-semibold text-text-primary mb-4">Styling Reference</h2>
+            <h2 className="mb-5 text-3xl font-semibold tracking-[-0.05em] text-ink">Styling Reference</h2>
 
             <Section id="style-colors" title="Colors" icon="bx-palette" defaultOpen={false}>
               <p className="text-text-muted text-sm mt-4 mb-4">
@@ -574,7 +563,7 @@ const result = window.__lixscriptRender(parsed)`} />
               </div>
 
               <div className="mt-6 p-4 rounded-xl bg-purple-500/5 border border-purple-500/10">
-                <h4 className="text-purple-400 text-sm font-medium mb-2">Need MCP today?</h4>
+                <h4 className="text-purple-700 text-sm font-medium mb-2">Need MCP today?</h4>
                 <p className="text-text-muted text-sm leading-relaxed">
                   Use the package-native MCP server for structured scene patches, previews, and published template imports. <Link href="/docs/mcp" className="text-accent hover:underline">Open the MCP setup guide.</Link>
                 </p>
@@ -584,7 +573,7 @@ const result = window.__lixscriptRender(parsed)`} />
 
           {/* Complete Example */}
           <div className="mb-16">
-            <h2 className="text-xl font-semibold text-text-primary mb-4">Complete Example</h2>
+            <h2 className="mb-5 text-3xl font-semibold tracking-[-0.05em] text-ink">Complete Example</h2>
             <CodeBlock code={`// User authentication flow
 $blue = #4A90D9
 $green = #2ECC71
@@ -646,7 +635,7 @@ arrow a5 from error.top to login.right {
 
           {/* Blog */}
           <div id="blog" className="mb-16">
-            <h2 className="text-xl font-semibold text-text-primary mb-2">Blog</h2>
+            <h2 className="mb-3 text-3xl font-semibold tracking-[-0.05em] text-ink">Blog</h2>
             <p className="text-text-muted text-sm mb-6">Deep dives into how LixSketch works — architecture, security, and design decisions.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

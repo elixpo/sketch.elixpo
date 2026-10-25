@@ -85,6 +85,36 @@ export function PageHero({ eyebrow, title, lead, actions, note, objects = true, 
 
 const ART_TONES = ['yellow', 'blue', 'lilac', 'mint', 'sand', 'teal', 'peach', 'stone']
 
+export const TONE_COLORS = {
+  yellow: '#f1c64f',
+  blue: '#cbdcff',
+  lilac: '#dfd0f3',
+  mint: '#d4eadf',
+  sand: '#f3dfb5',
+  teal: '#cce9e5',
+  peach: '#f0d7bd',
+  stone: '#d9dedb',
+}
+
+/** Small pastel blob holding an icon, for dense cards and list rows. */
+export function IconBlob({ tone = 'blue', icon, size = 48, round = false, className = '' }) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center text-ink ${className}`}
+      style={{
+        width: size,
+        height: size,
+        fontSize: Math.round(size * 0.42),
+        background: TONE_COLORS[tone] || tone,
+        borderRadius: round ? '50%' : '24% 76% 62% 38%',
+      }}
+      aria-hidden="true"
+    >
+      <i className={icon} />
+    </span>
+  )
+}
+
 export function artTone(index) {
   return ART_TONES[((index % ART_TONES.length) + ART_TONES.length) % ART_TONES.length]
 }

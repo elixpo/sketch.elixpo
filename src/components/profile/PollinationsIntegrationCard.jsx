@@ -122,7 +122,7 @@ export default function PollinationsIntegrationCard() {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-sm font-medium text-text-primary">AI Image Generation Support ft. Pollinations AI</h2>
-            {status && <span className={`rounded-full px-2 py-0.5 text-[9px] uppercase tracking-wider ${status.connected && !status.expired ? 'bg-green-500/10 text-green-400' : 'bg-ink/[0.03] text-text-dim'}`}>{status.expired ? 'Expired' : status.connected ? 'Connected' : 'Not connected'}</span>}
+            {status && <span className={`rounded-full px-2 py-0.5 text-[9px] uppercase tracking-wider ${status.connected && !status.expired ? 'bg-green-500/10 text-green-700' : 'bg-ink/[0.03] text-text-dim'}`}>{status.expired ? 'Expired' : status.connected ? 'Connected' : 'Not connected'}</span>}
           </div>
           <p className="mt-1 max-w-xl text-xs leading-5 text-text-dim">
             Connect your Pollinations account to generate AI images directly inside a LixSketch workspace with Flux or Klein. Requests use your personal Pollen balance, while the scoped key is encrypted and never exposed to the browser.
@@ -131,7 +131,7 @@ export default function PollinationsIntegrationCard() {
         </div>
       </div>
 
-      {oauthMessage && <p className={`mt-4 rounded-lg px-3 py-2 text-xs ${oauthMessage.ok ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>{oauthMessage.text}{oauthMessage.reference && !oauthMessage.ok ? ` Reference: ${oauthMessage.reference}` : ''}</p>}
+      {oauthMessage && <p className={`mt-4 rounded-lg px-3 py-2 text-xs ${oauthMessage.ok ? 'bg-green-500/10 text-green-700' : 'bg-red-500/10 text-red-700'}`}>{oauthMessage.text}{oauthMessage.reference && !oauthMessage.ok ? ` Reference: ${oauthMessage.reference}` : ''}</p>}
 
       {loading ? (
         <div className="mt-4 h-28 animate-pulse rounded-xl bg-ink/[0.03]" />
@@ -167,8 +167,8 @@ export default function PollinationsIntegrationCard() {
             {(account?.health || status.allowedModels.map((model) => ({ model, available: false }))).map((item) => <HealthBadge key={item.model} item={item} />)}
           </div>
 
-          {status.accountUnavailable && <p className="mt-3 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-300">The connection is saved, but Pollinations account details are temporarily unavailable.</p>}
-          {status.expired && <p className="mt-3 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-300">This authorization has expired. Reconnect before using personal Pollen.</p>}
+          {status.accountUnavailable && <p className="mt-3 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700">The connection is saved, but Pollinations account details are temporarily unavailable.</p>}
+          {status.expired && <p className="mt-3 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700">This authorization has expired. Reconnect before using personal Pollen.</p>}
 
           <div className="mt-4 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -181,13 +181,13 @@ export default function PollinationsIntegrationCard() {
               ) : (
                 <button type="button" disabled={busy} onClick={toggle} className="cursor-pointer rounded-lg border border-lx-blue/30 px-3 py-2 text-xs text-lx-blue hover:bg-lx-blue/10 disabled:opacity-50">{status.usePersonalPollen ? 'Pause AI images' : 'Enable AI images'}</button>
               )}
-              <button type="button" disabled={busy} onClick={() => setConfirmDisconnect(true)} className="cursor-pointer rounded-lg border border-red-500/25 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 disabled:opacity-50">Disconnect</button>
+              <button type="button" disabled={busy} onClick={() => setConfirmDisconnect(true)} className="cursor-pointer rounded-lg border border-red-500/25 px-3 py-2 text-xs text-red-700 hover:bg-red-500/10 disabled:opacity-50">Disconnect</button>
             </div>
           </div>
         </>
       )}
 
-      {error && <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">{error}</p>}
+      {error && <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-700">{error}</p>}
       {confirmDisconnect && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/65 p-4 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && !busy && setConfirmDisconnect(false)}>
           <div role="alertdialog" aria-modal="true" className="w-full max-w-md rounded-2xl border border-red-400/25 bg-paper-deep p-5 shadow-2xl">

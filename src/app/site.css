@@ -19,7 +19,7 @@
   font-family: var(--font-site);
   overflow-x: clip;
 }
-.lx-site main { flex: 1 0 auto; }
+.lx-site > main { flex: 1 0 auto; }
 .lx-site a { text-decoration: none; }
 .lx-site ::selection { background: var(--blue-wash); color: var(--ink); }
 

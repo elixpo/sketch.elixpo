@@ -14,6 +14,7 @@ import {
 import {
   ArtPanel,
   HeroObjects,
+  IconBlob,
   PageHero,
   Section,
   SiteShell,
@@ -126,10 +127,6 @@ const tools = [
   { icon: 'bx-image', name: 'Images' },
 ]
 
-const TONE_BG = {
-  yellow: '#f1c64f', blue: '#cbdcff', lilac: '#dfd0f3', mint: '#d4eadf',
-  sand: '#f3dfb5', teal: '#cce9e5', peach: '#f0d7bd', stone: '#d9dedb',
-}
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function LandingPage() {
@@ -284,13 +281,7 @@ export default function LandingPage() {
               className="lx-card lx-card-hover"
             >
               <div className="lx-card-body min-h-[260px]">
-                <span
-                  className="mb-6 flex h-14 w-14 items-center justify-center rounded-[24%_76%_62%_38%] text-2xl text-ink"
-                  style={{ background: TONE_BG[artTone(i)] }}
-                  aria-hidden="true"
-                >
-                  <i className={feature.icon} />
-                </span>
+                <IconBlob tone={artTone(i)} icon={feature.icon} size={56} className="mb-6" />
                 <small>{String(i + 1).padStart(2, '0')} / Feature</small>
                 <h3>{feature.title}</h3>
                 <p>{feature.description}</p>
@@ -348,9 +339,7 @@ export default function LandingPage() {
               className="lx-card flex items-center justify-between gap-3 p-5"
             >
               <span className="text-lg font-semibold tracking-tight">{tool.name}</span>
-              <span className="flex h-11 w-11 items-center justify-center rounded-full text-xl" style={{ background: TONE_BG[artTone(i)] }}>
-                <i className={`bx ${tool.icon}`} />
-              </span>
+              <IconBlob tone={artTone(i)} icon={`bx ${tool.icon}`} size={44} round />
             </motion.div>
           ))}
         </div>
