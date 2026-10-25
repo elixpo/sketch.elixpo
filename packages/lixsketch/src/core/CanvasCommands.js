@@ -133,6 +133,10 @@ export function extractStyle(shape) {
         }
     }
     if (shape.labelColor !== undefined) style.labelColor = shape.labelColor;
+    if (shape.shapeName === 'arrow') {
+        style.startArrowhead = shape.startArrowhead;
+        style.endArrowhead = shape.endArrowhead;
+    }
     // Shape appearance (instance-level, see ShapeAppearance.js).
     Object.assign(style, captureAppearance(shape));
     const textEl = shape.shapeName === 'text' ? shape.group?.querySelector?.('text') : null;
@@ -152,11 +156,29 @@ export function applyStyleToShape(shape, style, win) {
         for (const key of STYLE_OPTION_KEYS) {
             if (style[key] !== undefined && shape.options[key] !== style[key]) optionChanges[key] = style[key];
         }
-        if (Object.keys(optionChanges).length) {
-            const oldOptions = { ...shape.options };
+        const isArrow = shape.shapeName === 'arrow';
+        const headChanges = isArrow && ((style.startArrowhead !== undefined && style.startArrowhead !== shape.startArrowhead)
+            || (style.endArrowhead !== undefined && style.endArrowhead !== shape.endArrowhead));
+        if (Object.keys(optionChanges).length || headChanges) {
+            // Arrow snapshots carry instance state so undo restores the heads.
+            const snapshot = () => (isArrow
+                ? {
+                    ...shape.options,
+                    arrowOutlineStyle: shape.arrowOutlineStyle,
+                    startArrowhead: shape.startArrowhead,
+                    endArrowhead: shape.endArrowhead,
+                    arrowCurved: shape.arrowCurved,
+                    arrowCurveAmount: shape.arrowCurveAmount,
+                }
+                : { ...shape.options });
+            const oldOptions = snapshot();
             shape.options = { ...shape.options, ...optionChanges };
+            if (headChanges) {
+                if (style.startArrowhead !== undefined) shape.startArrowhead = style.startArrowhead;
+                if (style.endArrowhead !== undefined) shape.endArrowhead = style.endArrowhead;
+            }
             if (typeof w.pushOptionsChangeAction === 'function') {
-                w.pushOptionsChangeAction(shape, oldOptions, { ...shape.options });
+                w.pushOptionsChangeAction(shape, oldOptions, snapshot());
             }
             changed = true;
         }

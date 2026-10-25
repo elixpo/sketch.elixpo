@@ -25,6 +25,7 @@
 import { orderedIds } from './OT.js';
 import { unflattenRecord } from './SceneDoc.js';
 import { applyAppearance, readAppearance, syncOpacityToDom } from '../ShapeAppearance.js';
+import { readArrowheads } from '../ArrowHeads.js';
 
 // Keys the serializer stores in `options` that constructors copy onto the
 // instance (SceneSerializer INSTANCE_OPTION_KEYS). Defaults mirror the
@@ -56,7 +57,7 @@ const PATCHABLE = {
     line: new Set(['startPoint', 'endPoint', 'controlPoint', 'isCurved']),
     arrow: new Set([
         'startPoint', 'endPoint', 'controlPoint1', 'controlPoint2',
-        'arrowOutlineStyle', 'arrowHeadStyle', 'arrowCurved', 'arrowCurveAmount',
+        'arrowOutlineStyle', 'arrowHeadStyle', 'startArrowhead', 'endArrowhead', 'arrowCurved', 'arrowCurveAmount',
         'startAttachmentID', 'startBinding', 'endAttachmentID', 'endBinding',
     ]),
     freehandStroke: new Set(['points', 'rotation']),
@@ -328,6 +329,15 @@ export function createSceneApplier(env) {
                 case 'edges':
                     appearance = true;
                     break;
+                case 'startArrowhead':
+                case 'endArrowhead':
+                case 'arrowHeadStyle': {
+                    // Patched in place; missing keys fall back like on load.
+                    const heads = readArrowheads(data);
+                    shape.startArrowhead = heads.startArrowhead;
+                    shape.endArrowhead = heads.endArrowhead;
+                    break;
+                }
                 case 'startAttachmentID':
                 case 'startBinding':
                 case 'endAttachmentID':

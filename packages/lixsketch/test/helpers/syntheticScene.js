@@ -56,7 +56,7 @@ export function buildSyntheticScene({
                 case 'arrow':
                     data = {
                         ...base, type, startPoint: { x, y }, endPoint: { x: x + 160, y },
-                        options: { ...OPTIONS }, arrowOutlineStyle: 'solid', arrowHeadStyle: 'default',
+                        options: { ...OPTIONS }, arrowOutlineStyle: 'solid', startArrowhead: 'none', endArrowhead: 'arrow',
                         arrowCurved: 'straight', arrowCurveAmount: 50,
                     }
                     if (ids.length > 2) {

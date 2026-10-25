@@ -20,6 +20,7 @@ import { IconShape } from '../shapes/IconShape.js';
 import { clearUndoHistory, pushCanvasResetAction } from './UndoRedo.js';
 import { applyContainerLabel, serializeContainerLabel } from './ShapeLabelState.js';
 import { applySerializedAppearance, serializeAppearance } from './ShapeAppearance.js';
+import { readArrowheads } from './ArrowHeads.js';
 import { LIXSKETCH_EXTENSION, LIXSKETCH_MIME_TYPE, formatDiagnostic, sceneFromFileText, sceneToLixSketch } from './LixSketchFormat.js';
 
 const FORMAT_VERSION = 1;
@@ -239,7 +240,8 @@ function serializeShape(shape) {
                 endPoint: { x: shape.endPoint.x, y: shape.endPoint.y },
                 options: shapeOptions(shape),
                 arrowOutlineStyle: shape.arrowOutlineStyle,
-                arrowHeadStyle: shape.arrowHeadStyle,
+                startArrowhead: shape.startArrowhead || 'none',
+                endArrowhead: shape.endArrowhead || 'arrow',
                 arrowCurved: shape.arrowCurved,
                 arrowCurveAmount: shape.arrowCurveAmount,
             };
@@ -388,11 +390,11 @@ function deserializeShape(data) {
         }
 
         case 'arrow': {
-            const shape = new Arrow(data.startPoint, data.endPoint, data.options || {});
+            // Heads: new start/end keys, or the legacy end-only arrowHeadStyle.
+            const shape = new Arrow(data.startPoint, data.endPoint, { ...(data.options || {}), ...readArrowheads(data) });
             if (data.controlPoint1) shape.controlPoint1 = data.controlPoint1;
             if (data.controlPoint2) shape.controlPoint2 = data.controlPoint2;
             if (data.arrowOutlineStyle) shape.arrowOutlineStyle = data.arrowOutlineStyle;
-            if (data.arrowHeadStyle) shape.arrowHeadStyle = data.arrowHeadStyle;
             if (data.arrowCurved) shape.arrowCurved = data.arrowCurved;
             if (data.arrowCurveAmount) shape.arrowCurveAmount = data.arrowCurveAmount;
             if (data.shapeID) shape.shapeID = data.shapeID;

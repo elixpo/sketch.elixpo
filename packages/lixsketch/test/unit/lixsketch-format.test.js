@@ -70,7 +70,7 @@ function kitchenSink() {
             {
                 ...base, shapeID: 'arrow-1', type: 'arrow', startPoint: { x: 220, y: 105 }, endPoint: { x: 340, y: 120 },
                 options: { stroke: '#e0e0e0', strokeWidth: 2, arrowHeadLength: 22, label: 'Yes', labelOffsetY: -6, elbowX: 280 },
-                arrowOutlineStyle: 'dashed', arrowHeadStyle: 'square', arrowCurved: 'curved', arrowCurveAmount: 80,
+                arrowOutlineStyle: 'dashed', startArrowhead: 'dot', endArrowhead: 'bar', arrowCurved: 'curved', arrowCurveAmount: 80,
                 controlPoint1: { x: 250, y: 60 }, controlPoint2: { x: 300, y: 150 },
                 startAttachmentID: 'box-a', endAttachmentID: 'ellipse-b',
                 startBinding: { shapeID: 'box-a', side: 'right', offset: { x: 0, y: 5 } },
@@ -78,7 +78,7 @@ function kitchenSink() {
             },
             {
                 ...base, shapeID: 'arrow-legacy', type: 'arrow', startPoint: { x: 0, y: 0 }, endPoint: { x: 10, y: 10 },
-                options: {}, arrowOutlineStyle: 'solid', arrowHeadStyle: 'default', arrowCurved: 'elbow', arrowCurveAmount: 50,
+                options: {}, arrowOutlineStyle: 'solid', startArrowhead: 'none', endArrowhead: 'arrow', arrowCurved: 'elbow', arrowCurveAmount: 50,
                 startAttachmentID: 'box-a',
             },
             {
@@ -202,7 +202,7 @@ embed video at 0, 0 size 320x180 { url: "https://www.youtube.com/embed/x" }
         expect(byId.next).toMatchObject({ x: 650, y: 60, options: { strokeDasharray: '2,8', fontFamily: 'lixFont, sans-serif' }, parentFrame: 'f' })
         expect(byId.check).toMatchObject({ type: 'circle', x: 255, y: 330, rx: 55, ry: 55 })
         expect(byId.a1).toMatchObject({
-            startPoint: { x: 400, y: 92.5 }, endPoint: { x: 650, y: 92.5 }, arrowCurved: 'curved', arrowHeadStyle: 'arrow',
+            startPoint: { x: 400, y: 92.5 }, endPoint: { x: 650, y: 92.5 }, arrowCurved: 'curved', startArrowhead: 'none', endArrowhead: 'arrow',
             startAttachmentID: 'login', startBinding: { shapeID: 'login', side: 'right' },
             endAttachmentID: 'next', endBinding: { side: 'left' },
         })
@@ -298,7 +298,12 @@ describe('legacy JSON import', () => {
             const { scene } = lixSketchToScene(text)
             // Legacy records gain the defaults saveScene() writes today …
             expect(scene.shapes.map(s => s.shapeID)).toEqual(legacy.shapes.map(s => s.shapeID))
-            for (const [i, shape] of legacy.shapes.entries()) expect(scene.shapes[i]).toMatchObject(shape)
+            for (const [i, shape] of legacy.shapes.entries()) {
+                // The end-only legacy arrowHeadStyle becomes start/end heads.
+                const { arrowHeadStyle, ...rest } = shape
+                expect(scene.shapes[i]).toMatchObject(rest)
+                if (arrowHeadStyle) expect(scene.shapes[i]).toMatchObject({ startArrowhead: 'none', endArrowhead: 'arrow' })
+            }
             // … and are stable from then on.
             expect(lixSketchToScene(sceneToLixSketch(scene)).scene).toEqual(scene)
         }
