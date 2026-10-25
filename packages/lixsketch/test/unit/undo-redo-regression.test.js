@@ -46,6 +46,7 @@ const {
   pushFrameAttachmentAction,
   pushTransformAction,
   pushAppearanceChangeAction,
+  pushOptionsChangeAction,
   rebindUndoHistory,
   redo,
   setTextReferences,
@@ -432,5 +433,27 @@ describe('appearance undo', () => {
     expect([a.opacity, b.opacity]).toEqual([1, 1])
     redo()
     expect([a.opacity, b.opacity]).toEqual([0.2, 0.2])
+  })
+})
+
+describe('arrowhead undo', () => {
+  beforeEach(() => clearUndoHistory())
+
+  it('restores both heads from an options snapshot, including legacy snapshots', () => {
+    const arrow = { shapeName: 'arrow', options: { stroke: '#000' }, startArrowhead: 'none', endArrowhead: 'arrow', arrowOutlineStyle: 'solid', draw: vi.fn() }
+    const before = { ...arrow.options, arrowOutlineStyle: 'solid', startArrowhead: 'none', endArrowhead: 'arrow' }
+    arrow.startArrowhead = 'bar'
+    arrow.endArrowhead = 'diamond'
+    pushOptionsChangeAction(arrow, before, { ...arrow.options, arrowOutlineStyle: 'solid', startArrowhead: 'bar', endArrowhead: 'diamond' })
+    undo()
+    expect([arrow.startArrowhead, arrow.endArrowhead]).toEqual(['none', 'arrow'])
+    expect(arrow.options).not.toHaveProperty('startArrowhead')
+    redo()
+    expect([arrow.startArrowhead, arrow.endArrowhead]).toEqual(['bar', 'diamond'])
+
+    // Snapshots written before start/end heads only had arrowHeadStyle.
+    pushOptionsChangeAction(arrow, { stroke: '#000', arrowHeadStyle: 'solid' }, { stroke: '#000', startArrowhead: 'bar', endArrowhead: 'diamond' })
+    undo()
+    expect([arrow.startArrowhead, arrow.endArrowhead]).toEqual(['none', 'triangle'])
   })
 })

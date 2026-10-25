@@ -392,3 +392,53 @@ describe('opacity and edges', () => {
         expect(compileLixSketch('lixsketch 1\nrect a at 0, 0 size 10x10 { opacity: 400 }').errors[0].message).toMatch(/0 to 1/)
     })
 })
+
+describe('arrowheads', () => {
+    const src = [
+        'lixsketch 1',
+        'rect a at 0, 0 size 100x50',
+        'rect b at 300, 0 size 100x50',
+        'arrow both from a.right to b.left {',
+        '  startHead: crowfoot_one',
+        '  endHead: crowfoot_one_or_many',
+        '}',
+        'arrow legacy from 0, 200 to 100, 200 { head: solid }',
+        'arrow plain from 0, 300 to 100, 300',
+        '',
+    ].join('\n')
+
+    it('compiles start/end heads and the legacy head property', () => {
+        const { scene, errors } = compileLixSketch(src)
+        expect(errors).toEqual([])
+        const byId = Object.fromEntries(scene.shapes.map(shape => [shape.shapeID, shape]))
+        expect(byId.both).toMatchObject({ startArrowhead: 'crowfoot_one', endArrowhead: 'crowfoot_one_or_many' })
+        expect(byId.legacy).toMatchObject({ startArrowhead: 'none', endArrowhead: 'triangle' })
+        expect(byId.plain).toMatchObject({ startArrowhead: 'none', endArrowhead: 'arrow' })
+        expect(byId.legacy).not.toHaveProperty('arrowHeadStyle')
+    })
+
+    it('round-trips losslessly and writes only non-default heads', () => {
+        const { scene } = compileLixSketch(src)
+        const { text, back } = roundTrip(scene)
+        expect(back).toEqual(scene)
+        expect(text).toContain('startHead: crowfoot_one')
+        expect(text).toContain('endHead: triangle')
+        expect(text).not.toMatch(/\bhead:/)
+    })
+
+    it('rejects unknown heads', () => {
+        const { errors } = compileLixSketch('lixsketch 1\narrow x from 0, 0 to 1, 1 { endHead: spiral }')
+        expect(errors[0].message).toMatch(/one of none, arrow/)
+    })
+
+    it('upgrades legacy scenes on export', () => {
+        const legacy = {
+            format: 'lixsketch', version: 1, name: 'L', shapes: [
+                { shapeID: 'old', type: 'arrow', startPoint: { x: 0, y: 0 }, endPoint: { x: 1, y: 1 }, options: {}, arrowHeadStyle: 'outline', docBlockIds: [], groupId: null, parentFrame: null },
+            ],
+        }
+        const { back } = roundTrip(legacy)
+        expect(back.shapes[0]).toMatchObject({ startArrowhead: 'none', endArrowhead: 'triangle_outline' })
+        expect(back.shapes[0]).not.toHaveProperty('arrowHeadStyle')
+    })
+})

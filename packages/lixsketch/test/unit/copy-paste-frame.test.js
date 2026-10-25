@@ -90,6 +90,16 @@ describe('clipboard appearance', () => {
   })
 })
 
+describe('clipboard arrowheads', () => {
+  it('copies both heads, defaulting legacy arrows', () => {
+    const base = { shapeName: 'arrow', startPoint: { x: 0, y: 0 }, endPoint: { x: 5, y: 5 }, options: {}, parentFrame: null }
+    expect(serializeShape({ ...base, startArrowhead: 'bar', endArrowhead: 'cross' })).toMatchObject({ startArrowhead: 'bar', endArrowhead: 'cross' })
+    const legacy = serializeShape(base)
+    expect(legacy).toMatchObject({ startArrowhead: 'none', endArrowhead: 'arrow' })
+    expect(legacy).not.toHaveProperty('arrowHeadStyle')
+  })
+})
+
 describe('duplicateSelected', () => {
   it('returns no shapes and leaves the clipboard alone without a selection', () => {
     globalThis.window.multiSelection = { selectedShapes: new Set() }

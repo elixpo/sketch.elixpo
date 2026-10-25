@@ -210,6 +210,26 @@ describe('SceneApplier: each op touches only its target', () => {
         expect(env.createShape).not.toHaveBeenCalled();
     });
 
+    it('arrowhead changes patch the arrow in place instead of rebuilding', () => {
+        const doc = baseDoc();
+        const { env, applier } = sceneFrom(doc);
+        const arrow = env.shapes.find((s) => s.shapeID === 'arr');
+        const { next, applied } = step(doc, [{ t: 'update', id: 'arr', set: { startArrowhead: 'dot', endArrowhead: 'triangle' } }]);
+        applier.apply(applied, next);
+        expect(env.shapes.find((s) => s.shapeID === 'arr')).toBe(arrow);
+        expect(env.createShape).not.toHaveBeenCalled();
+        expect(arrow.startArrowhead).toBe('dot');
+        expect(arrow.endArrowhead).toBe('triangle');
+        expect(arrow.draw).toHaveBeenCalled();
+
+        // A legacy client writing the old end-only key still patches in place.
+        const legacy = step(next, [{ t: 'update', id: 'arr', set: { endArrowhead: undefined, arrowHeadStyle: 'outline' } }]);
+        applier.apply(legacy.applied, legacy.next);
+        expect(arrow.endArrowhead).toBe('triangle_outline');
+        expect(arrow.startArrowhead).toBe('dot');
+        expect(env.createShape).not.toHaveBeenCalled();
+    });
+
     it('container size/label changes go through applyLabelState', () => {
         const doc = baseDoc();
         const { env, applier } = sceneFrom(doc);
