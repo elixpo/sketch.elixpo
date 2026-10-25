@@ -72,7 +72,7 @@ body.classList = { contains: () => true }
 
 globalThis.document = {
   addEventListener: vi.fn(),
-  getElementById: () => null,
+  getElementById: id => (id === 'freehand-canvas' ? svgNode : null),
   querySelectorAll: () => [],
   createElementNS: (_namespace, name) => node(name),
   createElement: name => node(name),
@@ -123,6 +123,7 @@ const { Rectangle } = await import('../../src/shapes/Rectangle.js')
 const { Circle } = await import('../../src/shapes/Circle.js')
 const undoRedo = await import('../../src/core/UndoRedo.js')
 const serializer = await import('../../src/core/SceneSerializer.js')
+const copyPaste = await import('../../src/core/CopyPaste.js')
 
 // 20px font -> 10 units per character, 26 units per line.
 const FONT = 20
@@ -467,5 +468,78 @@ describe('serialization', () => {
     expect(aiLabelled.userHeight).toBe(60)
     expect(aiLabelled.height).toBe(heightFor(4))
     expect(circle).toMatchObject({ label: '', rx: 30, ry: 20, userRx: 30, userRy: 20 })
+  })
+})
+
+describe('copy / paste and duplicate', () => {
+  function selectForCopy(selected) {
+    const pasted = []
+    window.multiSelection = {
+      selectedShapes: new Set(selected),
+      clearSelection: vi.fn(),
+      addShape: shape => pasted.push(shape),
+      updateControls: vi.fn(),
+    }
+    return pasted
+  }
+
+  afterAll(() => { delete window.multiSelection })
+
+  it('serializes label state and explicit size for clipboard data', () => {
+    const shape = rect('aaa bbb ccc ddd')
+    shape.labelColor = '#ff8800'
+    shape.labelWrap = false
+    shape.setUserSize(100, 60)
+
+    expect(copyPaste.serializeShape(shape)).toMatchObject({
+      type: 'rectangle',
+      label: 'aaa bbb ccc ddd',
+      labelWrap: false,
+      labelFontSize: FONT,
+      labelColor: '#ff8800',
+      userWidth: 100,
+      userHeight: 60,
+    })
+  })
+
+  it('pastes (and duplicates) rectangles and circles with labels and user size intact', () => {
+    const shape = rect()
+    shape.setLabel('aaa bbb ccc ddd', '#ff8800', FONT)
+    const circle = new Circle(300, 300, 50, 20, { labelFontSize: FONT })
+    circle.setLabel('aaa bbb ccc ddd')
+    shapes.push(circle)
+    const pasted = selectForCopy([shape, circle])
+
+    expect(copyPaste.copySelected()).toBe(true)
+    expect(copyPaste.pasteClipboard()).toBe(true)
+
+    expect(pasted).toHaveLength(2)
+    const [pastedRect, pastedCircle] = pasted
+    expect(pastedRect).not.toBe(shape)
+    expect(pastedRect).toMatchObject({
+      label: 'aaa bbb ccc ddd',
+      labelColor: '#ff8800',
+      labelFontSize: FONT,
+      labelWrap: true,
+      width: 100,
+      height: heightFor(4),
+      userWidth: 100,
+      userHeight: 60,
+    })
+    expect(pastedCircle).toMatchObject({
+      label: 'aaa bbb ccc ddd',
+      rx: circle.rx,
+      ry: circle.ry,
+      userRx: 50,
+      userRy: 20,
+    })
+    // Paste offsets the copy but must not shift it further by re-growing.
+    expect(pastedCircle.x - pastedCircle.rx - (circle.x - circle.rx))
+      .toBeCloseTo(pastedRect.x - shape.x)
+
+    // The copy still shrinks back to the original's explicit size.
+    pastedRect.setLabel('')
+    expect({ w: pastedRect.width, h: pastedRect.height }).toEqual({ w: 100, h: 60 })
+    expect(shape.height).toBe(heightFor(4))
   })
 })
