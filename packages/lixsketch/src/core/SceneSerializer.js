@@ -501,6 +501,45 @@ function deserializeShape(data) {
 }
 
 // ============================================================
+// Per-shape API for incremental collaboration (core/collab/SceneApplier.js)
+// ============================================================
+
+/** Serialize one live shape (same data saveScene writes for it). */
+export function serializeShapeData(shape) {
+    return shape ? serializeShape(shape) : null;
+}
+
+/**
+ * Construct one shape from serialized data, outside a full scene load.
+ * Frame containment and arrow bindings are wired by the caller, because
+ * they reference other live shapes.
+ */
+export function createShapeFromData(data) {
+    const shape = deserializeShape(data);
+    if (!shape) return null;
+    if (data.groupId) shape.groupId = data.groupId;
+    restoreDocBlockLinks(shape, data);
+    restoreShapeMetadata(shape, data);
+    // deserializeShape defers frame drawing to loadScene's reconciliation.
+    if (shape.shapeName === 'frame' && typeof shape.draw === 'function') {
+        try { shape.draw(); } catch (err) { console.warn('[SceneSerializer] frame draw failed:', err); }
+    }
+    return shape;
+}
+
+/** Bind (target) or unbind (target = null) one end of an arrow. */
+export function setArrowBinding(arrow, isStart, target, binding = null) {
+    if (!arrow) return;
+    if (!target) {
+        if (typeof arrow.detachFromShape === 'function') arrow.detachFromShape(isStart);
+        else if (isStart) { arrow.attachedToStart = null; arrow.startAttachment = null; }
+        else { arrow.attachedToEnd = null; arrow.endAttachment = null; }
+        return;
+    }
+    restoreBinding(arrow, isStart, target, binding);
+}
+
+// ============================================================
 // SAVE: Serialize entire scene to .lixsketch JSON
 // ============================================================
 export function saveScene(workspaceName = 'Untitled') {
@@ -1212,5 +1251,9 @@ export function initSceneSerializer() {
         copyAsSVG,
         resetCanvas,
         findText: findTextOnCanvas,
+        // Per-shape API used by live collaboration's incremental applier.
+        createShape: createShapeFromData,
+        serializeShape: serializeShapeData,
+        setArrowBinding,
     };
 }
