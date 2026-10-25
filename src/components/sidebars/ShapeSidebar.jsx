@@ -116,6 +116,12 @@ import { useTranslation } from '@/hooks/useTranslation'
 function LayerControls() {
   const { t } = useTranslation()
   const doLayer = (method) => {
+    // Acts on the whole selection (keeps relative order) when the engine
+    // command bridge is available.
+    if (window.__canvasCommands) {
+      window.__canvasCommands.applyLayerAction(method)
+      return
+    }
     const shape = window.currentShape
     if (!shape || !window.__layerOrder) return
     window.__layerOrder[method](shape)
@@ -143,4 +149,36 @@ function LayerControls() {
   )
 }
 
-export { Divider, LayerControls }
+// Excalidraw's "sloppiness" levels mapped onto RoughJS roughness.
+const SLOPPINESS = [
+  { value: 0, label: 'Architect', path: 'M2 9 C7 9, 13 9, 22 9' },
+  { value: 1.5, label: 'Artist', path: 'M2 10 C6 6, 9 12, 13 8 S19 7, 22 9' },
+  { value: 3, label: 'Cartoonist', path: 'M2 11 C4 4, 7 14, 10 7 S14 13, 17 6 S21 12, 22 8' },
+]
+
+function SloppinessControl({ value, onChange }) {
+  return (
+    <ToolbarButton icon="bx-pen" tooltip="Sloppiness" label="Sloppiness">
+      <p className="mb-2 text-xs uppercase tracking-wider text-text-muted">Sloppiness</p>
+      <div className="flex items-center gap-1">
+        {SLOPPINESS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            title={option.label}
+            aria-label={option.label}
+            aria-pressed={value === option.value}
+            onClick={() => onChange(option.value)}
+            className={`flex h-8 w-11 items-center justify-center rounded-lg transition-all duration-100 ${value === option.value ? 'bg-accent/15 text-accent' : 'text-text-muted hover:bg-surface-hover'}`}
+          >
+            <svg width="24" height="18" viewBox="0 0 24 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+              <path d={option.path} />
+            </svg>
+          </button>
+        ))}
+      </div>
+    </ToolbarButton>
+  )
+}
+
+export { Divider, LayerControls, SloppinessControl }

@@ -2,6 +2,7 @@
   "menu": {
     "open": "Отвори",
     "quickSave": "Бързо запазване",
+    "saveLixSketch": "Запази .lixsketch",
     "saveShare": "Запази и сподели",
     "exportImage": "Експортирай изображение",
     "commands": "Команди",
@@ -104,7 +105,6 @@
     "pan": "Плъзгане",
     "selection": "Избор",
     "rectangle": "Правоъгълник",
-    "diamond": "Ромб",
     "circle": "Кръг",
     "arrow": "Стрелка",
     "line": "Линия",

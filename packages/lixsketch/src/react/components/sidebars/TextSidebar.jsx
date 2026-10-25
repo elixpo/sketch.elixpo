@@ -2,6 +2,7 @@
 
 import useSketchStore, { TOOLS } from '../../store/useSketchStore'
 import ShapeSidebar, { ToolbarButton, Divider, LayerControls } from './ShapeSidebar'
+import { OpacityControl } from './AppearanceControls'
 import { useState, useCallback, useEffect } from 'react'
 import { useTranslation } from '../../hooks/useTranslation'
 import { getStrokeSwatches, getThemeInk } from '../../../utils/themeColors.js'
@@ -159,6 +160,8 @@ export default function TextSidebar() {
           )}
         </div>
       </ToolbarButton>
+      <Divider />
+      <OpacityControl />
       <Divider />
       <LayerControls />
     </ShapeSidebar>

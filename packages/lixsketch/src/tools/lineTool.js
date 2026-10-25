@@ -4,6 +4,8 @@ import { getThemeForeground as getThemeStroke } from '../utils/themeColors.js';
 import { pushCreateAction, pushDeleteAction, pushOptionsChangeAction, pushTransformAction, pushFrameAttachmentAction } from '../core/UndoRedo.js';
 import { updateAttachedArrows as updateArrowsForShape, cleanupAttachments } from './arrowTool.js';
 import { calculateSnap, clearSnapGuides } from '../core/SnapGuides.js';
+import { snapToAngle } from '../core/DrawConstraints.js';
+import { normalizeArrowhead } from '../core/ArrowHeads.js';
 
 
 
@@ -78,6 +80,8 @@ const handleMouseDown = (e) => {
                 strokeWidth: lineStrokeWidth,
                 roughness: lineSktetchRate,
                 bowing: lineEdgeType,
+                startArrowhead: lineStartArrowhead,
+                endArrowhead: lineEndArrowhead,
                 strokeDasharray: lineStrokeStyle === "dashed" ? "5,5" : (lineStrokeStyle === "dotted" ? "2,12" : "")
             }
         );
@@ -212,16 +216,8 @@ const handleMouseMove = (e) => {
     };
     
     if (isDrawingLine && currentLine) {
-        let endX = x, endY = y;
-        if (e.shiftKey) {
-            const dx = x - currentLine.startPoint.x;
-            const dy = y - currentLine.startPoint.y;
-            const angle = Math.atan2(dy, dx);
-            const snapAngle = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            endX = currentLine.startPoint.x + dist * Math.cos(snapAngle);
-            endY = currentLine.startPoint.y + dist * Math.sin(snapAngle);
-        }
+        // Shift snaps to 45° steps
+        const { x: endX, y: endY } = snapToAngle(currentLine.startPoint, { x, y }, e.shiftKey);
         currentLine.endPoint = { x: endX, y: endY };
         currentLine.draw();
         
@@ -502,9 +498,30 @@ window.lineToolSettings = {
     get edge() { return lineEdgeType; },
     set edge(v) { lineEdgeType = v; },
 };
+// Last chosen heads for the next line (none by default, like Excalidraw).
+let lineStartArrowhead = 'none';
+let lineEndArrowhead = 'none';
+
+function rememberLineHeads(changes) {
+    if (changes.startArrowhead !== undefined) lineStartArrowhead = normalizeArrowhead(changes.startArrowhead, 'none');
+    if (changes.endArrowhead !== undefined) lineEndArrowhead = normalizeArrowhead(changes.endArrowhead, 'none');
+}
+
+const lineSnapshot = (line) => ({ ...line.options, startArrowhead: line.startArrowhead, endArrowhead: line.endArrowhead });
+
+window.lineToolSettings = {
+    get startArrowhead() { return lineStartArrowhead; },
+    set startArrowhead(v) { lineStartArrowhead = normalizeArrowhead(v, 'none'); },
+    get endArrowhead() { return lineEndArrowhead; },
+    set endArrowhead(v) { lineEndArrowhead = normalizeArrowhead(v, 'none'); },
+};
+
 window.updateSelectedLineStyle = function(changes) {
+    rememberLineHeads(changes);
     if (currentShape instanceof Line && currentShape.isSelected) {
-        const oldOptions = {...currentShape.options};
+        const oldOptions = lineSnapshot(currentShape);
+        if (changes.startArrowhead !== undefined) currentShape.startArrowhead = lineStartArrowhead;
+        if (changes.endArrowhead !== undefined) currentShape.endArrowhead = lineEndArrowhead;
         if (changes.stroke !== undefined) { lineColor = changes.stroke; currentShape.options.stroke = changes.stroke; }
         if (changes.strokeWidth !== undefined) { lineStrokeWidth = changes.strokeWidth; currentShape.options.strokeWidth = changes.strokeWidth; }
         if (changes.strokeStyle !== undefined) {
@@ -514,7 +531,7 @@ window.updateSelectedLineStyle = function(changes) {
         if (changes.sloppiness !== undefined) { lineSktetchRate = changes.sloppiness; currentShape.options.roughness = changes.sloppiness; }
         if (changes.edge !== undefined) { lineEdgeType = changes.edge; currentShape.options.bowing = changes.edge; }
         currentShape.draw();
-        pushOptionsChangeAction(currentShape, oldOptions);
+        pushOptionsChangeAction(currentShape, oldOptions, lineSnapshot(currentShape));
     } else {
         if (changes.stroke !== undefined) lineColor = changes.stroke;
         if (changes.strokeWidth !== undefined) lineStrokeWidth = changes.strokeWidth;

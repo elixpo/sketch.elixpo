@@ -234,7 +234,7 @@ export default function LandingPage() {
           </>
         )}
         objects={<HeroObjects blob="LIX" disc={['ENGINE', 'SVG']} card={['DOCS', 'BLOCK EDITOR']} />}
-        note={{ value: '250K+', label: 'icons in the built-in library', detail: 'Free and open source' }}
+        note={{ value: '5,000+', label: 'icons in the built-in library', detail: 'Free and open source' }}
       >
         {/* Powered-by chip — credits the lixeditor package shipped on npm */}
         <a

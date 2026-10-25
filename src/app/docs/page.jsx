@@ -137,6 +137,20 @@ export default function DocsPage() {
             <NavItem href="#quickstart" label="Quick Start" icon="bx-rocket" active={activeSection === 'quickstart'} />
 
             <p className="lx-eyebrow !mb-0 !text-[10px] px-3 pt-5 pb-2">Language Reference</p>
+            <Link
+              href="/docs/lixsketch-dsl"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary hover:bg-ink/[0.06] transition-all"
+            >
+              <i className="bx bx-code-curly text-base" />
+              .lixsketch Format &amp; DSL
+            </Link>
+            <Link
+              href="/docs/mermaid"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary hover:bg-ink/[0.06] transition-all"
+            >
+              <i className="bx bx-git-branch text-base" />
+              Mermaid Support
+            </Link>
             <NavItem href="#shapes" label="Shapes" icon="bx-shape-square" active={activeSection === 'shapes'} />
             <NavItem href="#arrows" label="Arrows & Lines" icon="bx-right-arrow-alt" active={activeSection === 'arrows'} />
             <NavItem href="#positioning" label="Positioning" icon="bx-move" active={activeSection === 'positioning'} />

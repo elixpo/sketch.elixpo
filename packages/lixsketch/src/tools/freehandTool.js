@@ -382,11 +382,9 @@ function handleMouseUp(e) {
                 pushFrameAttachmentAction(finalFrame, currentStroke, 'attach', null);
             }
 
-            // Auto-select the drawn stroke and switch to selection tool
-            const drawnShape = currentStroke;
-            if (window.__sketchStoreApi) window.__sketchStoreApi.setActiveTool('select', { afterDraw: true });
-            currentShape = drawnShape;
-            currentShape.selectStroke();
+            // Excalidraw keeps the pen active after a stroke so handwriting
+            // and multi-stroke sketches don't need the tool re-picked each
+            // time (Esc or V returns to selection).
         } else if (currentStroke) {
             // Remove strokes that are too small
             shapes.pop();

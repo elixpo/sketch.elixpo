@@ -1855,6 +1855,10 @@ window.updateSelectedTextStyle = function(changes) {
 // Expose select/deselect for external callers (Selection.js, TextShape.selectShape)
 window.__deselectTextElement = deselectElement;
 window.__selectTextElement = selectElement;
+// Keyboard / double-click bridges: Enter edits a selected text shape and a
+// double-click on empty canvas drops a new text box at the pointer.
+window.__enterTextEditMode = enterEditMode;
+window.__createTextAt = addText;
 
 // React sidebar bridge — text ↔ code conversion
 window.__convertTextToCode = function() {

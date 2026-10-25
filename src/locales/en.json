@@ -2,6 +2,7 @@
   "menu": {
     "open": "Open",
     "quickSave": "Save .lixjson",
+    "saveLixSketch": "Save .lixsketch",
     "saveShare": "Save & Share",
     "exportImage": "Export Image",
     "commands": "Commands",
@@ -110,7 +111,6 @@
     "pan": "Pan",
     "selection": "Selection",
     "rectangle": "Rectangle",
-    "diamond": "Diamond",
     "circle": "Circle",
     "arrow": "Arrow",
     "line": "Line",

@@ -10,6 +10,7 @@ import { beginWorkspaceDeletion } from '@/hooks/useAutoSave'
 import { discardPendingDocChanges } from '@/hooks/useDocAutoSave'
 import { useTranslation } from '@/hooks/useTranslation'
 import { CANVAS_BACKGROUNDS } from '@/utils/canvasBackgrounds'
+import { openSceneFilePicker, saveLixSketchFile } from '@/utils/sceneFiles'
 
 function DangerWarningDialog({ action, busy, error, workspaceName, onCancel, onConfirm }) {
   useEffect(() => {
@@ -269,15 +270,12 @@ export default function AppMenu() {
   // Menu is always accessible (via floating button in view/zen mode)
 
   const handleOpen = () => {
-    const serializer = window.__sceneSerializer
-    if (serializer) {
-      serializer.upload().then((result) => {
-        if (result && result.success) closeMenu()
-        else if (result && result.error) {
-          console.warn('[Open] Invalid scene file:', result.error)
-        }
-      })
-    }
+    void openSceneFilePicker()
+    closeMenu()
+  }
+
+  const handleSaveLixSketch = () => {
+    saveLixSketchFile()
     closeMenu()
   }
 
@@ -292,6 +290,7 @@ export default function AppMenu() {
 
   const actionItems = [
     { label: t('menu.quickSave'), icon: 'bx-check-circle', shortcut: 'Ctrl+S', onClick: handleQuickSave },
+    { label: t('menu.saveLixSketch'), icon: 'bx-code-curly', shortcut: 'Ctrl+Alt+S', onClick: handleSaveLixSketch },
     { label: t('menu.open'), icon: 'bx-folder-open', shortcut: 'Ctrl+O', onClick: handleOpen },
     { label: t('menu.saveShare'), icon: 'bx-save', shortcut: 'Ctrl+Shift+S', onClick: () => { toggleSaveModal(); closeMenu() } },
     { label: t('menu.exportImage'), icon: 'bx-image', shortcut: 'Ctrl+Shift+E', onClick: () => { toggleExportImageModal(); closeMenu() } },
