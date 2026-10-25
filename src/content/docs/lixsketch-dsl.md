@@ -294,8 +294,8 @@ arrow flow from a.right to b.left {
   stroke: #e0e0e0
   strokeWidth: 2
   style: dashed
-  head: solid
-  headLength: 18
+  startHead: dot
+  endHead: triangle
   curve: curved
   curveAmount: 80
   label: "next"
@@ -308,9 +308,10 @@ arrow flow from a.right to b.left {
 | `stroke` | colour | `#fff` | | |
 | `strokeWidth` | number | `2` | | |
 | `style` | keyword | `solid` | `solid` · `dashed` · `dotted` | Outline style of the shaft. |
-| `head` | keyword | `default` | `default` · `square` · `outline` · `solid` | Arrowhead. |
-| `headLength` / `arrowHeadLength` | number | `15` | px | |
-| `arrowHeadAngleDeg` | number | `30` | degrees | |
+| `startHead` | keyword | `none` | see below | Head at the start point. |
+| `endHead` | keyword | `arrow` | see below | Head at the end point. |
+| `head` | keyword | — | legacy | Older files: sets `endHead`. `default` → `arrow`, `outline` → `triangle_outline`, `solid` → `triangle`, `square` → `bar`. |
+| `headLength` / `arrowHeadLength`, `arrowHeadAngleDeg` | number | `15`, `30` | | Kept for older files; heads are sized from `strokeWidth`. |
 | `curve` | keyword | `straight` | `straight` · `curved` · `elbow` | |
 | `curveAmount` | number | `50` | | Bend of `curved` arrows. |
 | `control1`, `control2` | point | none | `{ x, y }` | Cubic control points of a curved arrow. |
@@ -323,6 +324,11 @@ arrow flow from a.right to b.left {
 | `bindStartOffset`, `bindEndOffset` | object | `{ x: 0, y: 0 }` | | Offset along the side (`{ angle }` for `perimeter` on ellipses). |
 
 See [Connections and bindings](#connections-and-bindings).
+
+
+Arrowhead types (`startHead` / `endHead`): `none` · `arrow` (open V) · `bar` · `dot` (filled circle) · `circle` (outline) · `triangle` · `triangle_outline` · `diamond` · `diamond_outline` · `crowfoot_one` · `crowfoot_many` · `crowfoot_one_or_many` · `cross`.
+
+Heads are drawn hand-drawn with the shaft's roughness and seed, always with a solid stroke (a dashed `style` only affects the shaft). Filled heads use the stroke colour, head size grows with `strokeWidth`, and the shaft stops at the back of closed heads.
 
 ### freehand
 
