@@ -39,8 +39,45 @@ export function resetSessionID() {
     _sessionID = null;
 }
 
+// Plain-data deep clone with JSON semantics (drops undefined/functions,
+// non-finite numbers become null) but without building an intermediate
+// string. Called once per shape on every save, so it is on the hot path.
+function clonePlain(value) {
+    if (value === null) return null;
+    switch (typeof value) {
+        case 'number': return Number.isFinite(value) ? value : null;
+        case 'string':
+        case 'boolean': return value;
+        case 'object': {
+            if (Array.isArray(value)) {
+                const out = new Array(value.length);
+                for (let i = 0; i < value.length; i += 1) {
+                    const item = clonePlain(value[i]);
+                    out[i] = item === undefined ? null : item;
+                }
+                return out;
+            }
+            if (typeof value.toJSON === 'function') return JSON.parse(JSON.stringify(value));
+            const out = {};
+            for (const key in value) {
+                if (!Object.prototype.hasOwnProperty.call(value, key)) continue;
+                const item = clonePlain(value[key]);
+                if (item !== undefined) out[key] = item;
+            }
+            return out;
+        }
+        default: return undefined;
+    }
+}
+
 function cloneOptions(options) {
-    return JSON.parse(JSON.stringify(options));
+    return options == null ? {} : clonePlain(options);
+}
+
+// outerHTML of the live node is identical to outerHTML of a deep clone, so
+// skip the clone (a full subtree copy per text/code/icon shape per save).
+function nodeMarkup(node) {
+    return node ? node.outerHTML : '';
 }
 
 function restoreDocBlockLinks(shape, data) {
@@ -52,6 +89,48 @@ function restoreDocBlockLinks(shape, data) {
     if (ids.length) {
         (shape.group || shape.element)?.setAttribute('data-doc-block-ids', JSON.stringify(ids));
     }
+}
+
+function serializeBinding(attachment, legacyRef) {
+    const target = attachment?.shape || legacyRef;
+    if (!target || !target.shapeID) return null;
+    if (!attachment) return { shapeID: target.shapeID };
+    return {
+        shapeID: target.shapeID,
+        side: attachment.side ?? null,
+        offset: attachment.offset ? clonePlain(attachment.offset) : null,
+    };
+}
+
+// Scenes saved before bindings carried side/offset only stored the target
+// id. Infer the side from the saved endpoint (same rule as LixScript's
+// autoAttach) so the arrow keeps following the shape after load.
+function inferBindingSide(shape, point) {
+    if (!point) return 'bottom';
+    const cx = shape.shapeName === 'circle' ? (shape.x || 0) : (shape.x || 0) + (shape.width || 0) / 2;
+    const cy = shape.shapeName === 'circle' ? (shape.y || 0) : (shape.y || 0) + (shape.height || 0) / 2;
+    const dx = point.x - cx;
+    const dy = point.y - cy;
+    if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? 'right' : 'left';
+    return dy > 0 ? 'bottom' : 'top';
+}
+
+function restoreBinding(arrow, isStart, target, binding) {
+    // Real Arrow instances: set the binding directly. The saved endpoint is
+    // already the attached point, so no recompute/redraw is needed here —
+    // that used to cost one extra arrow render per binding on load.
+    if ('attachedToStart' in arrow || 'attachedToEnd' in arrow) {
+        const point = isStart ? arrow.startPoint : arrow.endPoint;
+        const value = {
+            shape: target,
+            side: binding?.side ?? inferBindingSide(target, point),
+            offset: binding?.offset ? { ...binding.offset } : { x: 0, y: 0 },
+        };
+        if (isStart) arrow.attachedToStart = value; else arrow.attachedToEnd = value;
+        return;
+    }
+    const setter = isStart ? arrow.setStartAttachment : arrow.setEndAttachment;
+    if (typeof setter === 'function') setter.call(arrow, target);
 }
 
 // ============================================================
@@ -120,9 +199,13 @@ function serializeShape(shape) {
             };
             if (shape.controlPoint1) data.controlPoint1 = { x: shape.controlPoint1.x, y: shape.controlPoint1.y };
             if (shape.controlPoint2) data.controlPoint2 = { x: shape.controlPoint2.x, y: shape.controlPoint2.y };
-            // Serialize attachments by shapeID
-            if (shape.startAttachment) data.startAttachmentID = shape.startAttachment.shapeID;
-            if (shape.endAttachment) data.endAttachmentID = shape.endAttachment.shapeID;
+            // Serialize bindings by shapeID. The Arrow class keeps them in
+            // `attachedToStart/End` ({ shape, side, offset }); older code
+            // paths used `startAttachment/endAttachment` (shape refs).
+            const start = serializeBinding(shape.attachedToStart, shape.startAttachment);
+            const end = serializeBinding(shape.attachedToEnd, shape.endAttachment);
+            if (start) { data.startAttachmentID = start.shapeID; if (start.side != null) data.startBinding = start; }
+            if (end) { data.endAttachmentID = end.shapeID; if (end.side != null) data.endBinding = end; }
             return data;
         }
 
@@ -130,7 +213,7 @@ function serializeShape(shape) {
             return {
                 ...base,
                 type: 'freehandStroke',
-                points: JSON.parse(JSON.stringify(shape.points)),
+                points: clonePlain(shape.points),
                 rotation: shape.rotation,
                 options: cloneOptions(shape.options),
             };
@@ -168,7 +251,7 @@ function serializeShape(shape) {
                 type: 'text',
                 x: shape.x, y: shape.y,
                 rotation: shape.rotation,
-                groupHTML: group.cloneNode(true).outerHTML,
+                groupHTML: nodeMarkup(group),
             };
         }
 
@@ -179,7 +262,7 @@ function serializeShape(shape) {
                 type: 'code',
                 x: shape.x, y: shape.y,
                 rotation: shape.rotation,
-                groupHTML: group.cloneNode(true).outerHTML,
+                groupHTML: nodeMarkup(group),
             };
         }
 
@@ -213,7 +296,7 @@ function serializeShape(shape) {
                 x: shape.x, y: shape.y,
                 width: shape.width, height: shape.height,
                 rotation: shape.rotation,
-                elementHTML: el.cloneNode(true).outerHTML,
+                elementHTML: nodeMarkup(el),
                 viewboxWidth: parseFloat(el.getAttribute('data-viewbox-width')) || 24,
                 viewboxHeight: parseFloat(el.getAttribute('data-viewbox-height')) || 24,
             };
@@ -288,7 +371,10 @@ function deserializeShape(data) {
             const shape = new Frame(data.x, data.y, data.width, data.height, frameOpts);
             if (data.rotation) shape.rotation = data.rotation;
             if (data.shapeID) shape.shapeID = data.shapeID;
-            shape.draw();
+            // Frames with an id are redrawn once in loadScene's
+            // reconciliation pass after their children are attached;
+            // drawing here too doubled the frame render cost on load.
+            if (!data.shapeID) shape.draw();
             return shape;
         }
 
@@ -528,11 +614,11 @@ export function loadScene(sceneData) {
             if (!arrow) continue;
             if (data.startAttachmentID) {
                 const target = idMap.get(data.startAttachmentID);
-                if (target && arrow.setStartAttachment) arrow.setStartAttachment(target);
+                if (target) restoreBinding(arrow, true, target, data.startBinding);
             }
             if (data.endAttachmentID) {
                 const target = idMap.get(data.endAttachmentID);
-                if (target && arrow.setEndAttachment) arrow.setEndAttachment(target);
+                if (target) restoreBinding(arrow, false, target, data.endBinding);
             }
         }
     }
