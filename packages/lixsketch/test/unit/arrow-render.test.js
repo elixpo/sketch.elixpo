@@ -79,6 +79,24 @@ describe('Arrow rendering', () => {
     expect(arrow.arrowHeadStyle).toBe('triangle') // legacy alias
   })
 
+  it('derives dash and curve from outline/curve fields and keeps them out of options', () => {
+    // Scenes from the DSL / MCP / AI carry only these top-level fields, with
+    // no stored strokeDasharray or control points; the deserializer passes
+    // them to the constructor.
+    const arrow = new Arrow({ x: 0, y: 0 }, { x: 300, y: 100 }, { arrowOutlineStyle: 'dashed', arrowCurved: 'curved', arrowCurveAmount: 60 })
+    expect(arrow.arrowOutlineStyle).toBe('dashed')
+    expect(arrow.options.strokeDasharray).toBe('10,10')
+    expect(arrow.arrowCurved).toBe('curved')
+    expect(arrow.arrowCurveAmount).toBe(60)
+    expect(arrow.controlPoint1).toBeTruthy()
+    expect(arrow.controlPoint2).toBeTruthy()
+    for (const key of ['arrowOutlineStyle', 'arrowCurved', 'arrowCurveAmount', 'controlPoint1', 'controlPoint2']) {
+      expect(arrow.options).not.toHaveProperty(key)
+    }
+    const cp = { x: 10, y: 80 }
+    expect(new Arrow({ x: 0, y: 0 }, { x: 1, y: 1 }, { arrowCurved: 'curved', controlPoint1: cp, controlPoint2: cp }).controlPoint1).toEqual(cp)
+  })
+
   it('uses one stable seed so redraws are identical', () => {
     const arrow = new Arrow({ x: 0, y: 0 }, { x: 150, y: 40 }, { startArrowhead: 'diamond', endArrowhead: 'triangle' })
     const seed = arrow.options.seed

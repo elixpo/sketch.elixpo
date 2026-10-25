@@ -14,7 +14,11 @@ import {
 } from '../core/ArrowHeads.js';
 
 // Instance-level arrow state that must never leak into the RoughJS options.
-const ARROW_INSTANCE_KEYS = ['startArrowhead', 'endArrowhead', 'arrowHeadStyle'];
+// Read by the constructor into instance fields; never kept in `options`.
+const ARROW_INSTANCE_KEYS = [
+    'startArrowhead', 'endArrowhead', 'arrowHeadStyle',
+    'arrowOutlineStyle', 'arrowCurved', 'arrowCurveAmount', 'controlPoint1', 'controlPoint2',
+];
 
 function dashArray(value) {
     if (!value) return undefined;
