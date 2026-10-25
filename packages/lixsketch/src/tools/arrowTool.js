@@ -591,6 +591,7 @@ window.updateSelectedArrowStyle = updateSelectedArrowStyle;
 // Export the cleanup function
 // Expose cleanupAttachments globally for centralized delete
 window.cleanupAttachments = cleanupAttachments;
+window.updateAttachedArrows = window.updateAttachedArrows || updateAttachedArrows;
 
 export {
     handleMouseDown as handleMouseDownArrow,

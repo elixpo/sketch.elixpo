@@ -9,11 +9,16 @@ import { encrypt, decrypt } from '@/utils/encryption'
 import {
   CollabClient,
   PROTOCOL_VERSION,
+  Z_KEY,
   applyOps,
   cloneDoc,
+  createEngineSceneEnv,
+  createSceneApplier,
+  diffRecords,
   diffSceneAgainstDoc,
   docFromScene,
   docToScene,
+  flattenShape,
 } from '@elixpo/lixsketch/src/core/collab/index.js'
 
 import { COLLAB_URL } from '@/lib/env'
@@ -21,8 +26,6 @@ const PING_INTERVAL = 25000
 const RECONNECT_BASE = 1000
 const RECONNECT_MAX = 30000
 const SCENE_SYNC_DEBOUNCE = 80
-const RENDER_DEBOUNCE = 16
-const MAX_RENDER_DEFER = 5000
 const SNAPSHOT_TIMEOUT = 6000
 const PRESENCE_BUFFER_LIMIT = 64 * 1024
 // Plaintext budget per op message: AES-GCM + base64url stays under the
@@ -80,7 +83,8 @@ export default function useCollaboration(roomId) {
   const otRef = useRef(null)
   const initializedRef = useRef(false)
   const renderedDocRef = useRef(null)
-  const remoteDirtyRef = useRef(false)
+  // Shapes whose remote changes wait for my gesture / editor to finish.
+  const deferredIdsRef = useRef(new Set())
   const protocolRef = useRef(1)
   const catchUpInFlightRef = useRef(false)
   const serverLastClientSeqRef = useRef(0)
@@ -101,14 +105,16 @@ export default function useCollaboration(roomId) {
     intentionalClose.current = false
     let disposed = false
     let engineWaitTimer = null
-    let renderTimer = null
-    let renderDeferredSince = 0
     let pointerDown = false
+    let gestureEndTimer = null
+    // Remote ops are applied shape by shape; the full scene load is only
+    // used for the initial join / log-gap snapshot.
+    const applier = createSceneApplier(createEngineSceneEnv({ isPointerDown: () => pointerDown }))
 
     otRef.current = null
     initializedRef.current = false
     renderedDocRef.current = null
-    remoteDirtyRef.current = false
+    deferredIdsRef.current = new Set()
 
     function getRoomKey() {
       let key = useUIStore.getState().sessionEncryptionKey
@@ -320,7 +326,13 @@ export default function useCollaboration(roomId) {
             }
             break
           }
-          handleResult(otRef.current.receive(await decodeOpMessage(msg)), ws)
+          {
+            const decoded = await decodeOpMessage(msg)
+            // Submit my unsent canvas edits first so the remote op is
+            // transformed against them (and can't overwrite them on screen).
+            flushLocalChanges({ atBoundary: false })
+            handleResult(otRef.current.receive(decoded), ws)
+          }
           break
 
         case 'ack':
@@ -336,8 +348,10 @@ export default function useCollaboration(roomId) {
           } else if (otRef.current) {
             const scene = JSON.parse(await decrypt(msg.payload, getRoomKey()))
             const message = { serverSeq: msg.serverSeq, scene }
-            if (initializedRef.current) handleResult(otRef.current.receive(message), ws)
-            else otRef.current.buffer.set(msg.serverSeq, message)
+            if (initializedRef.current) {
+              flushLocalChanges({ atBoundary: false })
+              handleResult(otRef.current.receive(message), ws)
+            } else otRef.current.buffer.set(msg.serverSeq, message)
           }
           if (Number.isInteger(msg.revision)) {
             window.__cloudSceneRevisionSession = roomId
@@ -409,8 +423,7 @@ export default function useCollaboration(roomId) {
           if (initializedRef.current) flushLocalChanges()
           otRef.current.snapshot(doc, seq, serverLastClientSeqRef.current)
           initializedRef.current = true
-          remoteDirtyRef.current = true
-          renderNow({ force: true })
+          renderFullScene()
           console.log('[Collab] Scene synced from peer at seq', seq)
           // The responder may lag the room: fetch the rest from the log
           // (catch-up-done then resends our unacknowledged ops).
@@ -486,10 +499,7 @@ export default function useCollaboration(roomId) {
     }
 
     function handleResult(result, ws) {
-      if (result.changed) {
-        remoteDirtyRef.current = true
-        scheduleRender()
-      }
+      if (result.ops.length) applyToCanvas(result.ops)
       if (result.gap) sendCatchUp(ws)
     }
 
@@ -520,7 +530,7 @@ export default function useCollaboration(roomId) {
       otRef.current.reset(doc, seq)
       renderedDocRef.current = cloneDoc(doc)
       initializedRef.current = true
-      remoteDirtyRef.current = false
+      deferredIdsRef.current.clear()
     }
 
     function sendOps(messages) {
@@ -532,8 +542,7 @@ export default function useCollaboration(roomId) {
           if (payload.length > MAX_OP_PAYLOAD) {
             // The worker would reject it and it would stay pending forever.
             if (otRef.current?.discardPending(message.clientSeq)) {
-              remoteDirtyRef.current = true
-              scheduleRender()
+              resyncShapes(new Set(message.ops.map((op) => op.id)))
             }
             useCollabStore.getState().setError('That change is too large to share live (try a smaller image).')
             return
@@ -560,8 +569,21 @@ export default function useCollaboration(roomId) {
     }
 
     /** Diff the canvas against what we last rendered and submit the user's edits. */
-    function flushLocalChanges() {
+    function localInteractionActive() {
+      if (pointerDown) return true
+      if (document.querySelector('.shape-label-editor')) return true
+      const active = document.activeElement
+      return !!(active && window.svg?.contains(active)
+        && (active.isContentEditable || active.tagName === 'TEXTAREA' || active.tagName === 'INPUT'))
+    }
+
+    // `atBoundary`: called at the end of a user action (undo push, pointerup,
+    // editor close, Ctrl+Z). Before applying a remote op we only flush when
+    // no gesture is in flight, so a half-finished drag or label isn't
+    // published as its own undo step (those shapes are deferred instead).
+    function flushLocalChanges({ atBoundary = true } = {}) {
       if (!isV2() || !initializedRef.current || !otRef.current || applyingRemoteRef.current) return
+      if (!atBoundary && localInteractionActive()) return
       const serializer = window.__sceneSerializer
       if (!serializer || !renderedDocRef.current) return
       const scene = serializer.save(useUIStore.getState().workspaceName || 'Untitled')
@@ -569,46 +591,88 @@ export default function useCollaboration(roomId) {
       if (!ops.length) return
       applyOps(renderedDocRef.current, ops)
       if (useCollabStore.getState().myRole !== 'editor') {
-        // Viewers cannot publish; the next render restores the room state.
-        remoteDirtyRef.current = true
-        scheduleRender()
+        // Viewers cannot publish: put the touched shapes back to the room state.
+        resyncShapes(new Set(ops.map((op) => op.id)))
         return
       }
       sendOps(otRef.current.submit(ops))
-      if (remoteDirtyRef.current) scheduleRender()
     }
 
-    function isEditingOnCanvas() {
-      const active = document.activeElement
-      if (!active || !window.svg) return false
-      const editable = active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable
-      return editable && window.svg.contains(active)
+    function liveShape(id) {
+      return (window.shapes || []).find((shape) => shape?.shapeID === id) || null
     }
 
-    function scheduleRender() {
-      if (renderTimer) return
-      renderTimer = setTimeout(() => {
-        renderTimer = null
-        renderNow()
-      }, RENDER_DEBOUNCE)
+    /** What the canvas currently shows for one shape, as an OT record. */
+    function canvasRecord(id) {
+      const shape = liveShape(id)
+      const serialize = window.__sceneSerializer?.serializeShape
+      if (!shape || typeof serialize !== 'function') return null
+      const data = serialize(shape)
+      if (!data) return null
+      const z = otRef.current?.local.shapes[id]?.[Z_KEY] ?? renderedDocRef.current?.shapes[id]?.[Z_KEY]
+      return { ...flattenShape(data), [Z_KEY]: z }
     }
 
-    /** Materialize the OT doc on the canvas (keeping this viewer's camera). */
-    function renderNow({ force = false } = {}) {
-      if (!remoteDirtyRef.current || !otRef.current) return
+    /**
+     * Apply transformed remote ops to just the shapes they name, then
+     * re-snapshot those shapes so the next local diff only sees the user's
+     * own edits.
+     */
+    function applyToCanvas(ops) {
+      if (!ops.length || !otRef.current || !window.__sceneSerializer) return
+      let result
+      applyingRemoteRef.current = true
+      try {
+        result = applier.apply(ops, otRef.current.local)
+      } catch (error) {
+        console.error('[Collab] Incremental apply failed; reloading the scene:', error)
+        applyingRemoteRef.current = false
+        renderFullScene()
+        return
+      } finally {
+        applyingRemoteRef.current = false
+      }
+      const rendered = renderedDocRef.current
+      for (const id of result.removed) delete rendered.shapes[id]
+      for (const id of result.affected) {
+        const record = canvasRecord(id)
+        if (record) rendered.shapes[id] = record
+        else delete rendered.shapes[id]
+      }
+      for (const id of result.deferred) deferredIdsRef.current.add(id)
+      if (result.removed.size || result.affected.size) {
+        window.dispatchEvent(new CustomEvent('lix-doc-canvas-links-changed'))
+      }
+    }
+
+    /** Bring the listed shapes on the canvas to the client's local doc state. */
+    function resyncShapes(ids) {
+      if (!otRef.current || !ids.size) return
+      const ops = []
+      for (const id of ids) {
+        const target = otRef.current.local.shapes[id]
+        const current = canvasRecord(id)
+        if (!target && current) ops.push({ t: 'delete', id })
+        else if (target && !current) ops.push({ t: 'create', id, data: target })
+        else if (target && current) ops.push(...diffRecords(id, current, target))
+      }
+      applyToCanvas(ops)
+    }
+
+    /** After my gesture / label edit ends: publish it, then catch the shapes up. */
+    function finishGesture() {
+      flushLocalChanges()
+      if (!deferredIdsRef.current.size) return
+      const ids = new Set(deferredIdsRef.current)
+      deferredIdsRef.current.clear()
+      resyncShapes(ids)
+    }
+
+    /** Full scene load from the OT doc: initial join and snapshot fallback only. */
+    function renderFullScene() {
+      if (!otRef.current) return
       const serializer = window.__sceneSerializer
       if (!serializer) return
-      if (!force && (pointerDown || isEditingOnCanvas())) {
-        // Don't rebuild shapes under an in-progress gesture or text edit.
-        if (!renderDeferredSince) renderDeferredSince = Date.now()
-        if (Date.now() - renderDeferredSince < MAX_RENDER_DEFER) {
-          setTimeout(scheduleRender, 120)
-          return
-        }
-      }
-      renderDeferredSince = 0
-      // Capture the user's latest edits first so the reload can't drop them.
-      flushLocalChanges()
       const doc = otRef.current.local
       applyingRemoteRef.current = true
       try {
@@ -618,7 +682,7 @@ export default function useCollaboration(roomId) {
         applyingRemoteRef.current = false
       }
       renderedDocRef.current = cloneDoc(doc)
-      remoteDirtyRef.current = false
+      deferredIdsRef.current.clear()
     }
 
     // Per-client OT undo/redo while in a v2 room (UndoRedo.js calls this).
@@ -629,8 +693,7 @@ export default function useCollaboration(roomId) {
       const messages = kind === 'redo' ? otRef.current.redo() : otRef.current.undo()
       if (messages.length) {
         sendOps(messages)
-        remoteDirtyRef.current = true
-        renderNow({ force: true })
+        applyToCanvas(messages.flatMap((message) => message.ops))
       }
       return true
     }
@@ -869,13 +932,23 @@ export default function useCollaboration(roomId) {
       if (document.visibilityState === 'hidden') sendHidePresence()
     }
 
-    function onPointerDown() { pointerDown = true }
+    function onPointerDown() {
+      pointerDown = true
+      if (gestureEndTimer) { clearTimeout(gestureEndTimer); gestureEndTimer = null }
+    }
     function onPointerUp() {
-      pointerDown = false
-      if (remoteDirtyRef.current) scheduleRender()
+      // Let the engine's own pointerup handlers finalize the gesture first.
+      if (gestureEndTimer) clearTimeout(gestureEndTimer)
+      gestureEndTimer = setTimeout(() => {
+        gestureEndTimer = null
+        pointerDown = false
+        finishGesture()
+      }, 0)
     }
     function onFocusOut() {
-      if (remoteDirtyRef.current) setTimeout(scheduleRender, 0)
+      setTimeout(() => {
+        if (!pointerDown) finishGesture()
+      }, 0)
     }
 
     document.addEventListener('pointermove', onPointerMove, { passive: true })
@@ -935,7 +1008,7 @@ export default function useCollaboration(roomId) {
       if (syncTimerRef.current) clearTimeout(syncTimerRef.current)
       if (reconnectRef.current) clearTimeout(reconnectRef.current)
       if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current)
-      if (renderTimer) clearTimeout(renderTimer)
+      if (gestureEndTimer) clearTimeout(gestureEndTimer)
       if (engineWaitTimer) clearTimeout(engineWaitTimer)
       clearAllCursors()
       if (wsRef.current) {
