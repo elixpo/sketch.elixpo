@@ -23,6 +23,7 @@ import ImageSidebar from '@/components/sidebars/ImageSidebar'
 import PaintBucketSidebar from '@/components/sidebars/PaintBucketSidebar'
 import SVGCanvas from '@/components/canvas/SVGCanvas'
 import CanvasDocConnectors from '@/components/canvas/CanvasDocConnectors'
+import WelcomeHints from '@/components/canvas/WelcomeHints'
 import MultiSelectActions from '@/components/canvas/MultiSelectActions'
 import ImageSourcePicker from '@/components/canvas/ImageSourcePicker'
 import ImageGenerateModal from '@/components/modals/ImageGenerateModal'
@@ -91,6 +92,7 @@ export default function CanvasPage() {
                 can't visually overflow into the docs panel during split. */}
             {canvasVisible && (
               <>
+                <WelcomeHints />
                 <Toolbar />
                 <RectangleSidebar />
                 <CircleSidebar />
