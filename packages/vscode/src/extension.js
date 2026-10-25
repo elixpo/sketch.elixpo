@@ -44,7 +44,7 @@ function activate(context) {
             const fileUri = vscode.Uri.joinPath(targetDir, fileName);
 
             // Write an empty `.lixsketch` document (text DSL, see
-            // docs/lixsketch-format.md). Older JSON .lixsketch files still open.
+            // src/content/docs/lixsketch-dsl.md). Older JSON .lixsketch files still open.
             const emptyScene = [
                 'lixsketch 1',
                 `@name ${JSON.stringify(name.replace('.lixsketch', ''))}`,
