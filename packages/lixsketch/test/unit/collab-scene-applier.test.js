@@ -189,6 +189,27 @@ describe('SceneApplier: each op touches only its target', () => {
         expect(env.updateAttachedArrows).toHaveBeenCalledWith(b);
     });
 
+    it('opacity and edges patch in place instead of rebuilding', () => {
+        const doc = baseDoc();
+        const { env, applier } = sceneFrom(doc);
+        const before = snapshotRefs(env);
+        const { next, applied } = step(doc, [{ t: 'update', id: 'b', set: { opacity: 0.4, edges: 'round' } }]);
+        applier.apply(applied, next);
+        const b = env.shapes.find((s) => s.shapeID === 'b');
+        expect(b).toBe(before.get('b'));
+        expect(env.createShape).not.toHaveBeenCalled();
+        expect(b.opacity).toBe(0.4);
+        expect(b.edges).toBe('round');
+        expect(b.draw).toHaveBeenCalled();
+
+        // Resetting to defaults removes the keys; the shape follows.
+        const reset = step(next, [{ t: 'update', id: 'b', set: { opacity: undefined, edges: undefined } }]);
+        applier.apply(reset.applied, reset.next);
+        expect(b.opacity).toBe(1);
+        expect(b.edges).toBe('sharp');
+        expect(env.createShape).not.toHaveBeenCalled();
+    });
+
     it('container size/label changes go through applyLabelState', () => {
         const doc = baseDoc();
         const { env, applier } = sceneFrom(doc);

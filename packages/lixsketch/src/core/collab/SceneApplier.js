@@ -24,6 +24,7 @@
 
 import { orderedIds } from './OT.js';
 import { unflattenRecord } from './SceneDoc.js';
+import { applyAppearance, readAppearance, syncOpacityToDom } from '../ShapeAppearance.js';
 
 // Keys the serializer stores in `options` that constructors copy onto the
 // instance (SceneSerializer INSTANCE_OPTION_KEYS). Defaults mirror the
@@ -43,7 +44,8 @@ const INSTANCE_OPTION_DEFAULTS = {
     elbowX: null,
 };
 
-const COMMON_KEYS = new Set(['locked', 'link', 'docBlockIds', 'groupId', 'parentFrame', 'type']);
+// opacity / edges are top-level appearance keys (ShapeAppearance.js).
+const COMMON_KEYS = new Set(['locked', 'link', 'docBlockIds', 'groupId', 'parentFrame', 'type', 'opacity', 'edges']);
 const CONTAINER_LABEL_KEYS = new Set(['label', 'labelWrap', 'labelColor', 'labelFontSize', 'width', 'height', 'userWidth', 'userHeight', 'rx', 'ry', 'userRx', 'userRy']);
 
 // Properties each shape type can patch in place. Anything else (e.g. text
@@ -285,6 +287,7 @@ export function createSceneApplier(env) {
         const type = shape.shapeName;
         let containerLabel = false;
         let bindings = false;
+        let appearance = false;
         for (const key of keys) {
             if (key.startsWith('options.')) {
                 const name = key.slice(8);
@@ -321,6 +324,10 @@ export function createSceneApplier(env) {
                     break;
                 case 'type':
                     break;
+                case 'opacity':
+                case 'edges':
+                    appearance = true;
+                    break;
                 case 'startAttachmentID':
                 case 'startBinding':
                 case 'endAttachmentID':
@@ -338,6 +345,9 @@ export function createSceneApplier(env) {
                     }
             }
         }
+        // Set before the redraw so round edges draw with the new outline;
+        // missing keys mean the default (opacity 1, sharp).
+        if (appearance) applyAppearance(shape, readAppearance({ ...data, type: type }), { redraw: false });
         const redraw = typeof env.redraw === 'function' ? env.redraw : (_shape, draw) => draw();
         redraw(shape, () => {
             if (containerLabel && typeof shape.applyLabelState === 'function') {
@@ -346,6 +356,7 @@ export function createSceneApplier(env) {
                 shape.draw();
             }
         });
+        if (appearance) syncOpacityToDom(shape);
         if (bindings) bindArrowFromData(shape, data, live);
         if (type === 'frame' && typeof shape.updateClipPath === 'function') shape.updateClipPath();
         env.updateAttachedArrows(shape);
