@@ -5,6 +5,7 @@ import useSketchStore, { TOOLS, SHORTCUT_MAP } from '@/store/useSketchStore'
 import useUIStore from '@/store/useUIStore'
 import { showToast } from '@/utils/toast'
 import { layerActionForShortcut, nudgeDeltaForKey } from '@elixpo/lixsketch/src/core/CanvasCommands.js'
+import { openSceneFilePicker, saveLixSketchFile } from '@/utils/sceneFiles'
 
 export default function useKeyboardShortcuts() {
   useEffect(() => {
@@ -61,6 +62,11 @@ export default function useKeyboardShortcuts() {
           useUIStore.getState().toggleSaveModal()
           return
         }
+        if (key === 's' && e.altKey && !e.shiftKey) {
+          e.preventDefault()
+          saveLixSketchFile()
+          return
+        }
         if (key === 's' && !e.shiftKey) {
           e.preventDefault()
           const serializer = window.__sceneSerializer
@@ -79,8 +85,7 @@ export default function useKeyboardShortcuts() {
         }
         if (key === 'o') {
           e.preventDefault()
-          const serializer = window.__sceneSerializer
-          if (serializer) serializer.upload()
+          void openSceneFilePicker()
           return
         }
         if (key === 'e' && e.shiftKey) {

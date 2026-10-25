@@ -1443,13 +1443,9 @@ function compileTextMarkup(def, rec, derived, type) {
         if (String(current[k]) !== String(v)) changes[k] = v;
     }
     if (Object.keys(changes).length) markup = patchTextMarkup(markup, changes, type);
-    // Move the group when `at` was edited. Rotated groups are left alone:
-    // their saved x/y is the transformed origin, not the translate() value.
+    // `at` mirrors the markup's translate(); a difference means it was edited.
     const t = readTranslate(markup);
-    const rootTransform = (markup.match(/^\s*<g\b[^>]*>/) || [''])[0];
-    if (t && !/rotate\(/.test(rootTransform) && (t.x !== rec.x || t.y !== rec.y)) {
-        markup = patchTranslate(markup, rec.x, rec.y);
-    }
+    if (t && (t.x !== rec.x || t.y !== rec.y)) markup = patchTranslate(markup, rec.x, rec.y);
     return markup;
 }
 
@@ -1603,10 +1599,17 @@ function emitShape(shape, derivedParents, assetCtx) {
                 dataOverrides.push(['startPoint', shape.startPoint], ['endPoint', shape.endPoint]);
             }
             break;
-        case 'text': case 'code':
-            if (geoOk(['x', 'y'])) geometry = ` at ${fmtNumber(shape.x)}, ${fmtNumber(shape.y)}`;
-            else { geometry = ' at 0, 0'; dataOverrides.push(['x', shape.x], ['y', shape.y]); }
+        case 'text': case 'code': {
+            // `at` is the markup's translate() — the position the editor
+            // renders. A differing saved x/y (e.g. rotated groups) is kept
+            // through data.x / data.y so the record round-trips exactly.
+            const t = typeof shape.groupHTML === 'string' ? readTranslate(shape.groupHTML) : null;
+            const at = t || (geoOk(['x', 'y']) ? { x: shape.x, y: shape.y } : { x: 0, y: 0 });
+            geometry = ` at ${fmtNumber(at.x)}, ${fmtNumber(at.y)}`;
+            if (shape.x !== at.x) dataOverrides.push(['x', shape.x]);
+            if (shape.y !== at.y) dataOverrides.push(['y', shape.y]);
             break;
+        }
         default:
             break;
     }

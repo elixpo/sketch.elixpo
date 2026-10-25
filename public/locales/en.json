@@ -2,6 +2,7 @@
   "menu": {
     "open": "Open",
     "quickSave": "Quick Save",
+    "saveLixSketch": "Save .lixsketch",
     "saveShare": "Save & Share",
     "exportImage": "Export Image",
     "commands": "Commands",

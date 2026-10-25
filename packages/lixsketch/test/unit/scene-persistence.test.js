@@ -98,6 +98,30 @@ describe('scene save/load round-trip (synthetic 2,000 shapes)', () => {
         expect(window.shapes[0].label).toBe('Hello')
     })
 
+    it('exports the canvas as .lixsketch text and opens it again (with scene settings)', async () => {
+        serializer.loadScene(buildSyntheticScene({ total: 60, inlineImages: 1, inlineImageBytes: 2000 }))
+        window.__lixsketchSceneSettings = () => ({ background: '#15111f', theme: 'dark', grid: true })
+        const before = serializer.saveScene('Export')
+        const text = serializer.saveSceneAsLixSketch('Export')
+        expect(text.startsWith('lixsketch 1\n@name "Export"')).toBe(true)
+        expect(text).toContain('@grid true')
+
+        const applied = vi.fn()
+        window.__applyLixsketchSceneSettings = applied
+        const file = { name: 'export.lixsketch', arrayBuffer: async () => new TextEncoder().encode(text).buffer }
+        const result = await serializer.openSceneFile(file)
+        expect(result).toMatchObject({ success: true, kind: 'lixsketch' })
+        expect(applied).toHaveBeenCalledWith({ background: '#15111f', theme: 'dark', grid: true })
+        expect(withoutCreatedAt(serializer.saveScene('Export'))).toEqual({ ...withoutCreatedAt(before), sessionID: expect.any(String) })
+
+        const legacy = { name: 'old.lixjson', arrayBuffer: async () => new TextEncoder().encode(readFileSync(new URL('../fixtures/legacy-v1-scene.json', import.meta.url))).buffer }
+        expect(await serializer.openSceneFile(legacy)).toMatchObject({ success: true, kind: 'json' })
+        const broken = { name: 'bad.lixsketch', arrayBuffer: async () => new TextEncoder().encode('lixsketch 1\nrect a at 0 0\n').buffer }
+        expect(await serializer.openSceneFile(broken)).toMatchObject({ success: false, error: expect.stringMatching(/^bad\.lixsketch:2:13: Expected ','/) })
+        expect(serializer.isSceneFileName('a.LIXSKETCH')).toBe(true)
+        expect(serializer.isSceneFileName('a.png')).toBe(false)
+    })
+
     it('clones options with JSON semantics and does not alias live objects', () => {
         serializer.loadScene({
             format: 'lixsketch', version: 1, shapes: [{

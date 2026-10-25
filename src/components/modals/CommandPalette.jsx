@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import useUIStore from '@/store/useUIStore'
 import useSketchStore, { TOOLS } from '@/store/useSketchStore'
 import { createCanvasSessionId } from '@/utils/canvasSession'
+import { openSceneFilePicker, saveLixSketchFile } from '@/utils/sceneFiles'
 
 const CANVAS_COMMANDS = [
   // --- App ---
@@ -18,9 +19,10 @@ const CANVAS_COMMANDS = [
   // --- Export ---
   { label: 'Export image...', icon: 'bx-image', section: 'Export', shortcut: 'Ctrl+Shift+E', action: 'exportImage' },
   { label: 'Save to disk', icon: 'bx-download', section: 'Export', shortcut: 'Ctrl+S', action: 'save' },
+  { label: 'Save as .lixsketch (readable DSL)', icon: 'bx-code-curly', section: 'Export', shortcut: 'Ctrl+Alt+S', action: 'saveLixSketch' },
   { label: 'Copy to clipboard as PNG', icon: 'bx-clipboard', section: 'Export', shortcut: 'Shift+Alt+C', action: 'copyPNG' },
   { label: 'Copy to clipboard as SVG', icon: 'bx-code-alt', section: 'Export', shortcut: null, action: 'copySVG' },
-  { label: 'Open scene file', icon: 'bx-folder-open', section: 'Export', shortcut: 'Ctrl+O', action: 'load' },
+  { label: 'Open scene file (.lixsketch, .lixjson)', icon: 'bx-folder-open', section: 'Export', shortcut: 'Ctrl+O', action: 'load' },
 
   // --- Editor ---
   { label: 'Undo', icon: 'bx-undo', section: 'Editor', shortcut: 'Ctrl+Z', action: 'undo' },
@@ -234,8 +236,11 @@ export default function CommandPalette() {
         serializer?.download(name)
         break
       }
+      case 'saveLixSketch':
+        saveLixSketchFile()
+        break
       case 'load':
-        serializer?.upload()
+        void openSceneFilePicker()
         break
       case 'exportImage':
         useUIStore.getState().toggleExportImageModal()

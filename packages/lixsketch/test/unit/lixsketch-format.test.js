@@ -87,6 +87,10 @@ function kitchenSink() {
                 options: { stroke: '#302842', outlineStroke: '#302842', fill: '#a98deb', fillStyle: 'hachure', closedFill: true, strokeWidth: 2, thinning: 0.6, strokeStyle: 'dotted' },
             },
             { ...base, shapeID: 'note', type: 'text', x: 40, y: 400, rotation: 0, groupHTML: TEXT_MARKUP },
+            {
+                ...base, shapeID: 'tilted', type: 'text', x: 12.3, y: 15.1, rotation: 30,
+                groupHTML: '<g id="tilted" data-type="text-group" transform="translate(10, 20) rotate(30, 50, 10)"><text fill="#fff" font-size="16"><tspan x="0" dy="0">Tilted</tspan></text></g>',
+            },
             { ...base, shapeID: 'snippet', type: 'code', x: 600, y: 400, rotation: 0, groupHTML: CODE_MARKUP },
             {
                 ...base, shapeID: 'img-inline', type: 'image', x: 10, y: 500, width: 320, height: 200, rotation: 3,
