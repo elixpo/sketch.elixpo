@@ -4,6 +4,7 @@ import { canvasToLocal, localToCanvas } from '../core/CanvasSpace.js';
 import { DEFAULT_SHAPE_LABEL_FONT_SIZE, fitShapeToLabel, measureShapeLabel } from '../core/ShapeLabelLayout.js';
 import { openShapeLabelEditor } from '../core/ShapeLabelEditor.js';
 import { resolveThemeLabelColor } from '../utils/themeColors.js';
+import { cornerRadiusFor, normalizeEdges, normalizeOpacity, roughRectangle } from '../core/ShapeAppearance.js';
 // Rectangle shape class - extracted from drawSquare.js
 // Depends on globals: svg, shapes, rough, currentShape, currentZoom, rc
 
@@ -46,6 +47,14 @@ class Rectangle {
             strokeDasharray: "",
             ...options
         };
+        // Appearance lives on the instance (see core/ShapeAppearance.js), not
+        // in the RoughJS options. Constructors still accept it via options.
+        this.edges = normalizeEdges(options.edges);
+        // Left undefined unless given so new shapes pick up the panel's
+        // default opacity when they are committed (UndoRedo.pushCreateAction).
+        if (options.opacity !== undefined) this.opacity = normalizeOpacity(options.opacity);
+        delete this.options.edges;
+        delete this.options.opacity;
         this.element = null;
         this.isSelected = false;
         this.rotation = 0;
@@ -150,7 +159,7 @@ class Rectangle {
         }
         childrenToRemove.forEach(child => this.group.removeChild(child));
 
-        const optionsString = JSON.stringify(this.options);
+        const optionsString = `${JSON.stringify(this.options)}|${this.edges}`;
         const isInitialDraw = this.element === null;
         const optionsChanged = optionsString !== this._lastDrawn.options;
         const sizeChanged = this.width !== this._lastDrawn.width || this.height !== this._lastDrawn.height;
@@ -160,7 +169,7 @@ class Rectangle {
             if (this.element && this.element.parentNode === this.group) {
                 this.group.removeChild(this.element);
             }
-            const roughRect = rc.rectangle(0, 0, this.width, this.height, this.options);
+            const roughRect = roughRectangle(rc, this.width, this.height, this.options, this.edges);
             this.element = roughRect;
             this.group.appendChild(roughRect);
 
@@ -182,6 +191,7 @@ class Rectangle {
         this._hitArea.setAttribute('y', 0);
         this._hitArea.setAttribute('width', this.width);
         this._hitArea.setAttribute('height', this.height);
+        this._hitArea.setAttribute('rx', cornerRadiusFor(this));
 
         // Shading / gradient overlay
         this._updateShade();
@@ -269,7 +279,7 @@ class Rectangle {
         this._shadeRect.setAttribute('width', this.width);
         this._shadeRect.setAttribute('height', this.height);
         this._shadeRect.setAttribute('fill', `url(#${gradId})`);
-        this._shadeRect.setAttribute('rx', 2);
+        this._shadeRect.setAttribute('rx', Math.max(2, cornerRadiusFor(this)));
 
         // Insert after rough element
         if (this._shadeRect.parentNode === this.group) this.group.removeChild(this._shadeRect);

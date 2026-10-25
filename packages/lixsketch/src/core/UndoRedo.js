@@ -1,5 +1,6 @@
 /* eslint-disable */
 // Undo/Redo system - copied from undoAndRedo.js
+import { appearanceEquals, applyAppearance, captureAppearance, initNewShapeAppearance } from './ShapeAppearance.js';
 
 // Stacks for undo/redo
 const undoStack = [];
@@ -51,6 +52,10 @@ export function updateSelectedElement(element) {
 
 // Call this after creating a new shape (e.g., Rectangle)
 export function pushCreateAction(shape, meta = null) {
+    // New shapes take the panel's current opacity (text tool passes a
+    // { type: 'text', element } wrapper).
+    const created = shape && shape.type === 'text' && shape.element ? shape.element : shape;
+    if (created && created.group) initNewShapeAppearance(created);
     const action = {
         type: 'create',
         shape: shape
@@ -545,6 +550,21 @@ export function captureLabelState(shape) {
 }
 
 /** Record a bound-label edit (text, color, font size, wrap). */
+/** One undo step for an opacity / edges change on a shape. */
+export function pushAppearanceChangeAction(shape, oldState, newState = null) {
+    if (!shape) return;
+    const next = newState || captureAppearance(shape);
+    if (appearanceEquals(oldState, next)) return;
+    undoStack.push({
+        type: 'appearanceChange',
+        shape,
+        oldState: { ...oldState },
+        newState: { ...next },
+    });
+    redoStack.length = 0;
+    notifyCollaboration();
+}
+
 export function pushLabelChangeAction(shape, oldState, newState = null) {
     if (!shape) return;
     undoStack.push({
@@ -713,6 +733,13 @@ export function undo() {
 
     if (action.type === 'labelChange') {
         applyLabelSnapshot(action.shape, action.oldState);
+        redoStack.push(action);
+        notifyCollaboration();
+        return;
+    }
+
+    if (action.type === 'appearanceChange') {
+        applyAppearance(action.shape, action.oldState);
         redoStack.push(action);
         notifyCollaboration();
         return;
@@ -1259,6 +1286,13 @@ export function redo() {
         return;
     }
 
+    if (action.type === 'appearanceChange') {
+        applyAppearance(action.shape, action.newState);
+        undoStack.push(action);
+        notifyCollaboration();
+        return;
+    }
+
     if (action.type === 'frameTransform') {
         // Handle frame transformation redo
         action.shape.x = action.newPos.x;
@@ -1771,6 +1805,7 @@ window.rebindUndoHistory = rebindUndoHistory;
 window.pushDeleteActionWithAttachments = pushDeleteActionWithAttachments;
 window.pushTransformAction = pushTransformAction;
 window.pushOptionsChangeAction = pushOptionsChangeAction;
+window.pushAppearanceChangeAction = pushAppearanceChangeAction;
 window.pushCreateActionWithAttachments = pushCreateActionWithAttachments;
 window.undo = undo;
 window.redo = redo;

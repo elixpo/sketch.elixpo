@@ -17,6 +17,7 @@ import { isAllowedImage, isAllowedImageDataUrl } from '../utils/allowedImageType
 import { compressImage } from '../utils/imageCompressor.js';
 import { IconShape } from '../shapes/IconShape.js';
 import { applyContainerLabel, serializeContainerLabel } from './ShapeLabelState.js';
+import { applySerializedAppearance, serializeAppearance } from './ShapeAppearance.js';
 
 // Clipboard storage
 let clipboard = null; // { shapes: [...clonedData], centerX, centerY }
@@ -49,6 +50,12 @@ function cloneOptions(options) {
 // SERIALIZE: Extract copyable data from a shape
 // ============================================================
 export function serializeShape(shape, visited = new Set()) {
+    const data = serializeShapeGeometry(shape, visited);
+    // Opacity / edges ride along with every shape (defaults omitted).
+    return data ? { ...data, ...serializeAppearance(shape) } : data;
+}
+
+function serializeShapeGeometry(shape, visited) {
     if (!shape || visited.has(shape)) return null;
     visited.add(shape);
     switch (shape.shapeName) {
@@ -253,6 +260,12 @@ function getShapeCenter(data) {
 // DESERIALIZE: Create a new shape from copied data at offset
 // ============================================================
 function createShapeFromData(data, offsetX, offsetY) {
+    const shape = createShapeGeometryFromData(data, offsetX, offsetY);
+    if (shape) applySerializedAppearance(shape, data);
+    return shape;
+}
+
+function createShapeGeometryFromData(data, offsetX, offsetY) {
     const svgEl = getSVGElement();
     if (!svgEl) return null;
 

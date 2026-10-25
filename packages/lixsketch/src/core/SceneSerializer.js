@@ -19,6 +19,7 @@ import { ImageShape } from '../shapes/ImageShape.js';
 import { IconShape } from '../shapes/IconShape.js';
 import { clearUndoHistory, pushCanvasResetAction } from './UndoRedo.js';
 import { applyContainerLabel, serializeContainerLabel } from './ShapeLabelState.js';
+import { applySerializedAppearance, serializeAppearance } from './ShapeAppearance.js';
 import { LIXSKETCH_EXTENSION, LIXSKETCH_MIME_TYPE, formatDiagnostic, sceneFromFileText, sceneToLixSketch } from './LixSketchFormat.js';
 
 const FORMAT_VERSION = 1;
@@ -84,6 +85,8 @@ function nodeMarkup(node) {
 function restoreShapeMetadata(shape, data) {
     if (data.locked) shape.locked = true;
     if (typeof data.link === 'string' && data.link) shape.link = data.link;
+    // Opacity / edges; missing fields mean opacity 1 and sharp edges.
+    applySerializedAppearance(shape, data);
 }
 
 function restoreDocBlockLinks(shape, data) {
@@ -192,6 +195,7 @@ function serializeShape(shape) {
     // Optional editor metadata, persisted only when set.
     if (shape.locked) base.locked = true;
     if (typeof shape.link === 'string' && shape.link) base.link = shape.link;
+    Object.assign(base, serializeAppearance(shape));
 
     switch (shape.shapeName) {
         case 'rectangle':
