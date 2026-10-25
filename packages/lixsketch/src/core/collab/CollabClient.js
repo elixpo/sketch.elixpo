@@ -7,10 +7,11 @@
  *   pending    - this client's ops that are sent but not yet sequenced
  *   local      - what the user sees: confirmed + pending
  *
- * Incoming server ops are transformed against the pending ops (they are
- * earlier in server order than anything still pending), so `local` always
- * equals `confirmed + pending` and every client converges once its pending
- * queue drains.
+ * Incoming server ops are transformed against the raw pending ops (they
+ * are earlier in server order than anything still pending), so `local`
+ * always equals `confirmed + pending` and every client converges once its
+ * pending queue drains. Pending ops themselves are never rewritten: they
+ * are already on the wire and every peer applies them verbatim.
  *
  * Undo/redo only ever contain this client's own changes. Each stack entry
  * holds the inverse ops; every remote op that is applied afterwards is
@@ -20,13 +21,16 @@
  */
 
 import {
+    applyOp,
     applyOps,
     cloneDoc,
     diffDocs,
     emptyDoc,
     invertBatch,
     isNoop,
+    materialize,
     materializeAndApply,
+    transform,
     transformBatch,
 } from './OT.js';
 import { diffSceneAgainstDoc } from './SceneDoc.js';
@@ -209,14 +213,26 @@ export class CollabClient {
         else if (message.doc) ops = diffDocs(this.confirmed, message.doc);
         applyOps(this.confirmed, ops);
 
-        // Remote op is earlier in server order than every pending op.
-        let remote = ops;
-        for (const entry of this.pending) {
-            const [r2, p2] = transformBatch(remote, entry.ops);
-            remote = r2;
-            entry.ops = p2;
+        // The remote op is earlier in server order than every pending op.
+        // Fold each remote op across the RAW pending ops: those exact ops
+        // were sent and will be applied verbatim at their server position,
+        // so they must never be rewritten (TP1 then gives
+        // confirmed + S + pending == confirmed + pending + S').
+        const applied = [];
+        for (const remote of ops) {
+            let op = remote;
+            for (const entry of this.pending) {
+                for (const mine of entry.ops) {
+                    op = transform(op, mine, false);
+                    if (isNoop(op)) break;
+                }
+                if (isNoop(op)) break;
+            }
+            const m = materialize(this.local, op);
+            if (isNoop(m)) continue;
+            applyOp(this.local, m);
+            applied.push(m);
         }
-        const applied = materializeAndApply(this.local, remote);
         this._transformHistory(applied);
         this.lastSeq = seq;
         return { changed: applied.length > 0, gap: false, ops: applied };
@@ -245,8 +261,8 @@ export class CollabClient {
         this.lastSeq = seq;
         this.pending = this.pending.filter((entry) => entry.clientSeq > serverLastClientSeq);
         this.local = cloneDoc(this.confirmed);
-        for (const entry of this.pending) entry.ops = materializeAndApply(this.local, entry.ops);
-        this.pending = this.pending.filter((entry) => entry.ops.length > 0);
+        // Unsequenced ops stay byte-for-byte what we will resend.
+        for (const entry of this.pending) applyOps(this.local, entry.ops);
         this._transformHistory(diffDocs(before, this.local).filter((op) => !isNoop(op)));
         for (const key of [...this.buffer.keys()]) if (key <= seq) this.buffer.delete(key);
         if (this.buffer.has(this.lastSeq + 1)) {
