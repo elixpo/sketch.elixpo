@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { getThemeInk, isThemeOwnedColor } from '@elixpo/lixsketch/src/utils/themeColors.js'
 
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false)
@@ -154,6 +155,50 @@ function RoughBullet() {
 }
 
 // ── RoughJS LixScript preview (matches actual canvas rendering) ───────────────
+// Site pages are light, so previews draw like the light canvas: theme-default
+// colors (white, near-white greys) become the canvas ink, and fills that were
+// dark surfaces on the old dark preview become a light surface. Brand colors
+// are left as written.
+const PREVIEW_BG = '#ffffff'
+const PREVIEW_INK = getThemeInk('light')
+const PREVIEW_MUTED = '#5d5d66'
+const PREVIEW_SURFACE = '#f1f0ee'
+
+function luminance(color) {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(color || '').trim())
+  if (!m) return null
+  const hex = m[1].length === 3 ? m[1].replace(/./g, (c) => c + c) : m[1]
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+/** Stroke / text color on the light preview. */
+function previewInk(color, fallback = PREVIEW_INK) {
+  if (!color) return fallback
+  return isThemeOwnedColor(color) ? PREVIEW_INK : color
+}
+
+/** Shape fill on the light preview: old dark surfaces become light. */
+function previewFill(fill) {
+  if (!fill || fill === 'transparent' || fill === 'none') return 'transparent'
+  const lum = luminance(fill)
+  return lum !== null && lum < 0.2 ? PREVIEW_SURFACE : fill
+}
+
+/**
+ * Label color. On a brand-colored fill the author's color is kept (e.g.
+ * white on blue); without one, pick white or ink by the fill's lightness.
+ * Unfilled shapes and the light surface use the light-theme mapping.
+ */
+function previewLabel(color, fill, fallback = PREVIEW_INK) {
+  if (fill && fill !== 'transparent' && fill !== PREVIEW_SURFACE) {
+    if (color) return color
+    const lum = luminance(fill)
+    return lum !== null && lum < 0.5 ? '#ffffff' : PREVIEW_INK
+  }
+  return previewInk(color, fallback)
+}
+
 function RoughLixScriptCanvas({ parsed }) {
   const canvasRef = useRef(null)
   const containerRef = useRef(null)
@@ -247,7 +292,7 @@ function RoughLixScriptCanvas({ parsed }) {
       const rc = rough.canvas(canvas)
 
       // Background color for label cutout effect
-      const BG = '#0a0a12'
+      const BG = PREVIEW_BG
       const LABEL_PAD_X = 6
       const LABEL_PAD_Y = 3
 
@@ -255,7 +300,9 @@ function RoughLixScriptCanvas({ parsed }) {
        * Draw text with background padding. Supports multiline word-wrap
        * when maxWidth is provided (used for labels inside shapes).
        */
-      function drawLabel(text, x, y, font, color, align, baseline, maxWidth) {
+      // `bg` is the cut-out behind the text: the shape's fill for labels
+      // inside filled shapes, the preview background otherwise.
+      function drawLabel(text, x, y, font, color, align, baseline, maxWidth, bg = BG) {
         ctx.save()
         ctx.font = font
         ctx.textAlign = align || 'center'
@@ -301,7 +348,7 @@ function RoughLixScriptCanvas({ parsed }) {
         else if (baseline === 'bottom') bgY = y - totalTextH - LABEL_PAD_Y
 
         // Draw background
-        ctx.fillStyle = BG
+        ctx.fillStyle = bg
         ctx.fillRect(bgX, bgY, maxLineW + LABEL_PAD_X * 2, totalTextH + LABEL_PAD_Y * 2)
 
         // Draw each line
@@ -338,9 +385,9 @@ function RoughLixScriptCanvas({ parsed }) {
       // Draw each shape with RoughJS
       for (const def of sorted) {
         const props = def.props || {}
-        const stroke = props.stroke || '#fff'
+        const stroke = previewInk(props.stroke)
         const sw = props.strokeWidth || 2
-        const fill = props.fill || 'transparent'
+        const fill = previewFill(props.fill)
         const roughness = 1.5
 
         switch (def.type) {
@@ -354,7 +401,8 @@ function RoughLixScriptCanvas({ parsed }) {
             if (props.label) {
               drawLabel(props.label, x + w / 2, y + h / 2,
                 `${props.labelFontSize || 14}px lixFont, sans-serif`,
-                props.labelColor || '#e0e0e0', 'center', 'middle', w)
+                previewLabel(props.labelColor, fill), 'center', 'middle', w,
+                fill !== 'transparent' ? fill : BG)
             }
             break
           }
@@ -371,7 +419,8 @@ function RoughLixScriptCanvas({ parsed }) {
             if (props.label) {
               drawLabel(props.label, cx, cy,
                 `${props.labelFontSize || 14}px lixFont, sans-serif`,
-                props.labelColor || '#e0e0e0', 'center', 'middle', w * 0.85)
+                previewLabel(props.labelColor, fill), 'center', 'middle', w * 0.85,
+                fill !== 'transparent' ? fill : BG)
             }
             break
           }
@@ -380,7 +429,7 @@ function RoughLixScriptCanvas({ parsed }) {
             const content = props.content || props.text || 'Text'
             drawLabel(content, def.x || 0, def.y || 0,
               `${props.fontSize || 16}px lixFont, sans-serif`,
-              props.color || props.fill || '#fff', 'left', 'top')
+              previewInk(props.color || props.fill), 'left', 'top')
             break
           }
 
@@ -442,7 +491,7 @@ function RoughLixScriptCanvas({ parsed }) {
                 const ly = 0.25 * from.y + 0.5 * cpY + 0.25 * toOrig.y
                 drawLabel(props.label, lx, ly,
                   '11px lixFont, sans-serif',
-                  props.labelColor || '#a0a0b0', 'center', 'middle')
+                  previewInk(props.labelColor, PREVIEW_MUTED), 'center', 'middle')
               }
             } else {
               // Straight arrow
@@ -479,7 +528,7 @@ function RoughLixScriptCanvas({ parsed }) {
                 const ly = (from.y + toOrig.y) / 2
                 drawLabel(props.label, lx, ly,
                   '11px lixFont, sans-serif',
-                  props.labelColor || '#a0a0b0', 'center', 'middle')
+                  previewInk(props.labelColor, PREVIEW_MUTED), 'center', 'middle')
               }
             }
             break
@@ -503,7 +552,7 @@ function RoughLixScriptCanvas({ parsed }) {
             // Draw filled background if specified
             if (props.fillStyle === 'solid' && props.fillColor) {
               ctx.save()
-              ctx.fillStyle = props.fillColor
+              ctx.fillStyle = previewFill(props.fillColor)
               ctx.fillRect(x, y, w, h)
               ctx.restore()
             }
@@ -530,7 +579,7 @@ function RoughLixScriptCanvas({ parsed }) {
             }
             // Draw placeholder border
             rc.rectangle(x, y, w, h, {
-              stroke: '#555',
+              stroke: '#8b8b94',
               strokeWidth: 0.8,
               roughness: 1,
               bowing: 0.5,
@@ -542,7 +591,7 @@ function RoughLixScriptCanvas({ parsed }) {
           case 'icon': {
             const x = def.x || 0, y = def.y || 0
             const size = def.width || 32
-            const color = props.color || props.fill || '#ffffff'
+            const color = previewInk(props.color || props.fill)
             const svgContent = props.svg || ''
             if (svgContent) {
               // Parse inline SVG and draw paths
@@ -672,7 +721,7 @@ function RoughLixScriptCanvas({ parsed }) {
   }, [parsed])
 
   return (
-    <div ref={containerRef} className="bg-[#0a0a12] p-6 flex items-center justify-center overflow-auto lixscript-preview">
+    <div ref={containerRef} className="bg-white p-6 flex items-center justify-center overflow-auto lixscript-preview">
       <canvas ref={canvasRef} />
     </div>
   )
@@ -745,7 +794,7 @@ function LixScriptBlock({ code }) {
       {showPreview && <RoughLixScriptCanvas parsed={parsedData} />}
 
       {tab === 'preview' && !parsedData && !parseError && (
-        <div className="bg-[#0a0a12] p-8 flex items-center justify-center min-h-48">
+        <div className="bg-white p-8 flex items-center justify-center min-h-48">
           <div className="flex items-center gap-2 text-muted text-xs">
             <div className="w-4 h-4 border border-lx-blue/40 border-t-transparent rounded-full animate-spin" />
             Rendering diagram...
@@ -754,7 +803,7 @@ function LixScriptBlock({ code }) {
       )}
 
       {tab === 'preview' && parseError && (
-        <div className="bg-[#0a0a12] p-8 flex items-center justify-center min-h-48">
+        <div className="bg-white p-8 flex items-center justify-center min-h-48">
           <div className="text-center text-muted text-xs">
             <i className="bx bx-shape-square text-2xl text-lx-blue/30 mb-2" />
             <p>Preview unavailable — switch to Code tab to view the LixScript source.</p>
