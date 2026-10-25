@@ -27,7 +27,8 @@
  * saveScene(), `compile(sceneToLixSketch(scene))` deep-equals `scene`.
  *
  * The full grammar (EBNF) and property reference live in
- * docs/lixsketch-format.md. This module has no DOM dependency.
+ * src/content/docs/lixsketch-dsl.md (published at /docs/lixsketch-dsl).
+ * This module has no DOM dependency.
  */
 
 import { ASSET_REF_PREFIX, assetIdFor, inlineAssets } from './ScenePersistence.js';

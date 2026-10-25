@@ -30,9 +30,26 @@ const ALIGN_THRESHOLD = 30;
 // MERMAID PARSER
 // ============================================================
 
+// Mermaid diagram types LixSketch does not render. Without this check their
+// source was parsed as flowchart text and produced boxes containing raw
+// syntax; now the parser reports them as unsupported (null).
+export const UNSUPPORTED_MERMAID_TYPES = [
+    'classDiagram', 'classDiagram-v2', 'stateDiagram', 'stateDiagram-v2', 'gantt', 'journey',
+    'gitGraph', 'mindmap', 'timeline', 'quadrantChart', 'requirementDiagram', 'C4Context',
+    'C4Container', 'C4Component', 'C4Dynamic', 'C4Deployment', 'sankey-beta', 'block-beta',
+    'packet-beta', 'architecture-beta', 'kanban', 'radar-beta', 'treemap-beta', 'zenuml',
+];
+
+export function unsupportedMermaidType(src) {
+    const first = String(src || '').split('\n').map(l => l.trim()).find(l => l && !l.startsWith('%%')) || '';
+    const keyword = first.split(/\s+/)[0].toLowerCase();
+    return UNSUPPORTED_MERMAID_TYPES.find(type => type.toLowerCase() === keyword) || null;
+}
+
 export function parseMermaid(src) {
     const lines = src.trim().split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('%%'));
     if (lines.length === 0) return null;
+    if (unsupportedMermaidType(src)) return null;
 
     const headerMatch = lines[0].match(/^(graph|flowchart)\s+(TD|TB|LR|RL|BT)/i);
     const direction = headerMatch ? headerMatch[2].toUpperCase() : 'TD';
@@ -257,6 +274,7 @@ export function parseMermaid(src) {
                 if (style.fill) node.fill = style.fill;
                 if (style.stroke) node.stroke = style.stroke;
                 if (style.strokeWidth) node.strokeWidth = style.strokeWidth;
+                if (style.labelColor) node.labelColor = style.labelColor;
             }
         }
     }

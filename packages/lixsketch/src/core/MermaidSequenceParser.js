@@ -44,10 +44,18 @@ export function parseSequenceDiagram(src) {
     let title = '';
     let autoNumber = false;
     let msgIndex = 0;
+    // `participant A as Alice`: messages use the id (A), boxes show the
+    // alias (Alice). Map ids to display names so both refer to one box.
+    const aliases = new Map();
+
+    function resolveName(name) {
+        const trimmed = (name || '').trim();
+        return aliases.get(trimmed) || trimmed;
+    }
 
     function ensureParticipant(name) {
         if (!name) return;
-        const trimmed = name.trim();
+        const trimmed = resolveName(name);
         if (!trimmed) return;
         if (!participantSet.has(trimmed)) {
             participantSet.add(trimmed);
@@ -58,9 +66,9 @@ export function parseSequenceDiagram(src) {
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
 
-        // Title
-        if (line.match(/^title\s*:/i)) {
-            title = line.replace(/^title\s*:\s*/i, '').trim();
+        // Title (`title: Text` or `title Text`)
+        if (line.match(/^title(\s*:|\s+)/i)) {
+            title = line.replace(/^title\s*:?\s*/i, '').trim();
             continue;
         }
 
@@ -74,8 +82,9 @@ export function parseSequenceDiagram(src) {
         const partMatch = line.match(/^(participant|actor)\s+(.+?)(?:\s+as\s+(.+))?$/i);
         if (partMatch) {
             const type = partMatch[1].toLowerCase();
-            const rawName = partMatch[3] || partMatch[2];
-            const name = rawName.trim();
+            const id = partMatch[2].trim();
+            const name = (partMatch[3] || partMatch[2]).trim();
+            if (partMatch[3]) aliases.set(id, name);
             if (!participantSet.has(name)) {
                 participantSet.add(name);
                 participants.push({ name, type });
@@ -87,7 +96,7 @@ export function parseSequenceDiagram(src) {
         const noteMatch = line.match(/^Note\s+(left of|right of|over)\s+([^:]+?):\s*(.+)$/i);
         if (noteMatch) {
             const position = noteMatch[1].toLowerCase();
-            const targets = noteMatch[2].split(',').map(s => s.trim());
+            const targets = noteMatch[2].split(',').map(s => resolveName(s));
             const text = noteMatch[3].trim();
             targets.forEach(t => ensureParticipant(t));
             notes.push({
@@ -174,8 +183,8 @@ export function parseSequenceDiagram(src) {
             msgIndex++;
 
             messages.push({
-                from,
-                to,
+                from: resolveName(from),
+                to: resolveName(to),
                 text,
                 number: autoNumber ? msgIndex : null,
                 ...arrowType,
