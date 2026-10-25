@@ -18,6 +18,7 @@ import { CodeShape } from '../shapes/CodeShape.js';
 import { ImageShape } from '../shapes/ImageShape.js';
 import { IconShape } from '../shapes/IconShape.js';
 import { clearUndoHistory, pushCanvasResetAction } from './UndoRedo.js';
+import { applyContainerLabel, serializeContainerLabel } from './ShapeLabelState.js';
 
 const FORMAT_VERSION = 1;
 const GZIP_MAGIC = [0x1f, 0x8b];
@@ -78,6 +79,7 @@ function serializeShape(shape) {
                 type: 'rectangle',
                 x: shape.x, y: shape.y,
                 width: shape.width, height: shape.height,
+                ...serializeContainerLabel(shape),
                 rotation: shape.rotation,
                 options: cloneOptions(shape.options),
             };
@@ -88,6 +90,7 @@ function serializeShape(shape) {
                 type: 'circle',
                 x: shape.x, y: shape.y,
                 rx: shape.rx, ry: shape.ry,
+                ...serializeContainerLabel(shape),
                 rotation: shape.rotation,
                 options: cloneOptions(shape.options),
             };
@@ -233,6 +236,7 @@ function deserializeShape(data) {
     switch (data.type) {
         case 'rectangle': {
             const shape = new Rectangle(data.x, data.y, data.width, data.height, data.options || {});
+            applyContainerLabel(shape, data);
             if (data.rotation) shape.rotation = data.rotation;
             if (data.shapeID) shape.shapeID = data.shapeID;
             return shape;
@@ -240,6 +244,7 @@ function deserializeShape(data) {
 
         case 'circle': {
             const shape = new Circle(data.x, data.y, data.rx, data.ry, data.options || {});
+            applyContainerLabel(shape, data);
             if (data.rotation) shape.rotation = data.rotation;
             if (data.shapeID) shape.shapeID = data.shapeID;
             return shape;

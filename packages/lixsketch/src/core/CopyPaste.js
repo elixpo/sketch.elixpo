@@ -16,6 +16,7 @@ import { ImageShape } from '../shapes/ImageShape.js';
 import { isAllowedImage, isAllowedImageDataUrl } from '../utils/allowedImageTypes.js';
 import { compressImage } from '../utils/imageCompressor.js';
 import { IconShape } from '../shapes/IconShape.js';
+import { applyContainerLabel, serializeContainerLabel } from './ShapeLabelState.js';
 
 // Clipboard storage
 let clipboard = null; // { shapes: [...clonedData], centerX, centerY }
@@ -58,6 +59,7 @@ export function serializeShape(shape, visited = new Set()) {
                 y: shape.y,
                 width: shape.width,
                 height: shape.height,
+                ...serializeContainerLabel(shape),
                 rotation: shape.rotation,
                 options: cloneOptions(shape.options)
             };
@@ -69,6 +71,7 @@ export function serializeShape(shape, visited = new Set()) {
                 y: shape.y,
                 rx: shape.rx,
                 ry: shape.ry,
+                ...serializeContainerLabel(shape),
                 rotation: shape.rotation,
                 options: cloneOptions(shape.options)
             };
@@ -262,6 +265,7 @@ function createShapeFromData(data, offsetX, offsetY) {
                 data.height,
                 cloneOptions(data.options)
             );
+            applyContainerLabel(newRect, data);
             newRect.rotation = data.rotation;
             newRect.draw();
             return newRect;
@@ -275,6 +279,7 @@ function createShapeFromData(data, offsetX, offsetY) {
                 data.ry,
                 cloneOptions(data.options)
             );
+            applyContainerLabel(newCircle, data);
             newCircle.rotation = data.rotation;
             newCircle.draw();
             return newCircle;

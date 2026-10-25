@@ -119,6 +119,8 @@ const handleMouseDown = (e) => {
                     y: currentShape.y, 
                     rx: currentShape.rx, 
                     ry: currentShape.ry, 
+                    userRx: currentShape.userRx,
+                    userRy: currentShape.userRy,
                     rotation: currentShape.rotation 
                 };
                 if(anchorInfo.type === 'resize') 
@@ -142,6 +144,8 @@ const handleMouseDown = (e) => {
                     y: currentShape.y, 
                     rx: currentShape.rx, 
                     ry: currentShape.ry, 
+                    userRx: currentShape.userRx,
+                    userRy: currentShape.userRy,
                     rotation: currentShape.rotation 
                 };
                 
@@ -184,6 +188,8 @@ const handleMouseDown = (e) => {
                     y: currentShape.y, 
                     rx: currentShape.rx, 
                     ry: currentShape.ry, 
+                    userRx: currentShape.userRx,
+                    userRy: currentShape.userRy,
                     rotation: currentShape.rotation 
                 };
                 
@@ -408,6 +414,8 @@ const handleMouseUp = (e) => {
                 y: oldPos.y,
                 rx: oldPos.rx,
                 ry: oldPos.ry,
+                userRx: oldPos.userRx,
+                userRy: oldPos.userRy,
                 rotation: oldPos.rotation,
                 parentFrame: oldPos.parentFrame
             };

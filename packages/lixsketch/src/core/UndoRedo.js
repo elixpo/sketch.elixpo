@@ -334,14 +334,16 @@ export function pushTransformAction(shape, oldPos, newPos) {
                 y: oldPos.y,
                 rx: oldPos.rx,
                 ry: oldPos.ry,
-                rotation: oldPos.rotation
+                rotation: oldPos.rotation,
+                ...pickUserSize(oldPos),
             },
             newPos: {
                 x: newPos.x,
                 y: newPos.y,
                 rx: newPos.rx,
                 ry: newPos.ry,
-                rotation: newPos.rotation
+                rotation: newPos.rotation,
+                ...pickUserSize(newPos, shape),
             },
             // Track frame attachment state
             frameAttachment: {
@@ -372,14 +374,16 @@ export function pushTransformAction(shape, oldPos, newPos) {
                 y: oldPos.y, 
                 width: oldPos.width, 
                 height: oldPos.height, 
-                rotation: oldPos.rotation
+                rotation: oldPos.rotation,
+                ...pickUserSize(oldPos),
             },
             newPos: { 
                 x: newPos.x, 
                 y: newPos.y, 
                 width: newPos.width, 
                 height: newPos.height, 
-                rotation: newPos.rotation
+                rotation: newPos.rotation,
+                ...pickUserSize(newPos, shape),
             },
             // Track frame attachment state
             frameAttachment: {
@@ -507,6 +511,61 @@ export function pushTransformAction(shape, oldPos, newPos) {
     notifyCollaboration();
 }
 
+// Shapes with bound labels (rectangle, circle) keep an explicit user size
+// separate from the label-grown rendered size. Carry it through undo so
+// undoing a resize restores the size the label can shrink back to.
+const USER_SIZE_KEYS = ['userWidth', 'userHeight', 'userRx', 'userRy'];
+
+function pickUserSize(pos, shape = null) {
+    const picked = {};
+    for (const key of USER_SIZE_KEYS) {
+        const value = pos && Number.isFinite(pos[key]) ? pos[key] : shape?.[key];
+        if (Number.isFinite(value)) picked[key] = value;
+    }
+    return picked;
+}
+
+function restoreUserSize(shape, pos) {
+    if (!shape || !pos) return;
+    if (Number.isFinite(pos.userRx) && Number.isFinite(pos.userRy) && typeof shape.setUserRadii === 'function') {
+        shape.setUserRadii(pos.userRx, pos.userRy);
+    } else if (Number.isFinite(pos.userWidth) && Number.isFinite(pos.userHeight) && typeof shape.setUserSize === 'function') {
+        shape.setUserSize(pos.userWidth, pos.userHeight);
+    }
+}
+
+const LABEL_KEYS = ['label', 'labelColor', 'labelFontSize', 'labelWrap'];
+
+export function captureLabelState(shape) {
+    const state = {};
+    for (const key of LABEL_KEYS) {
+        if (shape && shape[key] !== undefined) state[key] = shape[key];
+    }
+    return state;
+}
+
+/** Record a bound-label edit (text, color, font size, wrap). */
+export function pushLabelChangeAction(shape, oldState, newState = null) {
+    if (!shape) return;
+    undoStack.push({
+        type: 'labelChange',
+        shape,
+        oldState: { ...oldState },
+        newState: { ...(newState || captureLabelState(shape)) },
+    });
+    redoStack.length = 0;
+    notifyCollaboration();
+}
+
+function applyLabelSnapshot(shape, state) {
+    if (!shape || !state) return;
+    for (const key of LABEL_KEYS) {
+        if (state[key] !== undefined) shape[key] = state[key];
+    }
+    // draw() re-fits the container to the restored label and updates arrows.
+    if (typeof shape.draw === 'function') shape.draw();
+}
+
 function clonePoint(point) {
     return point ? { ...point } : point;
 }
@@ -521,6 +580,7 @@ export function captureShapeGeometry(shape) {
     };
     if (typeof shape.rx === 'number') state.rx = shape.rx;
     if (typeof shape.ry === 'number') state.ry = shape.ry;
+    Object.assign(state, pickUserSize({}, shape));
     if (shape.startPoint) state.startPoint = clonePoint(shape.startPoint);
     if (shape.endPoint) state.endPoint = clonePoint(shape.endPoint);
     if (shape.controlPoint1) state.controlPoint1 = clonePoint(shape.controlPoint1);
@@ -540,6 +600,7 @@ function restoreShapeGeometry(shape, state) {
     for (const key of ['x', 'y', 'width', 'height', 'rotation', 'rx', 'ry', '_moveOffsetX', '_moveOffsetY']) {
         if (state[key] !== undefined) shape[key] = state[key];
     }
+    restoreUserSize(shape, state);
     for (const key of ['startPoint', 'endPoint', 'controlPoint1', 'controlPoint2']) {
         if (state[key] !== undefined) shape[key] = clonePoint(state[key]);
     }
@@ -635,6 +696,13 @@ export function undo() {
 
     if (action.type === 'canvasReset') {
         action.restore(action.snapshot);
+        redoStack.push(action);
+        notifyCollaboration();
+        return;
+    }
+
+    if (action.type === 'labelChange') {
+        applyLabelSnapshot(action.shape, action.oldState);
         redoStack.push(action);
         notifyCollaboration();
         return;
@@ -959,6 +1027,7 @@ export function undo() {
             action.shape.y = action.oldPos.y;
             action.shape.rx = action.oldPos.rx;
             action.shape.ry = action.oldPos.ry;
+            restoreUserSize(action.shape, action.oldPos);
             action.shape.rotation = action.oldPos.rotation;
             action.shape.isSelected = false;
             if (typeof action.shape.removeSelection === 'function') action.shape.removeSelection();
@@ -1081,6 +1150,7 @@ export function undo() {
             action.shape.y = action.oldPos.y;
             action.shape.height = action.oldPos.height;
             action.shape.width = action.oldPos.width;
+            restoreUserSize(action.shape, action.oldPos);
             action.shape.rotation = action.oldPos.rotation;
             action.shape.isSelected = false;
             if (typeof action.shape.removeSelection === 'function') action.shape.removeSelection();
@@ -1166,6 +1236,13 @@ export function redo() {
 
     if (action.type === 'canvasReset') {
         action.reset();
+        undoStack.push(action);
+        notifyCollaboration();
+        return;
+    }
+
+    if (action.type === 'labelChange') {
+        applyLabelSnapshot(action.shape, action.newState);
         undoStack.push(action);
         notifyCollaboration();
         return;
@@ -1480,6 +1557,7 @@ export function redo() {
             action.shape.y = action.newPos.y;
             action.shape.rx = action.newPos.rx;
             action.shape.ry = action.newPos.ry;
+            restoreUserSize(action.shape, action.newPos);
             action.shape.rotation = action.newPos.rotation;
             action.shape.isSelected = false;
             if (typeof action.shape.removeSelection === 'function') action.shape.removeSelection();
@@ -1596,6 +1674,7 @@ export function redo() {
             action.shape.y = action.newPos.y;
             action.shape.height = action.newPos.height;
             action.shape.width = action.newPos.width;
+            restoreUserSize(action.shape, action.newPos);
             action.shape.rotation = action.newPos.rotation;
             action.shape.isSelected = false;
             if (typeof action.shape.removeSelection === 'function') action.shape.removeSelection();
