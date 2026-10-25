@@ -80,6 +80,11 @@ function nodeMarkup(node) {
     return node ? node.outerHTML : '';
 }
 
+function restoreShapeMetadata(shape, data) {
+    if (data.locked) shape.locked = true;
+    if (typeof data.link === 'string' && data.link) shape.link = data.link;
+}
+
 function restoreDocBlockLinks(shape, data) {
     const ids = [...new Set((Array.isArray(data.docBlockIds)
         ? data.docBlockIds
@@ -133,6 +138,33 @@ function restoreBinding(arrow, isStart, target, binding) {
     if (typeof setter === 'function') setter.call(arrow, target);
 }
 
+// Label / shading / arrowhead state lives on the shape instance (set by
+// setLabel(), the sidebars, LixScript), not in `options`, so it used to be
+// dropped on save. The constructors read these keys back from `options`,
+// so persisting them there restores them on load.
+const INSTANCE_OPTION_KEYS = {
+    label: (s) => (s.label ? s.label : undefined),
+    labelColor: (s) => (s.label && s.labelColor ? s.labelColor : undefined),
+    labelFontSize: (s) => (s.label && s.labelFontSize ? s.labelFontSize : undefined),
+    labelBg: (s) => (s.labelBg === false ? false : undefined),
+    labelOffsetY: (s) => (s.labelOffsetY ? s.labelOffsetY : undefined),
+    shadeColor: (s) => (s.shadeColor ? s.shadeColor : undefined),
+    shadeOpacity: (s) => (s.shadeColor && s.shadeOpacity !== undefined ? s.shadeOpacity : undefined),
+    shadeDirection: (s) => (s.shadeColor && s.shadeDirection ? s.shadeDirection : undefined),
+    arrowHeadLength: (s) => (s.shapeName === 'arrow' && Number.isFinite(s.arrowHeadLength) && s.arrowHeadLength !== 15 ? s.arrowHeadLength : undefined),
+    arrowHeadAngleDeg: (s) => (s.shapeName === 'arrow' && Number.isFinite(s.arrowHeadAngleDeg) && s.arrowHeadAngleDeg !== 30 ? s.arrowHeadAngleDeg : undefined),
+    elbowX: (s) => (s.shapeName === 'arrow' && s.elbowX !== null && s.elbowX !== undefined ? s.elbowX : undefined),
+};
+
+function shapeOptions(shape) {
+    const options = cloneOptions(shape.options);
+    for (const key in INSTANCE_OPTION_KEYS) {
+        const value = INSTANCE_OPTION_KEYS[key](shape);
+        if (value !== undefined) options[key] = clonePlain(value);
+    }
+    return options;
+}
+
 // ============================================================
 // SERIALIZE a single shape to plain data
 // ============================================================
@@ -150,6 +182,9 @@ function serializeShape(shape) {
         // unit (see Selection.handleMultiSelectionMouseDown).
         groupId: shape.groupId || null,
     };
+    // Optional editor metadata, persisted only when set.
+    if (shape.locked) base.locked = true;
+    if (typeof shape.link === 'string' && shape.link) base.link = shape.link;
 
     switch (shape.shapeName) {
         case 'rectangle':
@@ -160,7 +195,7 @@ function serializeShape(shape) {
                 width: shape.width, height: shape.height,
                 ...serializeContainerLabel(shape),
                 rotation: shape.rotation,
-                options: cloneOptions(shape.options),
+                options: shapeOptions(shape),
             };
 
         case 'circle':
@@ -171,7 +206,7 @@ function serializeShape(shape) {
                 rx: shape.rx, ry: shape.ry,
                 ...serializeContainerLabel(shape),
                 rotation: shape.rotation,
-                options: cloneOptions(shape.options),
+                options: shapeOptions(shape),
             };
 
         case 'line':
@@ -182,7 +217,7 @@ function serializeShape(shape) {
                 endPoint: { x: shape.endPoint.x, y: shape.endPoint.y },
                 controlPoint: shape.controlPoint ? { x: shape.controlPoint.x, y: shape.controlPoint.y } : null,
                 isCurved: shape.isCurved || false,
-                options: cloneOptions(shape.options),
+                options: shapeOptions(shape),
             };
 
         case 'arrow': {
@@ -191,7 +226,7 @@ function serializeShape(shape) {
                 type: 'arrow',
                 startPoint: { x: shape.startPoint.x, y: shape.startPoint.y },
                 endPoint: { x: shape.endPoint.x, y: shape.endPoint.y },
-                options: cloneOptions(shape.options),
+                options: shapeOptions(shape),
                 arrowOutlineStyle: shape.arrowOutlineStyle,
                 arrowHeadStyle: shape.arrowHeadStyle,
                 arrowCurved: shape.arrowCurved,
@@ -561,6 +596,7 @@ export function loadScene(sceneData) {
             // Restore group membership if present.
             if (data.groupId) shape.groupId = data.groupId;
             restoreDocBlockLinks(shape, data);
+            restoreShapeMetadata(shape, data);
             window.shapes.push(shape);
             if (data.shapeID) idMap.set(data.shapeID, shape);
         }
@@ -572,6 +608,7 @@ export function loadScene(sceneData) {
         if (shape) {
             if (data.groupId) shape.groupId = data.groupId;
             restoreDocBlockLinks(shape, data);
+            restoreShapeMetadata(shape, data);
             window.shapes.push(shape);
             if (data.shapeID) idMap.set(data.shapeID, shape);
         }

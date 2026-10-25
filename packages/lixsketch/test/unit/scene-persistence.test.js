@@ -72,6 +72,29 @@ describe('scene save/load round-trip (synthetic 2,000 shapes)', () => {
         expect(restored.attachedToEnd).toMatchObject({ side: 'left', offset: { x: 4, y: -2 } })
     })
 
+    it('persists instance-level label, shading, arrowhead, lock and link state', () => {
+        serializer.loadScene({
+            format: 'lixsketch', version: 1, shapes: [
+                { shapeID: 'r', type: 'rectangle', x: 0, y: 0, width: 10, height: 10, options: {} },
+                { shapeID: 'a', type: 'arrow', startPoint: { x: 0, y: 0 }, endPoint: { x: 9, y: 9 }, options: {} },
+            ],
+        })
+        const [rect, arrow] = window.shapes
+        Object.assign(rect, { label: 'Hello', labelColor: '#f00', labelFontSize: 18, shadeColor: '#00f', shadeOpacity: 0.3, shadeDirection: 'top', locked: true, link: 'https://example.test' })
+        Object.assign(arrow, { label: 'go', labelColor: '#0f0', labelFontSize: 12, labelBg: false, arrowHeadLength: 22, arrowHeadAngleDeg: 30, elbowX: 40 })
+        const saved = serializer.saveScene('Labels')
+        expect(saved.shapes[0]).toMatchObject({
+            locked: true,
+            link: 'https://example.test',
+            options: { label: 'Hello', labelColor: '#f00', labelFontSize: 18, shadeColor: '#00f', shadeOpacity: 0.3, shadeDirection: 'top' },
+        })
+        expect(saved.shapes[1].options).toMatchObject({ label: 'go', labelBg: false, arrowHeadLength: 22, elbowX: 40 })
+        expect(saved.shapes[1].options).not.toHaveProperty('arrowHeadAngleDeg') // default
+        serializer.loadScene(saved)
+        expect(window.shapes[0]).toMatchObject({ locked: true, link: 'https://example.test' })
+        expect(window.shapes[0].options.label).toBe('Hello')
+    })
+
     it('clones options with JSON semantics and does not alias live objects', () => {
         serializer.loadScene({
             format: 'lixsketch', version: 1, shapes: [{
