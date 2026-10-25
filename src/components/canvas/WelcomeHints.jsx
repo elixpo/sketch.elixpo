@@ -52,16 +52,23 @@ export default function WelcomeHints() {
 
   if (!empty || interacting || viewMode || zenMode || canvasLoading || layoutMode === 'docs') return null
 
+  // Side hints respond to the canvas's own width (container queries), not
+  // the viewport: in split view the canvas is half the window, and the
+  // tool hint would run into the centered card. 64rem leaves room for the
+  // 72px toolbar gutter, the hint and half of the 360px card.
   return (
-    <div className="pointer-events-none absolute inset-0 z-[5] select-none font-[lixFont] text-text-dim" aria-hidden="true">
-      <div className="absolute left-[72px] top-1/2 hidden -translate-y-1/2 items-center gap-2 text-sm sm:flex">
+    <div className="@container pointer-events-none absolute inset-0 z-[5] select-none font-[lixFont] text-text-dim" aria-hidden="true">
+      <div className="absolute left-[72px] top-1/2 hidden -translate-y-1/2 items-center gap-2 text-sm @5xl:flex">
         <i className="bx bx-left-arrow-alt text-lg" />
         <span>Pick a tool and start drawing</span>
       </div>
-      <div className="absolute right-4 top-16 hidden items-center gap-1.5 text-sm sm:flex">
-        <span>Menu, export &amp; theme</span>
-        <i className="bx bx-up-arrow-alt text-lg" />
-      </div>
+      {/* The menu button sits above the docs pane in split view. */}
+      {layoutMode !== 'split' && (
+        <div className="absolute right-4 top-16 hidden items-center gap-1.5 text-sm @xl:flex">
+          <span>Menu, export &amp; theme</span>
+          <i className="bx bx-up-arrow-alt text-lg" />
+        </div>
+      )}
       <div className="absolute left-1/2 top-1/2 flex w-[min(360px,calc(100%-32px))] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-4 text-center">
         <p className="text-2xl text-text-muted">Your canvas is empty</p>
         <ul className="flex w-full flex-col gap-1.5 text-[13px]">
