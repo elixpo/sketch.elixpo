@@ -481,7 +481,7 @@ frame board at 20, 20 size 420x200 {
 | `gridSize` | number | `20` | px | |
 | `gridColor` | colour | `rgba(255,255,255,0.06)` | | |
 | `frameType` | string | `null` | `lixscript`, `mermaid-er`, … | Set by generators. |
-| `stroke`, `strokeWidth`, `fill` | | `#555`, `1`, `transparent` | | Border and background. `options.opacity` is the border's own opacity; the common `opacity` fades the whole frame. |
+| `stroke`, `strokeWidth`, `fill` | | `#555`, `1`, `transparent` | | Border and background. `options.opacity` is the border's own opacity; the common `opacity` fades the frame itself (border, background, title). Shapes inside a frame keep their own `opacity`, set per shape. |
 
 ### embed
 

@@ -169,6 +169,36 @@ describe('applying opacity to the DOM', () => {
     expect(outline.getAttribute('opacity')).toBeNull()
   })
 
+  it('frame opacity fades only the frame; shapes inside keep their own', () => {
+    // Frame children live in the frame's clipGroup, a sibling of frame.group.
+    const border = el()
+    const title = el('frame-label')
+    const frame = shapeWith([border, title], { shapeName: 'frame', opacity: 0.5 })
+    const childBody = el()
+    const child = shapeWith([childBody], { opacity: 0.3, parentFrame: frame })
+    const plainBody = el()
+    const plain = shapeWith([plainBody], { parentFrame: frame })
+    frame.clipGroup = { children: [child.group, plain.group] }
+
+    syncOpacityToDom(frame)
+    syncOpacityToDom(child)
+    syncOpacityToDom(plain)
+    expect(border.getAttribute('opacity')).toBe('0.5')
+    expect(title.getAttribute('opacity')).toBe('0.5')
+    expect(childBody.getAttribute('opacity')).toBe('0.3')
+    expect(plainBody.getAttribute('opacity')).toBeNull()
+
+    // Changing the frame does not touch its children, and vice versa.
+    frame.opacity = 1
+    syncOpacityToDom(frame)
+    expect(border.getAttribute('opacity')).toBeNull()
+    expect(childBody.getAttribute('opacity')).toBe('0.3')
+    child.opacity = 0.7
+    syncOpacityToDom(child)
+    expect(childBody.getAttribute('opacity')).toBe('0.7')
+    expect(border.getAttribute('opacity')).toBeNull()
+  })
+
   it('multiplies with a renderer’s own opacity and restores it at 100%', () => {
     const shade = el()
     shade.setAttribute('opacity', '0.5')

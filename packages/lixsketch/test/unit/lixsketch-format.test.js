@@ -357,6 +357,31 @@ describe('opacity and edges', () => {
         expect(text).not.toContain('roundness')
     })
 
+    it('keeps a frame and each shape inside it at independent opacities', () => {
+        const framed = [
+            'lixsketch 1',
+            'rect faded at 0, 0 size 100x60 { opacity: 0.3 }',
+            'circle solid center 200, 30 radius 20',
+            'rect half at 0, 100 size 100x60 { opacity: 50 }',
+            'frame area at -20, -20 size 300x220 {',
+            '  name: "Area"',
+            '  opacity: 0.6',
+            '  contains: faded, solid, half',
+            '}',
+            '',
+        ].join('\n')
+        const { scene, errors } = compileLixSketch(framed)
+        expect(errors).toEqual([])
+        const byId = Object.fromEntries(scene.shapes.map(shape => [shape.shapeID, shape]))
+        expect(byId.area.opacity).toBe(0.6)
+        expect(byId.faded.opacity).toBe(0.3)
+        expect(byId.half.opacity).toBe(0.5)
+        expect(byId.solid).not.toHaveProperty('opacity')
+        expect(byId.area.containedShapeIDs).toEqual(expect.arrayContaining(['faded', 'solid', 'half']))
+        const { back } = roundTrip(scene)
+        expect(back).toEqual(scene)
+    })
+
     it('rejects invalid values', () => {
         expect(compileLixSketch('lixsketch 1\nrect a at 0, 0 size 10x10 { edges: wobbly }').errors[0].message).toMatch(/sharp' or 'round/)
         expect(compileLixSketch('lixsketch 1\nrect a at 0, 0 size 10x10 { opacity: 400 }').errors[0].message).toMatch(/0 to 1/)
