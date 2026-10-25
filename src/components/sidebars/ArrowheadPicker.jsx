@@ -77,43 +77,52 @@ export function ArrowheadPicker({ end, value, onChange }) {
   )
 }
 
-function readHeads() {
-  if (typeof window === 'undefined') return { start: 'none', end: 'arrow' }
+// Per shape kind: default end head, tool-defaults bridge and style updater.
+const TARGETS = {
+  arrow: { defaultEnd: 'arrow', settings: () => window.arrowToolSettings, update: (c) => window.updateSelectedArrowStyle?.(c) },
+  line: { defaultEnd: 'none', settings: () => window.lineToolSettings, update: (c) => window.updateSelectedLineStyle?.(c) },
+}
+
+function readHeads(kind) {
+  const target = TARGETS[kind] || TARGETS.arrow
+  if (typeof window === 'undefined') return { start: 'none', end: target.defaultEnd }
   const shape = window.currentShape
-  if (shape && shape.shapeName === 'arrow' && shape.isSelected) {
-    return { start: shape.startArrowhead || 'none', end: shape.endArrowhead || 'arrow' }
+  if (shape && shape.shapeName === kind && shape.isSelected) {
+    return { start: shape.startArrowhead || 'none', end: shape.endArrowhead || target.defaultEnd }
   }
-  const tool = window.arrowToolSettings
-  return { start: tool?.startArrowhead || 'none', end: tool?.endArrowhead || 'arrow' }
+  const tool = target.settings()
+  return { start: tool?.startArrowhead || 'none', end: tool?.endArrowhead || target.defaultEnd }
 }
 
 /**
  * Start / end pickers plus a swap action, kept in sync with the selected
- * arrow (or the arrow tool's defaults when nothing is selected).
+ * arrow or line (or that tool's defaults when nothing is selected).
  */
-export function ArrowheadControls() {
-  const [heads, setHeads] = useState(readHeads)
+export function ArrowheadControls({ kind = 'arrow' }) {
+  const [heads, setHeads] = useState(() => readHeads(kind))
 
   useEffect(() => {
     const sync = () => {
-      const next = readHeads()
+      const next = readHeads(kind)
       setHeads((prev) => (prev.start === next.start && prev.end === next.end ? prev : next))
     }
     sync()
     const timer = setInterval(sync, 300)
     return () => clearInterval(timer)
-  }, [])
+  }, [kind])
 
   const apply = (changes) => {
     setHeads((prev) => ({
       start: changes.startArrowhead ?? prev.start,
       end: changes.endArrowhead ?? prev.end,
     }))
-    if (window.arrowToolSettings) {
-      if (changes.startArrowhead !== undefined) window.arrowToolSettings.startArrowhead = changes.startArrowhead
-      if (changes.endArrowhead !== undefined) window.arrowToolSettings.endArrowhead = changes.endArrowhead
+    const target = TARGETS[kind] || TARGETS.arrow
+    const settings = target.settings()
+    if (settings) {
+      if (changes.startArrowhead !== undefined) settings.startArrowhead = changes.startArrowhead
+      if (changes.endArrowhead !== undefined) settings.endArrowhead = changes.endArrowhead
     }
-    window.updateSelectedArrowStyle?.(changes)
+    target.update(changes)
   }
 
   return (

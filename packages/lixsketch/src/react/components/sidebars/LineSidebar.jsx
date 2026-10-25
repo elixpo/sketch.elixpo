@@ -2,6 +2,7 @@
 
 import useSketchStore, { TOOLS } from '../../store/useSketchStore'
 import ShapeSidebar, { ToolbarButton, Divider, LayerControls } from './ShapeSidebar'
+import { ArrowheadControls } from './ArrowheadPicker'
 import { OpacityControl } from './AppearanceControls'
 import { useState, useCallback } from 'react'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -40,6 +41,10 @@ export default function LineSidebar() {
 
   return (
     <ShapeSidebar visible={activeTool === TOOLS.LINE || selectedShapeSidebar === 'line'}>
+      {/* Start / end arrowheads (Excalidraw lines can carry them) */}
+      <ArrowheadControls kind="line" />
+      <Divider />
+
       <ToolbarButton tooltip={t('sidebar.strokeColor')}
         preview={<span className="w-4 h-4 rounded-md border border-white/20" style={{ backgroundColor: displayedStrokeColor }} />}
       >
