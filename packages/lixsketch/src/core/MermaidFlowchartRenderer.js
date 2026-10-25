@@ -107,7 +107,8 @@ function edgeVisual(e) {
 }
 
 // LixSketch arrowheads: default (open V), square, outline (hollow triangle), solid.
-export const ARROWHEAD_FOR = { arrow: 'default', circle: 'square', cross: 'outline' };
+// Mermaid edge ends → LixSketch arrowhead types (core/ArrowHeads.js).
+export const ARROWHEAD_FOR = { arrow: 'arrow', circle: 'circle', cross: 'cross' };
 
 // ── preview SVG ──
 
@@ -140,8 +141,8 @@ export function renderFlowchartSVG(diagram, opts = {}) {
     const defs = [];
     const marker = (id, color, kind) => {
         if (defs.some(d => d.includes(`id="${id}"`))) return;
-        if (kind === 'square') defs.push(`<marker id="${id}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><rect x="1" y="1" width="6" height="6" fill="none" stroke="${color}" stroke-width="1.2"/></marker>`);
-        else if (kind === 'outline') defs.push(`<marker id="${id}" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="1,1 9,4 1,7" fill="${T.bg}" stroke="${color}" stroke-width="1.2"/></marker>`);
+        if (kind === 'circle') defs.push(`<marker id="${id}" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse"><circle cx="4.5" cy="4.5" r="3.5" fill="${T.bg}" stroke="${color}" stroke-width="1.2"/></marker>`);
+        else if (kind === 'cross') defs.push(`<marker id="${id}" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto-start-reverse"><path d="M2,1 L8,8 M8,1 L2,8" fill="none" stroke="${color}" stroke-width="1.4" stroke-linecap="round"/></marker>`);
         else defs.push(`<marker id="${id}" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto-start-reverse"><path d="M1,1 L9,3.5 L1,6" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/></marker>`);
     };
 
@@ -382,39 +383,31 @@ export function renderFlowchartOnCanvas(diagram) {
         try {
             if (e.from === e.to) {
                 const loop = selfLoopPoints(from.node);
-                const arrow = new window.Arrow(loop.start, loop.end, { ...opts, arrowCurved: 'curved', arrowHeadStyle: ARROWHEAD_FOR[e.endHead] || 'default' });
+                const arrow = new window.Arrow(loop.start, loop.end, {
+                    ...opts,
+                    arrowCurved: 'curved',
+                    startArrowhead: ARROWHEAD_FOR[e.startHead] || 'none',
+                    endArrowhead: ARROWHEAD_FOR[e.endHead] || (e.startHead ? 'none' : 'arrow'),
+                });
                 placement.add(arrow, parent);
                 placement.bind(arrow, from.shape, true, loop.start);
                 placement.bind(arrow, from.shape, false, loop.end);
                 continue;
             }
-            let { start, end } = getCanvasFlowchartEdgePoints(from.node, to.node);
-            let a = from;
-            let b = to;
-            let head = e.endHead;
-            if (!e.endHead && e.startHead) { [start, end] = [end, start]; [a, b] = [b, a]; head = e.startHead; }
-            if (!head) {
+            const { start, end } = getCanvasFlowchartEdgePoints(from.node, to.node);
+            if (!e.endHead && !e.startHead) {
                 placement.add(new window.Line(start, end, opts), parent);
                 continue;
             }
-            if (e.endHead && e.startHead && window.Arrow) {
-                // Two half arrows meeting in the middle, grouped: a double-headed edge.
-                const mid = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
-                const groupId = nextGroupId('mermaid-edge');
-                const toEnd = new window.Arrow(mid, end, { ...opts, arrowHeadStyle: ARROWHEAD_FOR[e.endHead] });
-                const toStart = new window.Arrow(mid, start, { ...opts, label: '', arrowHeadStyle: ARROWHEAD_FOR[e.startHead] });
-                toEnd.groupId = groupId;
-                toStart.groupId = groupId;
-                placement.add(toEnd, parent);
-                placement.add(toStart, parent);
-                placement.bind(toEnd, b.shape, false, end);
-                placement.bind(toStart, a.shape, false, start);
-                continue;
-            }
-            const arrow = new window.Arrow(start, end, { ...opts, arrowHeadStyle: ARROWHEAD_FOR[head] || 'default' });
+            // One arrow with independent heads covers -->, <--, <-->, o--o, x--x.
+            const arrow = new window.Arrow(start, end, {
+                ...opts,
+                startArrowhead: e.startHead ? (ARROWHEAD_FOR[e.startHead] || 'arrow') : 'none',
+                endArrowhead: e.endHead ? (ARROWHEAD_FOR[e.endHead] || 'arrow') : 'none',
+            });
             placement.add(arrow, parent);
-            placement.bind(arrow, a.shape, true, start);
-            placement.bind(arrow, b.shape, false, end);
+            placement.bind(arrow, from.shape, true, start);
+            placement.bind(arrow, to.shape, false, end);
         } catch (err) {
             console.warn('[FlowchartRenderer] Edge creation failed:', e, err);
         }

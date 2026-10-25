@@ -199,7 +199,10 @@ export function layoutClassDiagram(diagram) {
 }
 
 // LixSketch arrowheads standing in for UML markers.
-export const CLASS_MARKER_HEAD = { '<|': 'outline', '|>': 'outline', '*': 'solid', o: 'square', '<': 'default', '>': 'default' };
+// UML markers → LixSketch arrowheads: inheritance/realization = hollow
+// triangle, composition = filled diamond, aggregation = hollow diamond,
+// association/dependency = open arrow.
+export const CLASS_MARKER_HEAD = { '<|': 'triangle_outline', '|>': 'triangle_outline', '*': 'diamond', o: 'diamond_outline', '<': 'arrow', '>': 'arrow' };
 
 function themeColors() {
     const dark = typeof document === 'undefined' || !(document.body?.classList.contains('theme-light'));
@@ -338,20 +341,13 @@ export function renderClassOnCanvas(diagram) {
         const opts = { stroke: T.line, strokeWidth: 1.5, roughness: 0.6, strokeDasharray: r.dashed ? '5 3' : '', label, labelColor: T.muted, labelBg: false };
         const parent = a.ns && a.ns === b.ns ? frames.get(a.ns) : placement.frame;
         try {
-            if (r.leftMarker && r.rightMarker) {
-                const mid = { x: (pa.x + pb.x) / 2, y: (pa.y + pb.y) / 2 };
-                const gid = nextGroupId('mermaid-rel');
-                const toB = placement.add(new window.Arrow(mid, pb, { ...opts, arrowHeadStyle: CLASS_MARKER_HEAD[r.rightMarker] }), parent);
-                const toA = placement.add(new window.Arrow(mid, pa, { ...opts, label: '', arrowHeadStyle: CLASS_MARKER_HEAD[r.leftMarker] }), parent);
-                toB.groupId = gid; toA.groupId = gid;
-                placement.bind(toB, b.shape, false, pb);
-                placement.bind(toA, a.shape, false, pa);
-            } else if (r.leftMarker) {
-                const arrow = placement.add(new window.Arrow(pb, pa, { ...opts, arrowHeadStyle: CLASS_MARKER_HEAD[r.leftMarker] }), parent);
-                placement.bind(arrow, b.shape, true, pb);
-                placement.bind(arrow, a.shape, false, pa);
-            } else if (r.rightMarker) {
-                const arrow = placement.add(new window.Arrow(pa, pb, { ...opts, arrowHeadStyle: CLASS_MARKER_HEAD[r.rightMarker] }), parent);
+            if (r.leftMarker || r.rightMarker) {
+                // One arrow from `from` to `to`; each end carries its own marker.
+                const arrow = placement.add(new window.Arrow(pa, pb, {
+                    ...opts,
+                    startArrowhead: r.leftMarker ? (CLASS_MARKER_HEAD[r.leftMarker] || 'arrow') : 'none',
+                    endArrowhead: r.rightMarker ? (CLASS_MARKER_HEAD[r.rightMarker] || 'arrow') : 'none',
+                }), parent);
                 placement.bind(arrow, a.shape, true, pa);
                 placement.bind(arrow, b.shape, false, pb);
             } else {

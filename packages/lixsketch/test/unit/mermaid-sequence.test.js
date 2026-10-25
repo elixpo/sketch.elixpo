@@ -179,11 +179,20 @@ describe('sequence rendering', () => {
         expect(renderSequenceOnCanvas(d)).toBe(true)
         const kinds = created.map(c => c.kind)
         expect(kinds.filter(k => k === 'circle')).toHaveLength(2) // actor heads top + bottom
-        expect(kinds.filter(k => k === 'arrow')).toHaveLength(5) // req, res, async, both×2
+        const arrows = created.filter(c => c.kind === 'arrow')
+        expect(arrows).toHaveLength(4) // req, res, async, both (one two-headed arrow)
+        expect(arrows[3].options).toMatchObject({ startArrowhead: 'arrow', endArrowhead: 'arrow' })
         const labels = created.filter(c => c.kind === 'rect').map(c => c.options.label)
         expect(labels).toContain('S')
         expect(labels).toContain('work')
         expect(created.filter(c => c.groupId).length).toBeGreaterThan(0)
+    })
+
+    it('draws cross messages as one arrow with a cross head', () => {
+        expect(renderSequenceOnCanvas(parse('sequenceDiagram\nA-xB: nope'))).toBe(true)
+        const arrows = created.filter(c => c.kind === 'arrow')
+        expect(arrows).toHaveLength(1)
+        expect(arrows[0].options).toMatchObject({ endArrowhead: 'cross' })
     })
 
     it('renders a preview with every message', () => {
