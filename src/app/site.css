@@ -163,6 +163,11 @@
   transition: border-color .2s ease;
 }
 .lx-ghost:hover { border-color: var(--ink); }
+/* Display is set here, not with Tailwind utilities: .lx-ghost is unlayered
+ * and would override layered `hidden` / `md:hidden`. The toggle only exists
+ * where .lx-nav collapses (<=760px); there the GitHub pill moves into the
+ * mobile menu. */
+.lx-nav-toggle { display: none; }
 .lx-menu {
   border: 1px solid var(--line);
   border-radius: 1.2rem;
@@ -392,6 +397,8 @@ a.lx-card:hover .lx-art > b, .lx-card-hover:hover .lx-art > b { transform: rotat
   .lx-header { top: 8px; margin-top: 8px; min-height: 62px; padding: 8px 8px 8px 12px; }
   .lx-brand > span small { display: none; }
   .lx-nav { display: none; }
+  .lx-nav-toggle { display: inline-flex; }
+  .lx-gh-pill { display: none; }
   .lx-portal { padding: .72rem .9rem; }
   .lx-mobile-panel { top: 78px; }
   .lx-hero { min-height: 720px; margin-top: -80px; padding: 8.5rem 1rem 2.5rem; align-items: flex-start; }
