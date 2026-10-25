@@ -48,7 +48,10 @@
   --orange: var(--color-lx-orange);
 }
 
-body.canvas-mode.theme-light {
+/* Workspace chrome (header, toolbar, menus, sidebars, modals).
+ * Driven by the UI theme: body.ui-light (default) / body.ui-dark. */
+body.canvas-mode,
+body.canvas-mode.ui-light {
   --color-surface: #ffffff;
   --color-surface-hover: #f4effa;
   --color-surface-active: #e9def5;
@@ -65,13 +68,10 @@ body.canvas-mode.theme-light {
   --color-border: #d8cde5;
   --color-border-light: #c8b8d9;
   --color-border-accent: #a88bc8;
-  --lixsketch-grid-fine: rgba(60, 60, 80, 0.07);
-  --lixsketch-grid-major: rgba(60, 60, 80, 0.14);
   --lix-icon-filter: none;
 }
 
-body.canvas-mode,
-body.canvas-mode.theme-dark {
+body.canvas-mode.ui-dark {
   --color-surface: #241c31;
   --color-surface-hover: #38294a;
   --color-surface-active: #50386a;
@@ -88,9 +88,20 @@ body.canvas-mode.theme-dark {
   --color-border: #332642;
   --color-border-light: #4a385e;
   --color-border-accent: #8165a6;
+  --lix-icon-filter: brightness(0) invert(1);
+}
+
+/* Canvas surface. Driven by the independent canvas theme:
+ * body.theme-light (default) / body.theme-dark, which the engine also reads. */
+body.canvas-mode,
+body.canvas-mode.theme-light {
+  --lixsketch-grid-fine: rgba(60, 60, 80, 0.07);
+  --lixsketch-grid-major: rgba(60, 60, 80, 0.14);
+}
+
+body.canvas-mode.theme-dark {
   --lixsketch-grid-fine: rgba(255, 255, 255, 0.06);
   --lixsketch-grid-major: rgba(255, 255, 255, 0.12);
-  --lix-icon-filter: brightness(0) invert(1);
 }
 
 /* Font faces — served from /public/fonts/ */
@@ -126,8 +137,8 @@ body {
 
 /* The workspace keeps its compact lixFont control layout. */
 body.canvas-mode {
-  background: #120e1a;
-  color: #fcf9ff;
+  background: var(--lixsketch-canvas-background, #ffffff);
+  color: var(--color-text-primary);
   font-family: "lixFont", sans-serif;
 }
 
@@ -174,26 +185,15 @@ body.canvas-mode .bg-accent-blue {
   background: #cfe4d4;
 }
 
-body.canvas-mode .e2e-badge {
+body.canvas-mode.ui-dark .e2e-badge {
   color: #73d995;
   background: rgba(34, 197, 94, 0.12);
   border-color: rgba(74, 222, 128, 0.16);
 }
 
-body.canvas-mode .e2e-badge:hover {
+body.canvas-mode.ui-dark .e2e-badge:hover {
   color: #8ae3a7;
   background: rgba(34, 197, 94, 0.18);
-}
-
-body.canvas-mode.theme-light .e2e-badge {
-  color: #285f3c;
-  background: #dcecdf;
-  border-color: #b5d4bd;
-}
-
-body.canvas-mode.theme-light .e2e-badge:hover {
-  color: #1f5031;
-  background: #cfe4d4;
 }
 
 /* ── Global custom scrollbar ────────────────────────────────── */
@@ -212,10 +212,10 @@ body.canvas-mode.theme-light .e2e-badge:hover {
 ::-webkit-scrollbar-thumb:hover {
   background: #8f9890;
 }
-body.canvas-mode ::-webkit-scrollbar-thumb {
+body.canvas-mode.ui-dark ::-webkit-scrollbar-thumb {
   background: #49385e;
 }
-body.canvas-mode ::-webkit-scrollbar-thumb:hover {
+body.canvas-mode.ui-dark ::-webkit-scrollbar-thumb:hover {
   background: #9a7fba;
 }
 ::-webkit-scrollbar-corner {
@@ -227,7 +227,7 @@ body.canvas-mode ::-webkit-scrollbar-thumb:hover {
   scrollbar-width: thin;
   scrollbar-color: #c9cec8 transparent;
 }
-body.canvas-mode * {
+body.canvas-mode.ui-dark * {
   scrollbar-color: #2a2a3a transparent;
 }
 

@@ -1,5 +1,13 @@
 import { create } from 'zustand'
 import useSketchStore from '@/store/useSketchStore'
+import {
+  isTheme,
+  readCanvasTheme,
+  readUITheme,
+  resolveThemeValue,
+  writeCanvasTheme,
+  writeUITheme,
+} from '@/utils/themePreferences'
 
 export const MAX_WORKSPACE_NAME_LENGTH = 20
 
@@ -7,10 +15,19 @@ function limitWorkspaceName(name) {
   return String(name ?? '').slice(0, MAX_WORKSPACE_NAME_LENGTH)
 }
 
+function prefersDark() {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+  return window.matchMedia('(prefers-color-scheme: dark)').matches
+}
+
+/** Resolve a stored theme ('light' | 'dark' | 'system') to 'light' | 'dark'. */
 export function resolveTheme(theme) {
-  if (theme !== 'system') return theme === 'light' ? 'light' : 'dark'
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'dark'
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  return resolveThemeValue(theme, theme === 'system' && prefersDark())
+}
+
+function browserStorage() {
+  if (typeof window === 'undefined') return null
+  try { return window.localStorage } catch { return null }
 }
 
 function themeColor(value, resolved) {
@@ -176,45 +193,50 @@ function invertShapeColors(prevResolved, nextResolved) {
   }
 }
 
+/**
+ * Apply the CANVAS theme. The engine reads `body.theme-light|dark` for
+ * theme-default stroke colours and `html[data-canvas-theme]` for the canvas
+ * background; nothing else on the page depends on it.
+ */
 export function applyTheme(theme) {
-  // Apply one resolved theme class to the complete canvas shell. Global
-  // tokens already default to light, so hydration no longer flashes dark.
-  const body = document.body
-  if (!body) return
+  const body = typeof document !== 'undefined' ? document.body : null
+  if (!body) return resolveTheme(theme)
   const resolved = resolveTheme(theme)
   body.classList.remove('theme-dark', 'theme-light')
   body.classList.add(`theme-${resolved}`)
   body.dataset.resolvedTheme = resolved
   document.documentElement.dataset.canvasTheme = resolved
+  return resolved
+}
+
+/** Apply the workspace chrome (UI) theme. Independent from the canvas. */
+export function applyUITheme(theme) {
+  const body = typeof document !== 'undefined' ? document.body : null
+  if (!body) return resolveTheme(theme)
+  const resolved = resolveTheme(theme)
+  body.classList.remove('ui-dark', 'ui-light')
+  body.classList.add(`ui-${resolved}`)
+  body.dataset.uiTheme = resolved
   document.documentElement.style.colorScheme = resolved
   return resolved
 }
 
-function readStoredTheme() {
-  if (typeof window === 'undefined') return 'dark'
-  try {
-    const theme = localStorage.getItem('theme')
-    if (theme && ['dark', 'light', 'system'].includes(theme)) return theme
-  } catch {}
-  try {
-    const prefs = JSON.parse(localStorage.getItem('lix_ui_prefs') || '{}')
-    return ['dark', 'light', 'system'].includes(prefs.theme) ? prefs.theme : 'dark'
-  } catch {
-    return 'dark'
+/**
+ * Undo everything the workspace applied to <html>/<body> so site routes
+ * reached by client navigation render with their own light defaults.
+ */
+export function clearWorkspaceTheme() {
+  if (typeof document === 'undefined') return
+  const body = document.body
+  const root = document.documentElement
+  body?.classList.remove('canvas-mode', 'theme-dark', 'theme-light', 'ui-dark', 'ui-light')
+  if (body) {
+    delete body.dataset.resolvedTheme
+    delete body.dataset.uiTheme
   }
-}
-
-function persistTheme(theme) {
-  if (typeof window === 'undefined') return
-  try {
-    const prefs = JSON.parse(localStorage.getItem('lix_ui_prefs') || '{}')
-    localStorage.setItem('lix_ui_prefs', JSON.stringify({ ...prefs, theme }))
-  } catch {
-    localStorage.setItem('lix_ui_prefs', JSON.stringify({ theme }))
-  }
-  try {
-    localStorage.setItem('theme', theme)
-  } catch {}
+  delete root.dataset.canvasTheme
+  root.style.removeProperty('color-scheme')
+  root.style.removeProperty('--lixsketch-canvas-background')
 }
 
 function applyCanvasTheme(resolved) {
@@ -308,30 +330,49 @@ const useUIStore = create((set, get) => ({
   setCanvasLoading: (loading, message) => set({ canvasLoading: loading, canvasLoadingMessage: message || 'Loading canvas...' }),
 
   // --- Theme ---
-  theme: 'dark',
-  resolvedTheme: 'dark',
+  // `theme` / `resolvedTheme` are the CANVAS theme (kept under these names
+  // for existing consumers: sidebars, exports, docs, autosave).
+  // `uiTheme` / `resolvedUITheme` are the workspace chrome theme.
+  // Both default to light and are persisted separately.
+  theme: 'light',
+  resolvedTheme: 'light',
+  uiTheme: 'light',
+  resolvedUITheme: 'light',
   hydrateTheme: () => {
-    const theme = readStoredTheme()
+    const storage = browserStorage()
+    const theme = readCanvasTheme(storage)
+    const uiTheme = readUITheme(storage)
     const resolvedTheme = applyTheme(theme)
-    set({ theme, resolvedTheme })
+    const resolvedUITheme = applyUITheme(uiTheme)
+    set({ theme, resolvedTheme, uiTheme, resolvedUITheme })
     applyCanvasTheme(resolvedTheme)
   },
   syncSystemTheme: () => {
-    if (get().theme !== 'system') return
-    const previous = get().resolvedTheme
+    const { theme, uiTheme, resolvedTheme: previous } = get()
+    if (uiTheme === 'system') set({ resolvedUITheme: applyUITheme('system') })
+    if (theme !== 'system') return
     const resolvedTheme = applyTheme('system')
     invertShapeColors(previous, resolvedTheme)
     set({ resolvedTheme })
     applyCanvasTheme(resolvedTheme)
   },
+  /** Change the canvas theme only. */
   setTheme: (newTheme) => {
-    if (!['dark', 'light', 'system'].includes(newTheme)) return
+    if (!isTheme(newTheme)) return
     const previous = get().resolvedTheme
     const resolvedTheme = applyTheme(newTheme)
     invertShapeColors(previous, resolvedTheme)
     set({ theme: newTheme, resolvedTheme })
     applyCanvasTheme(resolvedTheme)
-    persistTheme(newTheme)
+    writeCanvasTheme(browserStorage(), newTheme)
+  },
+  setCanvasTheme: (newTheme) => get().setTheme(newTheme),
+  /** Change the workspace chrome theme only; the canvas is untouched. */
+  setUITheme: (newTheme) => {
+    if (!isTheme(newTheme)) return
+    const resolvedUITheme = applyUITheme(newTheme)
+    set({ uiTheme: newTheme, resolvedUITheme })
+    writeUITheme(browserStorage(), newTheme)
   },
 
   // --- Language / i18n ---

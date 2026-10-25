@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import Header from '@/components/header/Header'
-import useUIStore from '@/store/useUIStore'
+import useUIStore, { clearWorkspaceTheme } from '@/store/useUIStore'
 import Toolbar from '@/components/toolbar/Toolbar'
 import Footer from '@/components/footer/Footer'
 import AppMenu from '@/components/menu/AppMenu'
@@ -61,9 +61,8 @@ export default function CanvasPage() {
     useSketchStore.getState().hydrateLayoutMode?.()
     return () => {
       media.removeEventListener?.('change', handleSystemTheme)
-      document.body.classList.remove('canvas-mode', 'theme-dark', 'theme-light')
-      delete document.body.dataset.resolvedTheme
-      document.documentElement.style.removeProperty('color-scheme')
+      // Restore site defaults (light, no canvas/UI theme classes).
+      clearWorkspaceTheme()
     }
   }, [])
 
