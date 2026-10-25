@@ -138,7 +138,7 @@ describe('layer order shortcuts', () => {
 describe('copy / paste styles', () => {
   it('extracts the visual options and label color', () => {
     const s = shape('a', { labelColor: '#e03131', options: { stroke: '#2f9e44', strokeWidth: 4, fill: '#ffc9c9', fillStyle: 'solid', label: 'ignored' } })
-    expect(extractStyle(s)).toEqual({ stroke: '#2f9e44', strokeWidth: 4, fill: '#ffc9c9', fillStyle: 'solid', labelColor: '#e03131' })
+    expect(extractStyle(s)).toEqual({ stroke: '#2f9e44', strokeWidth: 4, fill: '#ffc9c9', fillStyle: 'solid', labelColor: '#e03131', opacity: 1, edges: 'sharp' })
     expect(extractStyle(null)).toBeNull()
   })
 

@@ -7,6 +7,17 @@
  * the logic can be unit tested with plain objects instead of a live engine.
  */
 
+import {
+    appearanceEquals,
+    applyAppearance,
+    captureAppearance,
+    getNextShapeOpacity,
+    normalizeEdges,
+    normalizeOpacity,
+    setNextShapeOpacity,
+    supportsEdges,
+} from './ShapeAppearance.js';
+
 const getWin = (win) => win || (typeof window !== 'undefined' ? window : {});
 
 /** Shapes the next command acts on: the multi-selection, else the current shape. */
@@ -107,7 +118,7 @@ export function applyLayerAction(action, win) {
 // ── Copy / paste styles ─────────────────────────────────────────────
 
 export const STYLE_OPTION_KEYS = [
-    'stroke', 'strokeWidth', 'fill', 'fillStyle', 'strokeDasharray', 'roughness', 'opacity',
+    'stroke', 'strokeWidth', 'fill', 'fillStyle', 'strokeDasharray', 'roughness',
 ];
 
 let styleClipboard = null;
@@ -122,6 +133,8 @@ export function extractStyle(shape) {
         }
     }
     if (shape.labelColor !== undefined) style.labelColor = shape.labelColor;
+    // Shape appearance (instance-level, see ShapeAppearance.js).
+    Object.assign(style, captureAppearance(shape));
     const textEl = shape.shapeName === 'text' ? shape.group?.querySelector?.('text') : null;
     const textColor = textEl?.getAttribute?.('fill');
     if (textColor) style.textColor = textColor;
@@ -161,7 +174,58 @@ export function applyStyleToShape(shape, style, win) {
         }
     }
     if (changed && typeof shape.draw === 'function') shape.draw();
+    if (applyAppearanceChange(shape, style, w)) changed = true;
     return changed;
+}
+
+// ── Opacity / edges ─────────────────────────────────────────────────
+
+/**
+ * Apply opacity and/or edges to one shape with its own undo step. Edges
+ * only apply to shapes that support them. Returns true when it changed.
+ */
+export function applyAppearanceChange(shape, changes, win) {
+    if (!shape || !changes) return false;
+    const w = getWin(win);
+    const patch = {};
+    if (changes.opacity !== undefined) patch.opacity = normalizeOpacity(changes.opacity);
+    if (changes.edges !== undefined && supportsEdges(shape)) patch.edges = normalizeEdges(changes.edges);
+    if (!Object.keys(patch).length) return false;
+    const before = captureAppearance(shape);
+    if (appearanceEquals(before, { ...before, ...patch })) return false;
+    applyAppearance(shape, patch);
+    if (typeof w.pushAppearanceChangeAction === 'function') {
+        w.pushAppearanceChangeAction(shape, before, captureAppearance(shape));
+    }
+    if (supportsEdges(shape) && patch.edges !== undefined && typeof shape.updateAttachedArrows === 'function') {
+        shape.updateAttachedArrows();
+    }
+    return true;
+}
+
+/**
+ * Properties panel: set opacity / edges on every selected shape as one
+ * undo step. Opacity also becomes the default for the next drawn shape.
+ * Returns the number of shapes changed.
+ */
+export function setSelectionAppearance(changes, win) {
+    const w = getWin(win);
+    if (changes?.opacity !== undefined) setNextShapeOpacity(changes.opacity);
+    const targets = getSelectionTargets(w);
+    const batch = typeof w.beginUndoBatch === 'function' ? w.beginUndoBatch() : null;
+    let count = 0;
+    for (const shape of targets) if (applyAppearanceChange(shape, changes, w)) count++;
+    if (batch !== null && typeof w.endUndoBatch === 'function') w.endUndoBatch(batch, 'appearance');
+    const ms = w.multiSelection;
+    if (count && ms?.selectedShapes?.size > 0 && typeof ms.updateControls === 'function') ms.updateControls();
+    return count;
+}
+
+/** Appearance shown in the panel: the first selected shape, else defaults. */
+export function getSelectionAppearance(win) {
+    const [first] = getSelectionTargets(win);
+    if (!first) return { opacity: getNextShapeOpacity(), edges: undefined };
+    return { edges: undefined, ...captureAppearance(first) };
 }
 
 export function copyStyles(win) {
@@ -238,6 +302,8 @@ export function initCanvasCommands() {
         hasCopiedStyles,
         editSelectedLabel: () => editSelectedLabel(window),
         clearSelection: () => clearSelection(window),
+        setAppearance: (changes) => setSelectionAppearance(changes, window),
+        getAppearance: () => getSelectionAppearance(window),
         duplicate: (options) => (typeof window.duplicateSelected === 'function' ? window.duplicateSelected(options) : []),
     };
 }

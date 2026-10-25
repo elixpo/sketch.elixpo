@@ -1,5 +1,6 @@
 /* eslint-disable */
 import { resolveThemeLabelColor } from '../utils/themeColors.js';
+import { cornerRadiusFor, rectOutlinePoint } from '../core/ShapeAppearance.js';
 // Arrow shape class - extracted from drawArrow.js
 // Depends on globals: svg, shapes, rough, currentShape, currentZoom
 import { DEFAULT_SHAPE_LABEL_FONT_SIZE } from '../core/ShapeLabelLayout.js';
@@ -1540,7 +1541,7 @@ static getFrameAttachmentPoint(point, frame, tolerance = 20) {
     const offset = attachment.offset;
 
     if (shape.shapeName === 'rectangle') {
-        return Arrow._calcRectAttachedPoint(shape.x, shape.y, shape.width, shape.height, shape.rotation, side, offset);
+        return Arrow._calcRectAttachedPoint(shape.x, shape.y, shape.width, shape.height, shape.rotation, side, offset, cornerRadiusFor(shape));
     }
 
     if (shape.shapeName === 'circle') {
@@ -1576,7 +1577,7 @@ static getFrameAttachmentPoint(point, frame, tolerance = 20) {
     }
 
     if (shape.shapeName === 'frame') {
-        return Arrow._calcRectAttachedPoint(shape.x, shape.y, shape.width, shape.height, 0, side, offset);
+        return Arrow._calcRectAttachedPoint(shape.x, shape.y, shape.width, shape.height, 0, side, offset, cornerRadiusFor(shape));
     }
 
     if (shape.shapeName === 'freehandStroke') {
@@ -1597,9 +1598,14 @@ static getFrameAttachmentPoint(point, frame, tolerance = 20) {
     return { x: shape.x || 0, y: shape.y || 0 };
 }
 
-    static _calcRectAttachedPoint(rx, ry, rw, rh, rotation, side, offset) {
+    static _calcRectAttachedPoint(rx, ry, rw, rh, rotation, side, offset, cornerRadius = 0) {
         let localPoint;
-        switch (side) {
+        // Round edges: keep points that fall inside a corner on the curve.
+        const along = side === 'left' || side === 'right' ? offset?.y : offset?.x;
+        const onOutline = cornerRadius > 0 ? rectOutlinePoint(rw, rh, cornerRadius, side, along) : null;
+        if (onOutline) {
+            localPoint = { x: rx + onOutline.x, y: ry + onOutline.y };
+        } else switch (side) {
             case 'top':
                 localPoint = { x: rx + offset.x, y: ry };
                 break;
