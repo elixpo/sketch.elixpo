@@ -8,16 +8,8 @@ import { describe, expect, it } from 'vitest'
 
 import { compileLixSketch, lixSketchToScene, sceneToLixSketch } from '../../src/core/LixSketchFormat.js'
 import { parseMermaid, unsupportedMermaidType } from '../../src/core/AIRenderer.js'
-import { renderFlowchartPreviewSVG } from '../../src/core/MermaidFlowchartRenderer.js'
 import { parseSequenceDiagram } from '../../src/core/MermaidSequenceParser.js'
-import { renderSequencePreviewSVG } from '../../src/core/MermaidSequenceRenderer.js'
-import {
-    detectStructuredMermaid,
-    parseChartDiagram,
-    parseERDiagram,
-    renderChartPreviewSVG,
-    renderERPreviewSVG,
-} from '../../src/core/MermaidStructuredRenderer.js'
+import { detectMermaidType, parseNative, previewMermaid } from '../../src/core/MermaidRouter.js'
 
 const DOCS = [
     '../../../../src/content/docs/lixsketch-dsl.md',
@@ -41,23 +33,13 @@ function codeBlocks(path) {
     return blocks
 }
 
-function renderMermaid(src) {
-    const header = src.split('\n').map(l => l.trim()).find(l => l && !l.startsWith('%%')) || ''
-    if (header.toLowerCase() === 'sequencediagram') {
-        const diagram = parseSequenceDiagram(src)
-        return { diagram, svg: diagram && renderSequencePreviewSVG(diagram) }
-    }
-    const structured = detectStructuredMermaid(src)
-    if (structured === 'er') {
-        const diagram = parseERDiagram(src)
-        return { diagram, svg: diagram && renderERPreviewSVG(diagram) }
-    }
-    if (structured === 'chart') {
-        const diagram = parseChartDiagram(src)
-        return { diagram, svg: diagram && renderChartPreviewSVG(diagram) }
-    }
-    const diagram = parseMermaid(src)
-    return { diagram, svg: diagram && renderFlowchartPreviewSVG(diagram) }
+// Native types render through the engine's own parsers (no DOM, no
+// mermaid library); image types must at least be routed to the image path.
+async function renderMermaid(src) {
+    const native = parseNative(src)
+    if (native.path === 'image') return { path: 'image', native }
+    const preview = await previewMermaid(src)
+    return { path: 'native', native, preview }
 }
 
 for (const path of DOCS) {
@@ -83,18 +65,24 @@ for (const path of DOCS) {
         }
 
         for (const block of mermaid) {
-            it(`mermaid block at line ${block.line} parses and renders`, () => {
-                expect(unsupportedMermaidType(block.code)).toBeNull()
-                const { diagram, svg } = renderMermaid(block.code)
-                expect(diagram).toBeTruthy()
-                expect(svg).toMatch(/^\s*<svg/)
+            it(`mermaid block at line ${block.line} parses and renders (${detectMermaidType(block.code).path})`, async () => {
+                const result = await renderMermaid(block.code)
+                if (result.path === 'image') {
+                    expect(result.native.keyword).toBeTruthy()
+                    return
+                }
+                expect(result.native.errors).toEqual([])
+                expect(result.native.diagram).toBeTruthy()
+                expect(result.preview.ok).toBe(true)
+                expect(result.preview.path).toBe('native')
+                expect(result.preview.svg).toMatch(/^\s*<svg/)
             })
         }
     })
 }
 
 describe('Mermaid behaviour documented in mermaid.md', () => {
-    it('rejects unsupported diagram types instead of drawing their source', () => {
+    it('keeps non-flowchart sources out of the flowchart parser', () => {
         expect(parseMermaid('classDiagram\n  Animal <|-- Duck')).toBeNull()
         expect(parseMermaid('stateDiagram-v2\n  [*] --> Still')).toBeNull()
         expect(parseMermaid('gantt\n  title Plan')).toBeNull()
