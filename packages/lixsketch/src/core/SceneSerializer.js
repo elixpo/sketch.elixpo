@@ -42,6 +42,42 @@ function cloneOptions(options) {
     return JSON.parse(JSON.stringify(options));
 }
 
+// Bound label state for container shapes (rectangle, circle). Older scenes
+// only carried a label inside `options` (AI/mermaid renderers) and had no
+// explicit user size, so every field is optional on load.
+const THEME_FOREGROUND_COLORS = new Set(['#ffffff', '#fff', '#000000', '#000']);
+
+function serializeLabelState(shape) {
+    const state = {
+        label: typeof shape.label === 'string' ? shape.label : '',
+        labelWrap: shape.labelWrap !== false,
+    };
+    // Default label colors follow the theme foreground; persisting them would
+    // freeze white/black text across theme switches.
+    if (shape.labelColor && !THEME_FOREGROUND_COLORS.has(String(shape.labelColor).toLowerCase())) {
+        state.labelColor = shape.labelColor;
+    }
+    if (Number.isFinite(shape.labelFontSize)) state.labelFontSize = shape.labelFontSize;
+    return state;
+}
+
+function deserializeLabelState(data) {
+    const options = data.options || {};
+    const state = {
+        label: typeof data.label === 'string' ? data.label : (options.label || ''),
+        labelWrap: data.labelWrap !== undefined ? data.labelWrap !== false : options.labelWrap !== false,
+    };
+    const labelColor = data.labelColor || options.labelColor;
+    const labelFontSize = data.labelFontSize || options.labelFontSize;
+    if (labelColor) state.labelColor = labelColor;
+    if (labelFontSize) state.labelFontSize = labelFontSize;
+    return state;
+}
+
+function finiteOr(value, fallback) {
+    return Number.isFinite(value) ? value : fallback;
+}
+
 function restoreDocBlockLinks(shape, data) {
     const ids = [...new Set((Array.isArray(data.docBlockIds)
         ? data.docBlockIds
@@ -78,6 +114,10 @@ function serializeShape(shape) {
                 type: 'rectangle',
                 x: shape.x, y: shape.y,
                 width: shape.width, height: shape.height,
+                // Explicit size; width/height may be grown to fit the label.
+                userWidth: finiteOr(shape.userWidth, shape.width),
+                userHeight: finiteOr(shape.userHeight, shape.height),
+                ...serializeLabelState(shape),
                 rotation: shape.rotation,
                 options: cloneOptions(shape.options),
             };
@@ -88,6 +128,10 @@ function serializeShape(shape) {
                 type: 'circle',
                 x: shape.x, y: shape.y,
                 rx: shape.rx, ry: shape.ry,
+                // Explicit radii; rx/ry may be grown to fit the label.
+                userRx: finiteOr(shape.userRx, shape.rx),
+                userRy: finiteOr(shape.userRy, shape.ry),
+                ...serializeLabelState(shape),
                 rotation: shape.rotation,
                 options: cloneOptions(shape.options),
             };
@@ -232,14 +276,30 @@ function deserializeShape(data) {
 
     switch (data.type) {
         case 'rectangle': {
+            const label = deserializeLabelState(data);
             const shape = new Rectangle(data.x, data.y, data.width, data.height, data.options || {});
+            if (typeof shape.applyLabelState === 'function') {
+                shape.applyLabelState({
+                    ...label,
+                    userWidth: finiteOr(data.userWidth, data.width),
+                    userHeight: finiteOr(data.userHeight, data.height),
+                });
+            }
             if (data.rotation) shape.rotation = data.rotation;
             if (data.shapeID) shape.shapeID = data.shapeID;
             return shape;
         }
 
         case 'circle': {
+            const label = deserializeLabelState(data);
             const shape = new Circle(data.x, data.y, data.rx, data.ry, data.options || {});
+            if (typeof shape.applyLabelState === 'function') {
+                shape.applyLabelState({
+                    ...label,
+                    userRx: finiteOr(data.userRx, data.rx),
+                    userRy: finiteOr(data.userRy, data.ry),
+                });
+            }
             if (data.rotation) shape.rotation = data.rotation;
             if (data.shapeID) shape.shapeID = data.shapeID;
             return shape;

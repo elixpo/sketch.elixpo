@@ -106,7 +106,7 @@ const handleMouseDownRect = (e) => {
         if (currentShape && currentShape.shapeName === 'rectangle' && currentShape.isSelected) {
             const anchorInfo = currentShape.isNearAnchor(mouseX, mouseY);
             if (anchorInfo) {
-                 dragOldPosSquare = { x: currentShape.x, y: currentShape.y, width: currentShape.width, height: currentShape.height, rotation: currentShape.rotation };
+                 dragOldPosSquare = { x: currentShape.x, y: currentShape.y, width: currentShape.width, height: currentShape.height, userWidth: currentShape.userWidth, userHeight: currentShape.userHeight, rotation: currentShape.rotation };
                 if (anchorInfo.type === 'resize') {
                     isResizingShapeSquare = true;
                     resizingAnchorIndexSquare = anchorInfo.index;
@@ -121,7 +121,7 @@ const handleMouseDownRect = (e) => {
                 clickedOnShape = true;
             } else if (currentShape.contains(mouseX, mouseY)) {
                  isDraggingShapeSquare = true;
-                 dragOldPosSquare = { x: currentShape.x, y: currentShape.y, width: currentShape.width, height: currentShape.height, rotation: currentShape.rotation };
+                 dragOldPosSquare = { x: currentShape.x, y: currentShape.y, width: currentShape.width, height: currentShape.height, userWidth: currentShape.userWidth, userHeight: currentShape.userHeight, rotation: currentShape.rotation };
                  
                  // Store initial frame state
                  draggedShapeInitialFrame = currentShape.parentFrame || null;
@@ -156,7 +156,7 @@ const handleMouseDownRect = (e) => {
                 currentShape.isSelected = true;
                 currentShape.draw(); 
                 isDraggingShapeSquare = true; 
-                dragOldPosSquare = { x: currentShape.x, y: currentShape.y, width: currentShape.width, height: currentShape.height, rotation: currentShape.rotation };
+                dragOldPosSquare = { x: currentShape.x, y: currentShape.y, width: currentShape.width, height: currentShape.height, userWidth: currentShape.userWidth, userHeight: currentShape.userHeight, rotation: currentShape.rotation };
                 
                 // Store initial frame state
                 draggedShapeInitialFrame = currentShape.parentFrame || null;
