@@ -73,3 +73,12 @@ describe('frame clipboard trees', () => {
     expect(getCopyRoots([child])).toEqual([child])
   })
 })
+
+describe('duplicateSelected', () => {
+  it('returns no shapes and leaves the clipboard alone without a selection', () => {
+    globalThis.window.multiSelection = { selectedShapes: new Set() }
+    expect(copyPaste.duplicateSelected()).toEqual([])
+    expect(copyPaste.pasteClipboard()).toBe(false)
+    delete globalThis.window.multiSelection
+  })
+})

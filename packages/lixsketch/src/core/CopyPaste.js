@@ -494,25 +494,27 @@ function createShapeFromData(data, offsetX, offsetY) {
 // ============================================================
 // COPY: Serialize currently selected shapes
 // ============================================================
-function copySelected() {
-    let selectedShapes = [];
-
+function getSelectedShapesForCopy() {
     // Check multi-selection first
     if (window.multiSelection && window.multiSelection.selectedShapes && window.multiSelection.selectedShapes.size > 0) {
-        selectedShapes = [...window.multiSelection.selectedShapes];
+        return [...window.multiSelection.selectedShapes];
     }
     // Fall back to single currentShape
-    else if (typeof currentShape !== 'undefined' && currentShape && currentShape.isSelected) {
-        selectedShapes = [currentShape];
+    if (typeof currentShape !== 'undefined' && currentShape && currentShape.isSelected) {
+        return [currentShape];
     }
+    return [];
+}
 
+/** Serialize the current selection into a clipboard-shaped payload (or null). */
+function collectSelectionData() {
     // If both a frame and one of its children are selected, serialize the
     // child only through the frame. This preserves ownership without creating
     // a second loose duplicate beside the pasted frame.
-    const copyRoots = getCopyRoots(selectedShapes);
+    const copyRoots = getCopyRoots(getSelectedShapesForCopy());
     const shapesToCopy = copyRoots.map(shape => serializeShape(shape)).filter(Boolean);
 
-    if (shapesToCopy.length === 0) return false;
+    if (shapesToCopy.length === 0) return null;
 
     // Calculate center of all copied shapes
     let totalX = 0, totalY = 0;
@@ -521,16 +523,18 @@ function copySelected() {
         totalX += c.x;
         totalY += c.y;
     });
-    const centerX = totalX / shapesToCopy.length;
-    const centerY = totalY / shapesToCopy.length;
-
-    clipboard = {
+    return {
         shapes: shapesToCopy,
-        centerX,
-        centerY
+        centerX: totalX / shapesToCopy.length,
+        centerY: totalY / shapesToCopy.length,
     };
-    pasteCount = 0;
+}
 
+function copySelected() {
+    const data = collectSelectionData();
+    if (!data) return false;
+    clipboard = data;
+    pasteCount = 0;
     return true;
 }
 
@@ -549,6 +553,24 @@ function pasteClipboard() {
     const groupOffsetX = targetX - clipboard.centerX + baseOffset;
     const groupOffsetY = targetY - clipboard.centerY + baseOffset;
 
+    placeShapeData(clipboard.shapes, groupOffsetX, groupOffsetY, 'clipboard-paste');
+    return true;
+}
+
+/**
+ * Duplicate the current selection without touching the clipboard.
+ * Ctrl+D uses the default 10px offset (Excalidraw behaviour); Alt+drag
+ * duplicates in place (offset 0) and then drags the new copies.
+ * Returns the created shapes (empty when nothing is selected).
+ */
+function duplicateSelected({ offsetX = 10, offsetY = 10 } = {}) {
+    const data = collectSelectionData();
+    if (!data) return [];
+    return placeShapeData(data.shapes, offsetX, offsetY, 'duplicate');
+}
+
+/** Create shapes from serialized data, then select them. */
+function placeShapeData(shapeDataList, groupOffsetX, groupOffsetY, undoLabel) {
     // Deselect all currently selected shapes
     if (typeof shapes !== 'undefined' && Array.isArray(shapes)) {
         shapes.forEach(s => {
@@ -586,11 +608,11 @@ function pasteClipboard() {
         return newShape;
     };
 
-    clipboard.shapes.forEach(data => {
+    shapeDataList.forEach(data => {
         const newShape = pasteShapeTree(data);
         if (newShape) pastedShapes.push(newShape);
     });
-    endUndoBatch(undoBatch, 'clipboard-paste');
+    endUndoBatch(undoBatch, undoLabel);
 
     // Select the pasted shapes
     if (pastedShapes.length === 1) {
@@ -609,7 +631,7 @@ function pasteClipboard() {
         window.multiSelection.updateControls();
     }
 
-    return true;
+    return pastedShapes;
 }
 
 // ============================================================
@@ -757,6 +779,7 @@ function initCopyPaste() {
     // Expose for context menu
     window.copySelected = copySelected;
     window.pasteClipboard = pasteClipboard;
+    window.duplicateSelected = duplicateSelected;
 }
 
-export { initCopyPaste, copySelected, pasteClipboard };
+export { initCopyPaste, copySelected, pasteClipboard, duplicateSelected };

@@ -331,6 +331,10 @@ class SketchEngine {
             const layerOrder = await import('./core/LayerOrder.js');
             if (layerOrder.initLayerOrder) layerOrder.initLayerOrder();
 
+            // Selection commands for nudge / layer / style / label shortcuts
+            const canvasCommands = await import('./core/CanvasCommands.js');
+            if (canvasCommands.initCanvasCommands) canvasCommands.initCanvasCommands();
+
             // Initialize LixScript programmatic diagram engine
             const lixScript = await import('./core/LixScriptParser.js');
             if (lixScript.initLixScriptBridge) lixScript.initLixScriptBridge();
