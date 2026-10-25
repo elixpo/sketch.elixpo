@@ -19,6 +19,7 @@
     "canvasBackground": "Canvas Background",
     "canvasBg": {
       "white": "White",
+      "offWhite": "Soft White",
       "cream": "Cream",
       "paper": "Paper",
       "skyTint": "Sky Tint",

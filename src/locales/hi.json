@@ -19,6 +19,7 @@
     "canvasBackground": "कैनवास पृष्ठभूमि",
     "canvasBg": {
       "white": "सफेद",
+      "offWhite": "हल्का सफेद",
       "cream": "क्रीम",
       "paper": "कागज़",
       "skyTint": "आसमानी रंग",

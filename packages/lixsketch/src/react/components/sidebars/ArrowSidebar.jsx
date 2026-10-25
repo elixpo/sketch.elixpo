@@ -4,8 +4,7 @@ import useSketchStore, { TOOLS } from '../../store/useSketchStore'
 import ShapeSidebar, { ToolbarButton, Divider, LayerControls } from './ShapeSidebar'
 import { useState, useCallback } from 'react'
 import { useTranslation } from '../../hooks/useTranslation'
-
-const STROKE_COLORS = ['#1a1a20', '#ffffff', '#FF8383', '#3A994C', '#56A2E8', '#FFD700', '#FF69B4', '#A855F7']
+import { getStrokeSwatches, getThemeInk } from '../../../utils/themeColors.js'
 
 const HEAD_STYLES = [
   { value: 'default', svg: '<svg width="22" height="12" viewBox="0 0 24 14"><line x1="2" y1="7" x2="16" y2="7" stroke="#fff" stroke-width="2"/><polyline points="13,2 19,7 13,12" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>' },
@@ -23,7 +22,7 @@ function ColorGrid({ colors, selected, onSelect }) {
     <div className="grid grid-cols-4 gap-1.5">
       {colors.map((c) => (
         <button key={c} onClick={() => onSelect(c)}
-          className={`w-7 h-7 rounded-md border-[1.5px] transition-all duration-100 ${selected === c ? 'border-[#7667a8] scale-110' : 'border-white/[0.08] hover:border-white/20'}`}
+          className={`w-7 h-7 rounded-md border-[1.5px] transition-all duration-100 ${selected === c ? 'border-accent scale-110' : 'border-white/[0.08] hover:border-white/20'}`}
           style={{ backgroundColor: c }}
         />
       ))}
@@ -36,7 +35,9 @@ export default function ArrowSidebar() {
   const activeTool = useSketchStore((s) => s.activeTool)
   const selectedShapeSidebar = useSketchStore((s) => s.selectedShapeSidebar)
   const [headStyle, setHeadStyle] = useState('default')
-  const [strokeColor, setStrokeColor] = useState('#fff')
+  const resolvedTheme = 'dark'
+  const [strokeColor, setStrokeColor] = useState(null)
+  const displayedStrokeColor = strokeColor ?? getThemeInk(resolvedTheme)
   const [thickness, setThickness] = useState(2)
   const [outlineStyle, setOutlineStyle] = useState('solid')
   const [arrowType, setArrowType] = useState('straight')
@@ -87,7 +88,7 @@ export default function ArrowSidebar() {
         <div className="flex items-center gap-1">
           {HEAD_STYLES.map((h) => (
             <button key={h.value} onClick={() => updateHead(h.value)}
-              className={`w-10 h-8 flex items-center justify-center rounded-lg transition-all duration-100 ${headStyle === h.value ? 'bg-[#7667a8]/20 text-[#7667a8]' : 'text-text-secondary hover:bg-white/[0.06]'}`}
+              className={`w-10 h-8 flex items-center justify-center rounded-lg transition-all duration-100 ${headStyle === h.value ? 'bg-accent/15 text-accent' : 'text-text-secondary hover:bg-white/[0.06]'}`}
             >
               <SvgIcon svg={h.svg} />
             </button>
@@ -98,10 +99,10 @@ export default function ArrowSidebar() {
       <Divider />
 
       <ToolbarButton tooltip={t('sidebar.strokeColor')}
-        preview={<span className="w-4 h-4 rounded-md border border-white/20" style={{ backgroundColor: strokeColor }} />}
+        preview={<span className="w-4 h-4 rounded-md border border-white/20" style={{ backgroundColor: displayedStrokeColor }} />}
       >
         <p className="text-xs text-text-secondary uppercase tracking-wider mb-2">{t('sidebar.sectionHeader.stroke')}</p>
-        <ColorGrid colors={STROKE_COLORS} selected={strokeColor} onSelect={updateStroke} />
+        <ColorGrid colors={getStrokeSwatches(resolvedTheme)} selected={displayedStrokeColor} onSelect={updateStroke} />
       </ToolbarButton>
 
       <Divider />
@@ -111,7 +112,7 @@ export default function ArrowSidebar() {
         <div className="flex items-center gap-1">
           {[1, 2, 4, 7].map((w) => (
             <button key={w} onClick={() => updateThickness(w)}
-              className={`w-9 h-8 flex items-center justify-center rounded-lg transition-all duration-100 ${thickness === w ? 'bg-[#7667a8]/20 text-[#7667a8]' : 'text-text-secondary hover:bg-white/[0.06]'}`}
+              className={`w-9 h-8 flex items-center justify-center rounded-lg transition-all duration-100 ${thickness === w ? 'bg-accent/15 text-accent' : 'text-text-secondary hover:bg-white/[0.06]'}`}
             >
               <div className="w-5 rounded-full bg-current" style={{ height: Math.max(1, w) }} />
             </button>
@@ -126,7 +127,7 @@ export default function ArrowSidebar() {
         <div className="flex items-center gap-1">
           {[{ v: 'solid', d: '' }, { v: 'dashed', d: '6 4' }, { v: 'dotted', d: '2 3' }].map((s) => (
             <button key={s.v} onClick={() => updateOutline(s.v)}
-              className={`w-11 h-8 flex items-center justify-center rounded-lg transition-all duration-100 ${outlineStyle === s.v ? 'bg-[#7667a8]/20' : 'hover:bg-white/[0.06]'}`}
+              className={`w-11 h-8 flex items-center justify-center rounded-lg transition-all duration-100 ${outlineStyle === s.v ? 'bg-accent/15' : 'hover:bg-white/[0.06]'}`}
             >
               <svg width="28" height="4" viewBox="0 0 28 4"><line x1="0" y1="2" x2="28" y2="2" stroke="#fff" strokeWidth="2" strokeDasharray={s.d} strokeLinecap="round" /></svg>
             </button>
@@ -146,7 +147,7 @@ export default function ArrowSidebar() {
             { v: 'elbow', i: 'bxs-network-chart', l: 'Elbow' },
           ].map((a) => (
             <button key={a.v} onClick={() => updateType(a.v)}
-              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-all duration-100 ${arrowType === a.v ? 'bg-[#7667a8] text-white' : 'text-text-secondary hover:bg-white/[0.06]'}`}
+              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-all duration-100 ${arrowType === a.v ? 'bg-accent text-white' : 'text-text-secondary hover:bg-white/[0.06]'}`}
             >
               <i className={`bx ${a.i} text-sm`} /> {a.l}
             </button>
@@ -158,7 +159,7 @@ export default function ArrowSidebar() {
               <div className="flex items-center gap-1">
                 {[{ v: 8, l: 'Lo' }, { v: 20, l: 'Md' }, { v: 40, l: 'Hi' }].map((c) => (
                   <button key={c.v} onClick={() => updateCurvature(c.v)}
-                    className={`flex-1 py-1 rounded-md text-xs text-center transition-all duration-100 ${curvature === c.v ? 'bg-[#7667a8]/20 text-[#7667a8]' : 'text-text-secondary hover:bg-white/[0.06]'}`}
+                    className={`flex-1 py-1 rounded-md text-xs text-center transition-all duration-100 ${curvature === c.v ? 'bg-accent/15 text-accent' : 'text-text-secondary hover:bg-white/[0.06]'}`}
                   >{c.l}</button>
                 ))}
               </div>

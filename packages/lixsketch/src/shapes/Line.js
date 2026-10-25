@@ -3,16 +3,13 @@
 // Depends on globals: svg, shapes, rough, currentShape, currentZoom
 import { updateAttachedArrows as updateArrowsForShape } from '../tools/arrowTool.js';
 import { DEFAULT_SHAPE_LABEL_FONT_SIZE } from '../core/ShapeLabelLayout.js';
-import { resolveThemeLabelColor } from '../utils/themeColors.js';
+import { getThemeForeground, resolveThemeLabelColor } from '../utils/themeColors.js';
 
 const rc = rough.svg(svg);
 // Issue #38 follow-up: read the default stroke from the active theme
 // instead of pinning to a single colour. White was invisible on the new
 // light canvas, black is invisible if the user toggles dark.
-function getThemeStroke() {
-    if (typeof document === 'undefined') return '#fff';
-    return document.body && document.body.classList.contains('theme-dark') ? '#fff' : '#000000';
-}
+const getThemeStroke = getThemeForeground;
 const lineStrokeWidth = 2;
 let hoveredFrameLine = null;
 

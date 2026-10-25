@@ -40,7 +40,7 @@ export default function Footer() {
   return (
     <div className="absolute bottom-4 right-5 flex items-center gap-2.5 z-[1000] font-[lixFont]">
       {/* Undo/Redo */}
-      <div className="flex items-center bg-surface rounded-lg overflow-hidden border border-border-light shadow-sm">
+      <div className="flex items-center lix-island bg-surface rounded-lg overflow-hidden border border-border-light">
         <button
           onClick={handleUndo}
           title="Undo (Ctrl+Z)"
@@ -59,7 +59,7 @@ export default function Footer() {
       </div>
 
       {/* Zoom controls */}
-      <div className="flex items-center bg-surface rounded-lg overflow-hidden border border-border-light shadow-sm">
+      <div className="flex items-center lix-island bg-surface rounded-lg overflow-hidden border border-border-light">
         <button
           onClick={handleZoomFit}
           aria-label="Fit canvas to content"

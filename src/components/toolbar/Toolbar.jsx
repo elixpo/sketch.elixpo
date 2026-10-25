@@ -111,7 +111,7 @@ export default function Toolbar() {
 
   return (
     <>
-    <div data-canvas-toolbar className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-[46px] rounded-xl bg-surface border border-border-light shadow-sm z-[1000] flex flex-col items-center py-1.5 gap-0.5 font-[lixFont] max-h-[calc(100vh-120px)] overflow-visible`}>
+    <div data-canvas-toolbar className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-[46px] lix-island rounded-xl bg-surface border border-border-light z-[1000] flex flex-col items-center py-1.5 gap-0.5 font-[lixFont] max-h-[calc(100vh-120px)] overflow-visible`}>
       {/* Tool lock button at the top */}
       {!viewMode && (
         <>
