@@ -192,6 +192,11 @@
 .lx-hero-compact { min-height: 0; padding-bottom: clamp(3.5rem, 7vw, 6rem); }
 .lx-hero-copy { position: relative; z-index: 2; width: 100%; }
 .lx-hero-copy .lx-display { max-width: 1310px; }
+/* Compact heroes carry the object cluster in their right ~40%; keep the copy
+ * clear of it so headings never run underneath the blob/disc/card. */
+@media (min-width: 1051px) {
+  .lx-hero-compact .lx-hero-copy { max-width: 58%; }
+}
 .lx-hero-objects { position: absolute; z-index: 1; inset: 0; pointer-events: none; }
 .lx-orbit { position: absolute; display: block; border: 1px solid rgba(20, 32, 24, .25); border-radius: 50%; }
 .lx-orbit::after { content: ""; position: absolute; width: 14px; height: 14px; border-radius: 50%; background: #f0ad16; }

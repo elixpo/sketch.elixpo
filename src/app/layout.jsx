@@ -6,7 +6,7 @@ const SITE_URL = 'https://sketch.elixpo.com'
 const SITE_NAME = 'Elixpo Sketch'
 const SITE_TAGLINE = 'Open Source Infinite Canvas, Hand Drawn Aesthetics, Built In Docs Editor'
 const SITE_DESCRIPTION =
-  'LixSketch is a free, open-source collaborative whiteboard for technical diagrams, wireframes, flowcharts, architecture drawings, and presentations. No login required — start drawing instantly as a guest. Features AI-powered smart editing (Beta), end-to-end encrypted sharing, real-time collaboration with live cursors, a Notion-style docs editor, LixScript DSL for scripted diagrams, 250K+ icons, and a VS Code extension. Runs entirely in the browser. Forever free.'
+  'LixSketch is a free, open-source collaborative whiteboard for technical diagrams, wireframes, flowcharts, architecture drawings, and presentations. No login required — start drawing instantly as a guest. Features AI-powered smart editing (Beta), end-to-end encrypted sharing, real-time collaboration with live cursors, a Notion-style docs editor, LixScript DSL for scripted diagrams, 5,000+ icons, and a VS Code extension. Runs entirely in the browser. Forever free.'
 
 // Site routes always render light. Only the workspace routes (/c, /room, /s)
 // restore persisted themes, and they restore two independent values before
@@ -197,7 +197,7 @@ const jsonLd = {
     'E2E encryption for shared canvases',
     'LixScript diagram DSL',
     'Notion-like docs editor',
-    'Icon library with 250K+ icons',
+    'Icon library with 5,000+ icons',
     'PNG and SVG export',
   ],
 }
