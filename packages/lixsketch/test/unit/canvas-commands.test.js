@@ -11,7 +11,9 @@ import {
   nudgeSelection,
   pasteStyles,
   resetStyleClipboard,
+  setSelectionAppearance,
 } from '../../src/core/CanvasCommands.js'
+import { getNextShapeOpacity, setNextShapeOpacity } from '../../src/core/ShapeAppearance.js'
 
 function shape(id, extra = {}) {
   return {
@@ -42,6 +44,7 @@ function fakeWindow({ selected = [], current = null, shapes = [] } = {}) {
     endUndoBatch: vi.fn(),
     pushTransformAction: (s, before, after) => undo.push({ type: 'transform', s, before, after }),
     pushOptionsChangeAction: (s, before, after) => undo.push({ type: 'options', s, before, after }),
+    pushAppearanceChangeAction: (s, before, after) => undo.push({ type: 'appearance', s, before, after }),
   }
 }
 
@@ -196,5 +199,48 @@ describe('Enter edits the selected label', () => {
 
   it('ignores multi-selections', () => {
     expect(editSelectedLabel(fakeWindow({ selected: [shape('a'), shape('b')] }))).toBe(false)
+  })
+})
+
+describe('opacity / edges from the properties panel', () => {
+  it('sets opacity on every selected shape as one batch and remembers it for new shapes', () => {
+    const a = shape('a', { opacity: 1 })
+    const b = shape('b', { shapeName: 'line', opacity: 1 })
+    const win = fakeWindow({ selected: [a, b] })
+    expect(setSelectionAppearance({ opacity: 40 }, win)).toBe(2)
+    expect([a.opacity, b.opacity]).toEqual([0.4, 0.4])
+    expect(win.undo.map(u => [u.type, u.before.opacity, u.after.opacity])).toEqual([['appearance', 1, 0.4], ['appearance', 1, 0.4]])
+    expect(win.endUndoBatch).toHaveBeenCalledWith(expect.anything(), 'appearance')
+    expect(getNextShapeOpacity()).toBe(0.4)
+    setNextShapeOpacity(1)
+  })
+
+  it('applies edges only to shapes that can round, and redraws them', () => {
+    const rect = shape('r', { edges: 'sharp', opacity: 1, updateAttachedArrows: vi.fn() })
+    const circle = shape('c', { shapeName: 'circle', opacity: 1 })
+    const win = fakeWindow({ selected: [rect, circle] })
+    expect(setSelectionAppearance({ edges: 'round' }, win)).toBe(1)
+    expect(rect.edges).toBe('round')
+    expect(rect.draw).toHaveBeenCalled()
+    expect(rect.updateAttachedArrows).toHaveBeenCalled()
+    expect(circle.edges).toBeUndefined()
+  })
+
+  it('records no undo when nothing changes', () => {
+    const rect = shape('r', { edges: 'round', opacity: 0.5 })
+    const win = fakeWindow({ current: rect })
+    expect(setSelectionAppearance({ opacity: 0.5, edges: 'round' }, win)).toBe(0)
+    expect(win.undo).toEqual([])
+    setNextShapeOpacity(1)
+  })
+
+  it('copy / paste styles carries opacity and edges', () => {
+    const source = shape('src', { opacity: 0.3, edges: 'round' })
+    copyStyles(fakeWindow({ current: source }))
+    const target = shape('t', { opacity: 1, edges: 'sharp' })
+    const win = fakeWindow({ current: target })
+    expect(pasteStyles(win)).toBe(1)
+    expect(target).toMatchObject({ opacity: 0.3, edges: 'round' })
+    expect(win.undo.some(u => u.type === 'appearance')).toBe(true)
   })
 })

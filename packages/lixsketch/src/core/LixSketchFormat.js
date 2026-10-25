@@ -70,11 +70,15 @@ const COMMON_FIELDS = {
     docBlocks: { key: 'docBlockIds', default: [], kind: 'idList' },
     locked: { key: 'locked', default: undefined, kind: 'boolean' },
     link: { key: 'link', default: undefined },
+    // 0–1 (or a 0–100 percentage); omitted = fully opaque.
+    opacity: { key: 'opacity', default: undefined, kind: 'opacity' },
 };
 const ROTATION = { rotation: { key: 'rotation', default: 0, kind: 'number' } };
+// sharp | round; omitted = sharp. `roundness` is accepted as an alias.
+const EDGES = { edges: { key: 'edges', default: undefined, kind: 'edges' } };
 
 const TYPE_FIELDS = {
-    rectangle: { ...ROTATION },
+    rectangle: { ...ROTATION, ...EDGES },
     circle: { ...ROTATION },
     line: {
         control: { key: 'controlPoint', default: null, kind: 'point' },
@@ -93,6 +97,7 @@ const TYPE_FIELDS = {
     freehandStroke: { ...ROTATION },
     frame: {
         ...ROTATION,
+        ...EDGES,
         name: { key: 'frameName', default: undefined },
         fillStyle: { key: 'fillStyle', default: 'transparent' },
         fillColor: { key: 'fillColor', default: '#1e1e28' },
@@ -151,7 +156,7 @@ const DERIVED_PROPS = {
     image: ['href', 'url'],
 };
 
-const RESERVED_COMMON = new Set(['parent', 'rotation', 'group', 'docBlocks', 'locked', 'link', 'options', 'data']);
+const RESERVED_COMMON = new Set(['parent', 'rotation', 'group', 'docBlocks', 'locked', 'link', 'options', 'data', 'opacity', 'edges', 'roundness']);
 
 function fieldsFor(type) {
     return { ...COMMON_FIELDS, ...TYPE_FIELDS[type] };
@@ -1256,6 +1261,18 @@ function checkKind(prop, kind, type) {
             return [];
         }
         case 'id': if (typeof v !== 'string') fail('a shape id'); return v;
+        case 'opacity': {
+            const n = typeof v === 'string' && v.trim().endsWith('%') ? parseFloat(v) / 100 : v;
+            if (typeof n !== 'number' || !Number.isFinite(n) || n < 0 || n > 100) fail('a number from 0 to 1 (or a percentage)');
+            // Values above 1 are percentages (opacity: 50 → 0.5).
+            const value = n > 1 ? n / 100 : n;
+            // Fully opaque is the default and is not stored.
+            return value === 1 ? undefined : Math.round(value * 100) / 100;
+        }
+        case 'edges': {
+            if (v !== 'sharp' && v !== 'round') fail("'sharp' or 'round'");
+            return v === 'round' ? 'round' : undefined;
+        }
         default: return v;
     }
 }
@@ -1291,7 +1308,18 @@ function buildRecord(def, ctx, lixscriptMode) {
             rec.parentFrame = prop.value;
             continue;
         }
-        if (fields[key]) { rec[fields[key].key] = checkKind(prop, fields[key].kind, type); continue; }
+        if (key === 'roundness' && fields.edges) {
+            const value = checkKind({ ...prop, key: 'edges' }, 'edges', type);
+            if (value !== undefined) rec.edges = value;
+            continue;
+        }
+        if (fields[key]) {
+            const value = checkKind(prop, fields[key].kind, type);
+            // Appearance defaults (opacity 1, sharp edges) are never stored.
+            if (value === undefined && (fields[key].kind === 'opacity' || fields[key].kind === 'edges')) continue;
+            rec[fields[key].key] = value;
+            continue;
+        }
         if ((DERIVED_PROPS[type] || []).includes(key)) { derived[key] = prop.value; continue; }
         if ((key === 'width' || key === 'height') && (type === 'text' || type === 'code')) continue;
         // Authoring aliases.
