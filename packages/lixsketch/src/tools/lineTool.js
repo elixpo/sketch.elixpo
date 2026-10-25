@@ -5,6 +5,7 @@ import { pushCreateAction, pushDeleteAction, pushOptionsChangeAction, pushTransf
 import { updateAttachedArrows as updateArrowsForShape, cleanupAttachments } from './arrowTool.js';
 import { calculateSnap, clearSnapGuides } from '../core/SnapGuides.js';
 import { snapToAngle } from '../core/DrawConstraints.js';
+import { normalizeArrowhead } from '../core/ArrowHeads.js';
 
 
 
@@ -79,6 +80,8 @@ const handleMouseDown = (e) => {
                 strokeWidth: lineStrokeWidth,
                 roughness: lineSktetchRate,
                 bowing: lineEdgeType,
+                startArrowhead: lineStartArrowhead,
+                endArrowhead: lineEndArrowhead,
                 strokeDasharray: lineStrokeStyle === "dashed" ? "5,5" : (lineStrokeStyle === "dotted" ? "2,12" : "")
             }
         );
@@ -495,9 +498,30 @@ window.lineToolSettings = {
     get edge() { return lineEdgeType; },
     set edge(v) { lineEdgeType = v; },
 };
+// Last chosen heads for the next line (none by default, like Excalidraw).
+let lineStartArrowhead = 'none';
+let lineEndArrowhead = 'none';
+
+function rememberLineHeads(changes) {
+    if (changes.startArrowhead !== undefined) lineStartArrowhead = normalizeArrowhead(changes.startArrowhead, 'none');
+    if (changes.endArrowhead !== undefined) lineEndArrowhead = normalizeArrowhead(changes.endArrowhead, 'none');
+}
+
+const lineSnapshot = (line) => ({ ...line.options, startArrowhead: line.startArrowhead, endArrowhead: line.endArrowhead });
+
+window.lineToolSettings = {
+    get startArrowhead() { return lineStartArrowhead; },
+    set startArrowhead(v) { lineStartArrowhead = normalizeArrowhead(v, 'none'); },
+    get endArrowhead() { return lineEndArrowhead; },
+    set endArrowhead(v) { lineEndArrowhead = normalizeArrowhead(v, 'none'); },
+};
+
 window.updateSelectedLineStyle = function(changes) {
+    rememberLineHeads(changes);
     if (currentShape instanceof Line && currentShape.isSelected) {
-        const oldOptions = {...currentShape.options};
+        const oldOptions = lineSnapshot(currentShape);
+        if (changes.startArrowhead !== undefined) currentShape.startArrowhead = lineStartArrowhead;
+        if (changes.endArrowhead !== undefined) currentShape.endArrowhead = lineEndArrowhead;
         if (changes.stroke !== undefined) { lineColor = changes.stroke; currentShape.options.stroke = changes.stroke; }
         if (changes.strokeWidth !== undefined) { lineStrokeWidth = changes.strokeWidth; currentShape.options.strokeWidth = changes.strokeWidth; }
         if (changes.strokeStyle !== undefined) {
@@ -507,7 +531,7 @@ window.updateSelectedLineStyle = function(changes) {
         if (changes.sloppiness !== undefined) { lineSktetchRate = changes.sloppiness; currentShape.options.roughness = changes.sloppiness; }
         if (changes.edge !== undefined) { lineEdgeType = changes.edge; currentShape.options.bowing = changes.edge; }
         currentShape.draw();
-        pushOptionsChangeAction(currentShape, oldOptions);
+        pushOptionsChangeAction(currentShape, oldOptions, lineSnapshot(currentShape));
     } else {
         if (changes.stroke !== undefined) lineColor = changes.stroke;
         if (changes.strokeWidth !== undefined) lineStrokeWidth = changes.strokeWidth;

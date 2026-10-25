@@ -63,6 +63,23 @@ export function readArrowheads(data = {}) {
     return { startArrowhead: start, endArrowhead: end };
 }
 
+/** Line heads from data: both default to none. */
+export function readLineArrowheads(data = {}) {
+    return {
+        startArrowhead: normalizeArrowhead(data.startArrowhead, 'none'),
+        endArrowhead: normalizeArrowhead(data.endArrowhead, 'none'),
+    };
+}
+
+/** Serialized line heads; `none` is omitted so headless lines stay unchanged. */
+export function serializeLineArrowheads(shape) {
+    const out = {};
+    const { startArrowhead, endArrowhead } = readLineArrowheads(shape || {});
+    if (startArrowhead !== 'none') out.startArrowhead = startArrowhead;
+    if (endArrowhead !== 'none') out.endArrowhead = endArrowhead;
+    return out;
+}
+
 // Base head length (px at stroke width 2), tuned to Excalidraw's sizes.
 const BASE_SIZE = {
     arrow: 18, bar: 14, dot: 11, circle: 12, triangle: 16, triangle_outline: 16,

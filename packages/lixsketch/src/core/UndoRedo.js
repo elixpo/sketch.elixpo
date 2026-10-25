@@ -1,7 +1,7 @@
 /* eslint-disable */
 // Undo/Redo system - copied from undoAndRedo.js
 import { appearanceEquals, applyAppearance, captureAppearance, initNewShapeAppearance } from './ShapeAppearance.js';
-import { readArrowheads } from './ArrowHeads.js';
+import { normalizeArrowhead, readArrowheads } from './ArrowHeads.js';
 
 // Stacks for undo/redo
 const undoStack = [];
@@ -658,6 +658,16 @@ function applyArrowSnapshot(shape, snapshot) {
 }
 
 function applyOptionsSnapshot(shape, options) {
+    if (shape.shapeName === 'line') {
+        // Line snapshots carry the instance-level arrowheads next to options;
+        // snapshots without them (older) mean no heads.
+        const { startArrowhead, endArrowhead, ...rest } = options || {};
+        shape.startArrowhead = normalizeArrowhead(startArrowhead, 'none');
+        shape.endArrowhead = normalizeArrowhead(endArrowhead, 'none');
+        shape.options = { ...rest };
+        shape.draw();
+        return;
+    }
     shape.options = { ...options };
     if (shape.shapeName === 'frame') {
         shape.fillColor = options.fillColor;
@@ -1236,7 +1246,9 @@ export function undo() {
                     arrowCurved: action.shape.arrowCurved,
                     arrowCurveAmount: action.shape.arrowCurveAmount,
                 }
-                : { ...action.shape.options };
+                : action.shape.shapeName === 'line'
+                    ? { ...action.shape.options, startArrowhead: action.shape.startArrowhead, endArrowhead: action.shape.endArrowhead }
+                    : { ...action.shape.options };
         }
         if (action.shape.type === 'text') {
             // Handle text options change undo

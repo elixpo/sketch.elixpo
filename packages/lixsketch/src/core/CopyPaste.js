@@ -18,7 +18,7 @@ import { compressImage } from '../utils/imageCompressor.js';
 import { IconShape } from '../shapes/IconShape.js';
 import { applyContainerLabel, serializeContainerLabel } from './ShapeLabelState.js';
 import { applySerializedAppearance, serializeAppearance } from './ShapeAppearance.js';
-import { readArrowheads } from './ArrowHeads.js';
+import { readArrowheads, readLineArrowheads, serializeLineArrowheads } from './ArrowHeads.js';
 
 // Clipboard storage
 let clipboard = null; // { shapes: [...clonedData], centerX, centerY }
@@ -91,7 +91,8 @@ function serializeShapeGeometry(shape, visited) {
                 endPoint: { x: shape.endPoint.x, y: shape.endPoint.y },
                 controlPoint: shape.controlPoint ? { x: shape.controlPoint.x, y: shape.controlPoint.y } : null,
                 isCurved: shape.isCurved || false,
-                options: cloneOptions(shape.options)
+                options: cloneOptions(shape.options),
+                ...serializeLineArrowheads(shape),
             };
 
         case 'arrow':
@@ -304,7 +305,7 @@ function createShapeGeometryFromData(data, offsetX, offsetY) {
             const newLine = new Line(
                 { x: data.startPoint.x + offsetX, y: data.startPoint.y + offsetY },
                 { x: data.endPoint.x + offsetX, y: data.endPoint.y + offsetY },
-                cloneOptions(data.options)
+                { ...cloneOptions(data.options), ...readLineArrowheads(data) }
             );
             if (data.isCurved && data.controlPoint) {
                 newLine.isCurved = true;

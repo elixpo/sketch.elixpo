@@ -271,6 +271,7 @@ line divider from 0, 300 to 800, 300 {
 line bend from 0, 0 to 300, 0 {
   curved: true
   control: { x: 150, y: -60 }
+  endHead: triangle
 }
 ```
 
@@ -282,6 +283,7 @@ line bend from 0, 0 to 300, 0 {
 | `roughness` | number | `1.5` | 0–3 | |
 | `curved` | boolean | `false` | | Alias `curve: true` (LixScript). |
 | `control` | point | `null` | `{ x, y }` or `"X, Y"` | Quadratic control point of a curved line. |
+| `startHead`, `endHead` | keyword | `none` | same types as [arrow](#arrow) | Optional arrowheads, drawn like arrow heads (tangent follows the curve). Omitted when `none`. |
 | `label`, `labelColor`, `labelFontSize` | | | | Label at the midpoint. |
 
 ### arrow

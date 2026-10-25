@@ -20,7 +20,7 @@ import { IconShape } from '../shapes/IconShape.js';
 import { clearUndoHistory, pushCanvasResetAction } from './UndoRedo.js';
 import { applyContainerLabel, serializeContainerLabel } from './ShapeLabelState.js';
 import { applySerializedAppearance, serializeAppearance } from './ShapeAppearance.js';
-import { readArrowheads } from './ArrowHeads.js';
+import { readArrowheads, readLineArrowheads, serializeLineArrowheads } from './ArrowHeads.js';
 import { LIXSKETCH_EXTENSION, LIXSKETCH_MIME_TYPE, formatDiagnostic, sceneFromFileText, sceneToLixSketch } from './LixSketchFormat.js';
 
 const FORMAT_VERSION = 1;
@@ -230,6 +230,7 @@ function serializeShape(shape) {
                 controlPoint: shape.controlPoint ? { x: shape.controlPoint.x, y: shape.controlPoint.y } : null,
                 isCurved: shape.isCurved || false,
                 options: shapeOptions(shape),
+                ...serializeLineArrowheads(shape),
             };
 
         case 'arrow': {
@@ -382,7 +383,7 @@ function deserializeShape(data) {
         }
 
         case 'line': {
-            const shape = new Line(data.startPoint, data.endPoint, data.options || {});
+            const shape = new Line(data.startPoint, data.endPoint, { ...(data.options || {}), ...readLineArrowheads(data) });
             if (data.controlPoint) shape.controlPoint = data.controlPoint;
             if (data.isCurved) shape.isCurved = data.isCurved;
             if (data.shapeID) shape.shapeID = data.shapeID;

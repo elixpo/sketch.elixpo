@@ -133,9 +133,9 @@ export function extractStyle(shape) {
         }
     }
     if (shape.labelColor !== undefined) style.labelColor = shape.labelColor;
-    if (shape.shapeName === 'arrow') {
-        style.startArrowhead = shape.startArrowhead;
-        style.endArrowhead = shape.endArrowhead;
+    if (shape.shapeName === 'arrow' || shape.shapeName === 'line') {
+        style.startArrowhead = shape.startArrowhead || 'none';
+        style.endArrowhead = shape.endArrowhead || (shape.shapeName === 'arrow' ? 'arrow' : 'none');
     }
     // Shape appearance (instance-level, see ShapeAppearance.js).
     Object.assign(style, captureAppearance(shape));
@@ -157,7 +157,8 @@ export function applyStyleToShape(shape, style, win) {
             if (style[key] !== undefined && shape.options[key] !== style[key]) optionChanges[key] = style[key];
         }
         const isArrow = shape.shapeName === 'arrow';
-        const headChanges = isArrow && ((style.startArrowhead !== undefined && style.startArrowhead !== shape.startArrowhead)
+        const hasHeads = isArrow || shape.shapeName === 'line';
+        const headChanges = hasHeads && ((style.startArrowhead !== undefined && style.startArrowhead !== shape.startArrowhead)
             || (style.endArrowhead !== undefined && style.endArrowhead !== shape.endArrowhead));
         if (Object.keys(optionChanges).length || headChanges) {
             // Arrow snapshots carry instance state so undo restores the heads.
@@ -170,7 +171,9 @@ export function applyStyleToShape(shape, style, win) {
                     arrowCurved: shape.arrowCurved,
                     arrowCurveAmount: shape.arrowCurveAmount,
                 }
-                : { ...shape.options });
+                : hasHeads
+                    ? { ...shape.options, startArrowhead: shape.startArrowhead, endArrowhead: shape.endArrowhead }
+                    : { ...shape.options });
             const oldOptions = snapshot();
             shape.options = { ...shape.options, ...optionChanges };
             if (headChanges) {

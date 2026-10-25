@@ -84,6 +84,9 @@ const TYPE_FIELDS = {
     line: {
         control: { key: 'controlPoint', default: null, kind: 'point' },
         curved: { key: 'isCurved', default: false, kind: 'boolean' },
+        // Optional heads; `none` is never stored for lines.
+        startHead: { key: 'startArrowhead', default: undefined, kind: 'lineArrowhead' },
+        endHead: { key: 'endArrowhead', default: undefined, kind: 'lineArrowhead' },
     },
     arrow: {
         style: { key: 'arrowOutlineStyle', default: 'solid' },
@@ -1273,6 +1276,7 @@ function checkKind(prop, kind, type) {
             // Fully opaque is the default and is not stored.
             return value === 1 ? undefined : Math.round(value * 100) / 100;
         }
+        case 'lineArrowhead':
         case 'arrowhead': {
             const type = typeof v === 'string' ? normalizeArrowhead(v, null) : (v === null ? 'none' : null);
             if (!type) fail(`one of ${ARROWHEAD_TYPES.join(', ')}`);
@@ -1331,6 +1335,7 @@ function buildRecord(def, ctx, lixscriptMode) {
             const value = checkKind(prop, fields[key].kind, type);
             // Appearance defaults (opacity 1, sharp edges) are never stored.
             if (value === undefined && (fields[key].kind === 'opacity' || fields[key].kind === 'edges')) continue;
+            if (fields[key].kind === 'lineArrowhead' && value === 'none') continue;
             rec[fields[key].key] = value;
             continue;
         }
