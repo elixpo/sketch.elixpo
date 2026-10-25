@@ -161,6 +161,11 @@ body.canvas-mode {
 
 body.canvas-mode {
   overflow: hidden;
+  /* The public-site body is near-black. Behind the workspace it must match
+   * the canvas, or any sub-pixel gap (split pane edges, rounding at the left
+   * of the SVG) shows up as a hard dark seam on the light canvas. */
+  background: var(--lixsketch-canvas-background, var(--color-surface-dark));
+  color: var(--color-text-primary);
 }
 
 /* Canvas labels are draggable content, never browser-selectable text. */
