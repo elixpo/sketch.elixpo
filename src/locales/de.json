@@ -19,6 +19,7 @@
     "canvasBackground": "Leinwand-Hintergrund",
     "canvasBg": {
       "white": "Weiß",
+      "offWhite": "Sanftweiß",
       "cream": "Creme",
       "paper": "Papier",
       "skyTint": "Himmelton",

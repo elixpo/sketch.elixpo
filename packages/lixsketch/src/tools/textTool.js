@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { getThemeForeground as getThemeStroke } from '../utils/themeColors.js';
 // Text tool event handlers - extracted from writeText.js
 import {
     pushCreateAction,
@@ -13,7 +14,7 @@ import {
 import { cleanupAttachments, updateAttachedArrows } from './arrowTool.js';
 import { registerRotationAnchor } from '../core/ScreenSpaceControls.js';
 
-function getThemeStroke() { if (typeof document === "undefined") return "#fff"; return document.body && document.body.classList.contains("theme-dark") ? "#fff" : "#000000"; }
+
 import {
     addCodeBlock,
     wrapCodeElement,

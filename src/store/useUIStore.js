@@ -8,6 +8,12 @@ import {
   writeCanvasTheme,
   writeUITheme,
 } from '@/utils/themePreferences'
+import {
+  getThemeInk,
+  isThemeOwnedColor,
+  normalizeColor,
+  normalizeSceneColorsForTheme,
+} from '@elixpo/lixsketch/src/utils/themeColors.js'
 
 export const MAX_WORKSPACE_NAME_LENGTH = 20
 
@@ -30,41 +36,7 @@ function browserStorage() {
   try { return window.localStorage } catch { return null }
 }
 
-function themeColor(value, resolved) {
-  if (!value || typeof value !== 'string') return value
-  const normalized = value.toLowerCase().trim()
-  if (['#e0e0e0', '#e8e3f3'].includes(normalized)) {
-    return resolved === 'light' ? '#000000' : '#ffffff'
-  }
-  if (resolved === 'dark' && ['#000', '#000000', 'black', '#1a1a2e'].includes(normalized)) {
-    return '#ffffff'
-  }
-  if (resolved === 'light' && ['#fff', '#ffffff', 'white'].includes(normalized)) {
-    return '#000000'
-  }
-  return value
-}
-
-/** Normalize serialized theme-default colors before constructors draw them. */
-export function normalizeSceneColorsForTheme(sceneData, resolved) {
-  if (!Array.isArray(sceneData?.shapes)) return sceneData
-  for (const shape of sceneData.shapes) {
-    shape.labelColor = themeColor(shape.labelColor, resolved)
-    if (shape.options) {
-      shape.options.stroke = themeColor(shape.options.stroke, resolved)
-      shape.options.fill = themeColor(shape.options.fill, resolved)
-      shape.options.labelColor = themeColor(shape.options.labelColor, resolved)
-    }
-    for (const htmlKey of ['groupHTML', 'elementHTML']) {
-      if (typeof shape[htmlKey] !== 'string') continue
-      shape[htmlKey] = shape[htmlKey].replace(
-        /\b(fill|stroke)=(['"])(#fff(?:fff)?|white|#000(?:000)?|black|#1a1a2e)\2/gi,
-        (match, attribute, quote, color) => `${attribute}=${quote}${themeColor(color, resolved)}${quote}`,
-      )
-    }
-  }
-  return sceneData
-}
+export { normalizeSceneColorsForTheme }
 
 /**
  * Swap black↔white colors on all shapes when theme changes.
@@ -75,21 +47,10 @@ function invertShapeColors(prevResolved, nextResolved) {
   const shapes = window.shapes
   if (!shapes || shapes.length === 0) return
 
-  // Light tools now use pure black, while older scenes may use near-black.
-  // Treat both as theme-owned colors so existing strokes do not
-  // disappear when the canvas changes underneath them.
-  const fromColors = nextResolved === 'light'
-    ? new Set(['#ffffff'])
-    : new Set(['#000000', '#1a1a2e'])
-  const to = nextResolved === 'light' ? '#000000' : '#ffffff'
-
-  const normalize = (c) => {
-    if (!c || c === 'transparent' || c === 'none') return c
-    const lower = c.toLowerCase().trim()
-    if (lower === '#fff' || lower === '#ffffff' || lower === 'white') return '#ffffff'
-    if (lower === '#000' || lower === '#000000' || lower === 'black') return '#000000'
-    return lower
-  }
+  // Every theme default (soft ink, plus legacy #000/#fff/near-black and
+  // lavender label greys) follows the theme; explicit user colors stay put.
+  const to = getThemeInk(nextResolved)
+  const isOwned = (c) => isThemeOwnedColor(c) && normalizeColor(c) !== to
 
   for (const shape of shapes) {
     let changed = false
@@ -150,37 +111,34 @@ function invertShapeColors(prevResolved, nextResolved) {
       }
     } else {
       if (shape.options) {
-        if (fromColors.has(normalize(shape.options.stroke))) {
+        if (isOwned(shape.options.stroke)) {
           shape.options.stroke = to
           changed = true
         }
-        if (fromColors.has(normalize(shape.options.fill))) {
+        if (isOwned(shape.options.fill)) {
           shape.options.fill = to
           changed = true
         }
       }
       // Text shapes store color directly
-      if (shape.color !== undefined && fromColors.has(normalize(shape.color))) {
+      if (shape.color !== undefined && isOwned(shape.color)) {
         shape.color = to
         changed = true
       }
-      if (shape.strokeColor !== undefined && fromColors.has(normalize(shape.strokeColor))) {
+      if (shape.strokeColor !== undefined && isOwned(shape.strokeColor)) {
         shape.strokeColor = to
         changed = true
       }
-      if (shape.labelColor !== undefined) {
-        const labelColor = normalize(shape.labelColor)
-        if (fromColors.has(labelColor) || ['#e0e0e0', '#e8e3f3'].includes(labelColor)) {
-          shape.labelColor = to
-          changed = true
-        }
+      if (shape.labelColor !== undefined && isOwned(shape.labelColor)) {
+        shape.labelColor = to
+        changed = true
       }
       // Text shapes keep their color in the restored SVG rather than on the
       // shape object. Update only theme-default fills; explicit user colors
       // remain untouched.
       if (shape.group) {
         shape.group.querySelectorAll('[fill]').forEach((element) => {
-          if (fromColors.has(normalize(element.getAttribute('fill')))) {
+          if (isOwned(element.getAttribute('fill'))) {
             element.setAttribute('fill', to)
             changed = true
           }

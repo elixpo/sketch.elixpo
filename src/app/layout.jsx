@@ -32,12 +32,16 @@ const canvasThemeBootstrap = `
       const resolve = (theme) => theme === 'system' ? (prefersDark ? 'dark' : 'light') : (theme === 'dark' ? 'dark' : 'light');
       const canvas = resolve(canvasTheme);
       const ui = resolve(uiTheme);
-      const defaults = { dark: '#15111f', light: '#FFFFFF' };
+      const defaults = { dark: '#15111f', light: '#FAFAF9' };
       const palettes = {
         dark: ['#000000', '#161718', '#15111f', '#181605', '#1b1615'],
-        light: ['#ffffff', '#f6dbc0', '#f5eed2', '#f5f2ed', '#f5dabf'],
+        light: ['#fafaf9', '#ffffff', '#f6dbc0', '#f5eed2', '#f5f2ed', '#f5dabf'],
       };
-      const stored = localStorage.getItem('lixsketch-canvas-background-' + canvas);
+      let stored = localStorage.getItem('lixsketch-canvas-background-' + canvas);
+      // Mirror readCanvasBackground's one-time move off the old white default
+      // so the first frame already uses the soft off-white canvas.
+      if (canvas === 'light' && stored && stored.toLowerCase() === '#ffffff'
+        && localStorage.getItem('lixsketch-canvas-light-default-v3') !== '1') stored = null;
       const background = stored && palettes[canvas].includes(stored.toLowerCase())
         ? stored
         : defaults[canvas];

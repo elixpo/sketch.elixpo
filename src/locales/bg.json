@@ -19,6 +19,7 @@
     "canvasBackground": "Фон на платното",
     "canvasBg": {
       "white": "Бяло",
+      "offWhite": "Меко бяло",
       "cream": "Кремаво",
       "paper": "Хартия",
       "skyTint": "Небесен оттенък",

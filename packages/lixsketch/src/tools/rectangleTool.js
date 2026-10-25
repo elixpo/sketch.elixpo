@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { getThemeForeground as getThemeStroke } from '../utils/themeColors.js';
 // Rectangle tool event handlers - extracted from drawSquare.js
 // Depends on globals: svg, shapes, currentShape, rough, currentZoom, lastMousePos
 // Depends on globals: isSquareToolActive, isSelectionToolActive
@@ -21,10 +22,6 @@ let startX, startY;
 // reading the body's `theme-dark` class lets the same code produce a
 // readable stroke in either mode. As soon as the user picks a colour
 // from the sidebar this var holds that value verbatim.
-function getThemeStroke() {
-    if (typeof document === 'undefined') return '#fff';
-    return document.body && document.body.classList.contains('theme-dark') ? '#fff' : '#000000';
-}
 let squareStrokecolor = null;
 let squareBackgroundColor = "transparent";
 let squareFillStyleValue = "none";

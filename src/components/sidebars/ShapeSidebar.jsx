@@ -95,7 +95,7 @@ export default function ShapeSidebar({ visible, children }) {
 
   return (
     <div
-      className={`no-scrollbar absolute bottom-14 left-1/2 z-[999] max-w-[calc(100vw-24px)] -translate-x-1/2 overflow-x-auto rounded-xl border border-border-light bg-surface-card px-1.5 py-1.5 font-[lixFont] shadow-lg shadow-black/20 transition-all duration-200 ${
+      className={`no-scrollbar absolute bottom-14 left-1/2 z-[999] max-w-[calc(100vw-24px)] -translate-x-1/2 overflow-x-auto lix-island rounded-xl border border-border-light bg-surface-card px-1.5 py-1.5 font-[lixFont] transition-all duration-200 ${
         show
           ? 'opacity-100 pointer-events-auto translate-y-0'
           : 'opacity-0 pointer-events-none translate-y-2'
