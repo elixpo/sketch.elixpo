@@ -19,6 +19,7 @@
  *   isSelected(shape) / select(shape) / deselect(shape) / refreshSelection(shape)
  *   isEditing(shape) / closeEditor(shape)
  *   isInGesture(shape)             my pointer gesture is moving/resizing/drawing it
+ *   redraw(shape, draw)            optional: run `draw` with engine flags set (e.g. multi-selection)
  */
 
 import { orderedIds } from './OT.js';
@@ -337,11 +338,14 @@ export function createSceneApplier(env) {
                     }
             }
         }
-        if (containerLabel && typeof shape.applyLabelState === 'function') {
-            shape.applyLabelState(readContainerState(shape, data)); // redraws
-        } else if (typeof shape.draw === 'function') {
-            shape.draw();
-        }
+        const redraw = typeof env.redraw === 'function' ? env.redraw : (_shape, draw) => draw();
+        redraw(shape, () => {
+            if (containerLabel && typeof shape.applyLabelState === 'function') {
+                shape.applyLabelState(readContainerState(shape, data)); // redraws
+            } else if (typeof shape.draw === 'function') {
+                shape.draw();
+            }
+        });
         if (bindings) bindArrowFromData(shape, data, live);
         if (type === 'frame' && typeof shape.updateClipPath === 'function') shape.updateClipPath();
         env.updateAttachedArrows(shape);

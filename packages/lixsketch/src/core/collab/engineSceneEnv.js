@@ -152,6 +152,17 @@ export function createEngineSceneEnv({ isPointerDown = () => false } = {}) {
             if (window.currentShape === shape) window.currentShape = null;
         },
 
+        redraw(shape, draw) {
+            // Multi-selected shapes show one shared selection box, not their
+            // own anchors (Selection.js sets _skipAnchors the same way).
+            const multi = window.multiSelection;
+            const inMulti = multi?.selectedShapes?.has(shape) && multi.selectedShapes.size > 1;
+            if (!inMulti) { draw(); return; }
+            const previous = shape._skipAnchors;
+            shape._skipAnchors = true;
+            try { draw(); } finally { shape._skipAnchors = previous; }
+        },
+
         refreshSelection(shape) {
             const multi = window.multiSelection;
             if (multi?.selectedShapes?.has(shape) && multi.selectedShapes.size > 1) {

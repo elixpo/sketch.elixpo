@@ -299,4 +299,26 @@ describe('SceneSerializer', () => {
     expect(serializer.loadScene({ format: 'lixsketch', version: 1, shapes: [null] })).toBe(false)
     expect(window.shapes).toEqual([existing])
   })
+
+  it('creates, serializes and binds single shapes for incremental collaboration', () => {
+    const before = [...window.svg.children]
+    const rect = serializer.createShapeFromData({
+      shapeID: 'r-1', type: 'rectangle', x: 1, y: 2, width: 30, height: 20,
+      options: { stroke: '#123' }, groupId: 'g', docBlockIds: ['d1'], locked: true,
+    })
+    expect(rect.shapeID).toBe('r-1')
+    expect(rect.groupId).toBe('g')
+    expect(rect.docBlockIds).toEqual(['d1'])
+    expect(rect.locked).toBe(true)
+    expect(window.shapes).toEqual([]) // caller owns insertion
+    expect(window.svg.children.length).toBe(before.length + 1)
+    const data = serializer.serializeShapeData(rect)
+    expect(data).toMatchObject({ shapeID: 'r-1', type: 'rectangle', x: 1, y: 2, groupId: 'g', locked: true })
+
+    const arrow = serializer.createShapeFromData({ shapeID: 'a-1', type: 'arrow', startPoint: { x: 0, y: 0 }, endPoint: { x: 5, y: 5 }, options: {} })
+    serializer.setArrowBinding(arrow, true, rect, null)
+    expect(arrow.startAttachment).toBe(rect)
+    serializer.setArrowBinding(arrow, true, null)
+    expect(arrow.startAttachment).toBe(null)
+  })
 })
