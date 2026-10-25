@@ -642,6 +642,9 @@ function handleCopyPasteKeydown(e) {
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
 
+    // Ctrl+Alt+C / V copy and paste styles, not shapes.
+    if (e.altKey) return;
+
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
         if (copySelected()) {
             e.preventDefault();

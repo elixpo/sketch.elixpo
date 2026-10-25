@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import useSketchStore, { TOOLS, SHORTCUT_MAP } from '@/store/useSketchStore'
 import useUIStore from '@/store/useUIStore'
 import { showToast } from '@/utils/toast'
+import { layerActionForShortcut, nudgeDeltaForKey } from '@elixpo/lixsketch/src/core/CanvasCommands.js'
 
 export default function useKeyboardShortcuts() {
   useEffect(() => {
@@ -166,9 +167,26 @@ export default function useKeyboardShortcuts() {
           }
           return
         }
-        if (key === 'd') {
+        if (key === 'd' && !e.shiftKey && !e.altKey) {
           e.preventDefault()
-          // Duplicate — handled by engine
+          window.__canvasCommands?.duplicate()
+          return
+        }
+        const layerAction = layerActionForShortcut(e)
+        if (layerAction) {
+          e.preventDefault()
+          window.__canvasCommands?.applyLayerAction(layerAction)
+          return
+        }
+        // Ctrl+Alt+C / Ctrl+Alt+V: copy / paste styles (Excalidraw)
+        if (e.altKey && e.code === 'KeyC') {
+          e.preventDefault()
+          if (window.__canvasCommands?.copyStyles()) showToast('Styles copied', { tone: 'info', duration: 1200 })
+          return
+        }
+        if (e.altKey && e.code === 'KeyV') {
+          e.preventDefault()
+          window.__canvasCommands?.pasteStyles()
           return
         }
         if (key === "'") {
@@ -179,9 +197,39 @@ export default function useKeyboardShortcuts() {
         return
       }
 
-      if (e.shiftKey && (key === '1' || key === '!')) {
+      if (e.shiftKey && !e.altKey && (key === '1' || key === '!' || e.code === 'Digit1')) {
         e.preventDefault()
         if (typeof window.zoomFit === 'function') window.zoomFit()
+        return
+      }
+      if (e.shiftKey && !e.altKey && (key === '2' || key === '@' || e.code === 'Digit2')) {
+        e.preventDefault()
+        if (typeof window.zoomToSelection === 'function') window.zoomToSelection()
+        return
+      }
+
+      // ? opens the shortcut reference (command center)
+      if (e.key === '?') {
+        e.preventDefault()
+        useUIStore.getState().toggleCommandPalette()
+        return
+      }
+
+      // Arrow keys / Enter belong to focused controls (menus, buttons, tabs).
+      const onControl = typeof e.target.closest === 'function'
+        && e.target.closest('button, a, select, [role="menu"], [role="menuitem"], [role="tablist"], [role="tab"]')
+
+      // Arrow keys nudge the selection (Shift = 10px)
+      const nudge = !e.altKey && !onControl ? nudgeDeltaForKey(e.key, e.shiftKey) : null
+      if (nudge) {
+        const moved = window.__canvasCommands?.nudgeSelection(nudge.dx, nudge.dy)
+        if (moved) e.preventDefault()
+        return
+      }
+
+      // Enter edits the selected shape's label / text
+      if (e.key === 'Enter' && !e.shiftKey && !e.altKey && !onControl) {
+        if (window.__canvasCommands?.editSelectedLabel()) e.preventDefault()
         return
       }
 
@@ -294,8 +342,11 @@ export default function useKeyboardShortcuts() {
             uiStore.closeMenu()
             return
           }
-          // Deselect all — handled by engine
+          // Deselect everything (engine anchors + store)
+          window.__canvasCommands?.clearSelection()
           store.setCurrentShape(null)
+          // Excalidraw: Esc always lands back on the selection tool.
+          if (store.activeTool !== TOOLS.SELECT) store.setActiveTool(TOOLS.SELECT)
           return
         }
       }

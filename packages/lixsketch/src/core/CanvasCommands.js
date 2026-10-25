@@ -213,6 +213,20 @@ export function editSelectedLabel(win) {
     return false;
 }
 
+/** Esc: drop the multi-selection and the single selected shape. */
+export function clearSelection(win) {
+    const w = getWin(win);
+    const ms = w.multiSelection;
+    if (ms?.selectedShapes?.size > 0 && typeof ms.clearSelection === 'function') ms.clearSelection();
+    const current = w.currentShape;
+    if (current) {
+        if (current.shapeName === 'text' && typeof w.__deselectTextElement === 'function') w.__deselectTextElement();
+        else if (typeof current.removeSelection === 'function') current.removeSelection();
+        w.currentShape = null;
+    }
+    if (typeof w.disableAllSideBars === 'function') w.disableAllSideBars();
+}
+
 export function initCanvasCommands() {
     if (typeof window === 'undefined') return;
     window.__canvasCommands = {
@@ -223,6 +237,7 @@ export function initCanvasCommands() {
         pasteStyles: () => pasteStyles(window),
         hasCopiedStyles,
         editSelectedLabel: () => editSelectedLabel(window),
+        clearSelection: () => clearSelection(window),
         duplicate: (options) => (typeof window.duplicateSelected === 'function' ? window.duplicateSelected(options) : []),
     };
 }
