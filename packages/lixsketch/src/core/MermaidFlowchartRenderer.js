@@ -9,7 +9,7 @@
  * Node shape → canvas shape (closest LixSketch primitive, Excalidraw-style
  * fallback to a rectangle for geometry LixSketch has no primitive for):
  *   rect, hexagon, parallelogram(_alt), trapezoid(_alt), asymmetric → Rectangle
- *   round → Rectangle with rounded corners; stadium → fully rounded Rectangle
+ *   round, stadium → Rectangle with round edges (adaptive radius, like Excalidraw)
  *   subroutine → Rectangle + two inner vertical Lines (grouped)
  *   cylinder → Rectangle + elliptical top cap Circle (grouped)
  *   circle → Circle; doublecircle → two concentric Circles (grouped)
@@ -294,9 +294,9 @@ function createNodeShapes(n, x, y) {
             return { main: shape, extras: [] };
         }
         case 'round':
-            return { main: new window.Rectangle(x, y, w, h, { ...opts, cornerRadius: Math.min(w, h) * 0.2 }), extras: [] };
+            return { main: new window.Rectangle(x, y, w, h, { ...opts, edges: 'round' }), extras: [] };
         case 'stadium':
-            return { main: new window.Rectangle(x, y, w, h, { ...opts, cornerRadius: h / 2 }), extras: [] };
+            return { main: new window.Rectangle(x, y, w, h, { ...opts, edges: 'round' }), extras: [] };
         case 'subroutine': {
             const main = new window.Rectangle(x, y, w, h, opts);
             const lines = window.Line ? [

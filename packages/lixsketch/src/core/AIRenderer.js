@@ -158,7 +158,7 @@ export function renderAIDiagram(diagram) {
                 shape.rotation = 45;
                 shape.draw();
             } else if (node.type === 'roundrect' && window.Rectangle) {
-                shape = new window.Rectangle(nx, ny, nw, nh, { ...nodeOpts, cornerRadius: Math.min(nw, nh) * 0.2 });
+                shape = new window.Rectangle(nx, ny, nw, nh, { ...nodeOpts, edges: 'round' });
             } else if (window.Rectangle) {
                 shape = new window.Rectangle(nx, ny, nw, nh, nodeOpts);
             }

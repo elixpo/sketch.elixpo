@@ -282,7 +282,7 @@ describe('flowchart rendering', () => {
         const kinds = created.filter(s => s.kind !== 'frame' && s.kind !== 'arrow').map(s => `${s.kind}${s.rotation ? '@45' : ''}`)
         expect(kinds).toEqual(['rect', 'circle', 'rect@45', 'rect', 'line', 'line', 'rect', 'circle', 'circle', 'circle', 'rect', 'rect'])
         const stadium = created.filter(s => s.kind === 'rect').pop()
-        expect(stadium.options.cornerRadius).toBe(stadium.height / 2)
+        expect(stadium.options.edges).toBe('round') // rounded via the shape's Sharp/Round setting
         const grouped = created.filter(s => s.groupId)
         expect(new Set(grouped.map(s => s.groupId)).size).toBe(3) // subroutine, cylinder, double circle
     })
