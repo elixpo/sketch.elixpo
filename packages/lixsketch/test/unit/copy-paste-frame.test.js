@@ -90,6 +90,15 @@ describe('clipboard appearance', () => {
   })
 })
 
+describe('clipboard line arrowheads', () => {
+  it('copies line heads and omits none', () => {
+    const base = { shapeName: 'line', startPoint: { x: 0, y: 0 }, endPoint: { x: 5, y: 5 }, options: {}, parentFrame: null }
+    expect(serializeShape({ ...base, startArrowhead: 'none', endArrowhead: 'dot' })).toMatchObject({ endArrowhead: 'dot' })
+    expect(serializeShape({ ...base, startArrowhead: 'none', endArrowhead: 'dot' })).not.toHaveProperty('startArrowhead')
+    expect(serializeShape(base)).not.toHaveProperty('endArrowhead')
+  })
+})
+
 describe('clipboard arrowheads', () => {
   it('copies both heads, defaulting legacy arrows', () => {
     const base = { shapeName: 'arrow', startPoint: { x: 0, y: 0 }, endPoint: { x: 5, y: 5 }, options: {}, parentFrame: null }

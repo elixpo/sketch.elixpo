@@ -442,3 +442,21 @@ describe('arrowheads', () => {
         expect(back.shapes[0]).not.toHaveProperty('arrowHeadStyle')
     })
 })
+
+describe('line arrowheads', () => {
+    it('compiles startHead/endHead on lines, never storing none', () => {
+        const { scene, errors } = compileLixSketch('lixsketch 1\nline a from 0, 0 to 100, 0 { endHead: triangle }\nline b from 0, 50 to 100, 50 { startHead: none }\n')
+        expect(errors).toEqual([])
+        const [a, b] = scene.shapes
+        expect(a.endArrowhead).toBe('triangle')
+        expect(a).not.toHaveProperty('startArrowhead')
+        expect(b).not.toHaveProperty('startArrowhead')
+        const { text, back } = roundTrip(scene)
+        expect(back).toEqual(scene)
+        expect(text).toContain('endHead: triangle')
+    })
+
+    it('rejects unknown line heads', () => {
+        expect(compileLixSketch('lixsketch 1\nline a from 0, 0 to 1, 1 { endHead: blob }').errors[0].message).toMatch(/one of none/)
+    })
+})

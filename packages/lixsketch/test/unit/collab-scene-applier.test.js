@@ -230,6 +230,23 @@ describe('SceneApplier: each op touches only its target', () => {
         expect(env.createShape).not.toHaveBeenCalled();
     });
 
+    it('line arrowheads patch in place and reset to none when removed', () => {
+        const doc = baseDoc();
+        doc.shapes.ln = { type: 'line', startPoint: { x: 0, y: 50 }, endPoint: { x: 80, y: 50 }, [Z_KEY]: 5000 };
+        const { env, applier } = sceneFrom(doc);
+        const line = env.shapes.find((s) => s.shapeID === 'ln');
+        const { next, applied } = step(doc, [{ t: 'update', id: 'ln', set: { endArrowhead: 'triangle', startArrowhead: 'bar' } }]);
+        applier.apply(applied, next);
+        expect(env.shapes.find((s) => s.shapeID === 'ln')).toBe(line);
+        expect(env.createShape).not.toHaveBeenCalled();
+        expect([line.startArrowhead, line.endArrowhead]).toEqual(['bar', 'triangle']);
+        expect(line.draw).toHaveBeenCalled();
+        const cleared = step(next, [{ t: 'update', id: 'ln', set: { startArrowhead: undefined, endArrowhead: undefined } }]);
+        applier.apply(cleared.applied, cleared.next);
+        expect([line.startArrowhead, line.endArrowhead]).toEqual(['none', 'none']);
+        expect(env.createShape).not.toHaveBeenCalled();
+    });
+
     it('container size/label changes go through applyLabelState', () => {
         const doc = baseDoc();
         const { env, applier } = sceneFrom(doc);

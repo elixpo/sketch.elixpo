@@ -62,7 +62,10 @@ vi.mock('../../src/shapes/Circle.js', () => ({
 vi.mock('../../src/shapes/Line.js', () => ({
   Line: class extends BasicShape {
     constructor(startPoint, endPoint, options) {
-      super('line', { startPoint: { ...startPoint }, endPoint: { ...endPoint }, options })
+      const { startArrowhead, endArrowhead, ...rest } = options || {}
+      super('line', { startPoint: { ...startPoint }, endPoint: { ...endPoint }, options: rest })
+      this.startArrowhead = startArrowhead || 'none'
+      this.endArrowhead = endArrowhead || 'none'
     }
   },
 }))
@@ -306,6 +309,20 @@ describe('SceneSerializer', () => {
       'old-square': ['none', 'bar', false],
       'old-missing': ['none', 'arrow', false],
     })
+  })
+
+  it('round-trips line arrowheads and omits them when none', () => {
+    const scene = {
+      format: 'lixsketch', version: 1, name: 'Lines', shapes: [
+        { shapeID: 'headed', type: 'line', startPoint: { x: 0, y: 0 }, endPoint: { x: 10, y: 0 }, controlPoint: null, isCurved: false, options: {}, startArrowhead: 'bar', endArrowhead: 'triangle', docBlockIds: [], parentFrame: null, groupId: null },
+        { shapeID: 'plain', type: 'line', startPoint: { x: 0, y: 0 }, endPoint: { x: 10, y: 0 }, controlPoint: null, isCurved: false, options: {}, docBlockIds: [], parentFrame: null, groupId: null },
+      ],
+    }
+    expect(serializer.loadScene(scene)).toBe(true)
+    const byId = Object.fromEntries(serializer.saveScene('Lines').shapes.map(s => [s.shapeID, s]))
+    expect(byId.headed).toMatchObject({ startArrowhead: 'bar', endArrowhead: 'triangle' })
+    expect(byId.plain).not.toHaveProperty('startArrowhead')
+    expect(byId.plain).not.toHaveProperty('endArrowhead')
   })
 
   it('loads a version-one fixture without newer optional fields', () => {

@@ -457,3 +457,19 @@ describe('arrowhead undo', () => {
     expect([arrow.startArrowhead, arrow.endArrowhead]).toEqual(['none', 'triangle'])
   })
 })
+
+describe('line arrowhead undo', () => {
+  beforeEach(() => clearUndoHistory())
+
+  it('restores line heads from options snapshots', () => {
+    const line = { shapeName: 'line', options: { stroke: '#000' }, startArrowhead: 'none', endArrowhead: 'none', draw: vi.fn() }
+    const before = { stroke: '#000', startArrowhead: 'none', endArrowhead: 'none' }
+    line.endArrowhead = 'arrow'
+    pushOptionsChangeAction(line, before, { stroke: '#000', startArrowhead: 'none', endArrowhead: 'arrow' })
+    undo()
+    expect(line.endArrowhead).toBe('none')
+    expect(line.options).toEqual({ stroke: '#000' })
+    redo()
+    expect(line.endArrowhead).toBe('arrow')
+  })
+})

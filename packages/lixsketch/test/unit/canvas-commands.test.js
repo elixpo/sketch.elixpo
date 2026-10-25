@@ -285,3 +285,16 @@ describe('copy / paste styles on arrows', () => {
     expect(rect).not.toHaveProperty('startArrowhead')
   })
 })
+
+describe('copy / paste styles onto lines', () => {
+  it('carries arrowheads between arrows and lines with an undoable snapshot', () => {
+    const source = shape('src', { shapeName: 'arrow', startArrowhead: 'dot', endArrowhead: 'arrow', options: {} })
+    copyStyles(fakeWindow({ current: source }))
+    const line = shape('ln', { shapeName: 'line', startArrowhead: 'none', endArrowhead: 'none', options: {} })
+    const win = fakeWindow({ current: line })
+    expect(pasteStyles(win)).toBe(1)
+    expect([line.startArrowhead, line.endArrowhead]).toEqual(['dot', 'arrow'])
+    const change = win.undo.find(u => u.type === 'options')
+    expect(change.before).toMatchObject({ startArrowhead: 'none', endArrowhead: 'none' })
+  })
+})
