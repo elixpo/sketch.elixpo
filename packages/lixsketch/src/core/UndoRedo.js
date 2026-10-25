@@ -680,7 +680,17 @@ function detachCreatedShapeFrame(action) {
     detachDeletedShapeFrame(action);
 }
 
+// In a live room the collaboration layer owns history: each client undoes
+// only its own ops, transformed against concurrent peer ops (see
+// core/collab/CollabClient.js). The hook returns true when it handled the
+// request; single-user mode never installs it.
+function collabHistory(kind) {
+    if (typeof window === 'undefined' || typeof window.__collabHistory !== 'function') return false;
+    return window.__collabHistory(kind) === true;
+}
+
 export function undo() {
+    if (collabHistory('undo')) return;
     if (undoStack.length === 0) return;
     const action = undoStack.pop();
     try {
@@ -1221,6 +1231,7 @@ export function undo() {
 }
 
 export function redo() {
+    if (collabHistory('redo')) return;
     if (redoStack.length === 0) return;
     const action = redoStack.pop();
     try {

@@ -550,7 +550,9 @@ export function saveScene(workspaceName = 'Untitled') {
 // ============================================================
 // LOAD: Deserialize .lixsketch JSON and recreate scene
 // ============================================================
-export function loadScene(sceneData) {
+// options.preserveViewport: keep this viewer's zoom/pan (collaboration
+// applies peers' changes without moving anyone's camera).
+export function loadScene(sceneData, options = {}) {
     const validation = validateScene(sceneData);
     if (!validation.valid) {
         console.error('[SceneSerializer] Invalid scene:', validation.error);
@@ -737,12 +739,12 @@ export function loadScene(sceneData) {
     }
 
     // Restore viewport
-    if (sceneData.viewport && svgEl) {
+    if (sceneData.viewport && svgEl && !options.preserveViewport) {
         const vb = sceneData.viewport;
         window.currentViewBox = { ...vb };
         svgEl.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.width} ${vb.height}`);
     }
-    if (sceneData.zoom) {
+    if (sceneData.zoom && !options.preserveViewport) {
         window.currentZoom = sceneData.zoom;
     }
 
