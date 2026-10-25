@@ -149,7 +149,7 @@ function WorkspaceCard({ workspace, index, onDelete, onMcpAccess }) {
       <div className="flex items-start gap-2.5">
         <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-lx-blue/12 text-lx-blue">
           <i className="bx bx-shape-square text-base" />
-          {hasActiveMcp && <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-line bg-lx-green text-ink" title="Remote MCP active"><i className="bx bx-plug text-[9px]" /></span>}
+          {hasActiveMcp && <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-lx-green text-white" title="Remote MCP active"><i className="bx bx-plug text-[9px]" /></span>}
         </span>
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-sm font-medium text-text-primary" title={workspace.workspace_name || 'Untitled'}>

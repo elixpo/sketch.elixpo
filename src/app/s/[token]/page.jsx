@@ -129,7 +129,7 @@ export default function SharedScenePage() {
 
       {/* Loading overlay */}
       {loading && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-ink/80 backdrop-blur-sm font-[lixFont]">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm font-[lixFont]">
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-accent-blue border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             <p className="text-text-secondary text-sm">Loading shared scene...</p>
@@ -140,7 +140,7 @@ export default function SharedScenePage() {
 
       {/* Error overlay */}
       {error && !loading && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-ink/80 backdrop-blur-sm font-[lixFont]">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm font-[lixFont]">
           <div className="bg-surface-card border border-border-light rounded-2xl p-6 max-w-[360px] mx-4 text-center">
             <i className="bx bx-error-circle text-3xl text-red-400 mb-2" />
             <h2 className="text-text-primary text-base font-medium mb-2">Cannot Load Scene</h2>
