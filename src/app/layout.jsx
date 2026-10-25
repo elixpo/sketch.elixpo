@@ -1,4 +1,5 @@
 import './globals.css'
+import './site.css'
 import 'highlight.js/styles/github-dark-dimmed.css'
 import InitHljs from '@/components/InitHljs'
 const SITE_URL = 'https://sketch.elixpo.com'

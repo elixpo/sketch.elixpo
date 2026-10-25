@@ -13,7 +13,7 @@ function DotGrid({ className }) {
     <svg className={className} width="100%" height="100%">
       <defs>
         <pattern id="community-dot-grid" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
-          <circle cx="12" cy="12" r="0.8" fill="rgba(91, 87, 209, 0.15)" />
+          <circle cx="12" cy="12" r="0.8" fill="rgba(20, 32, 24, 0.14)" />
         </pattern>
       </defs>
       <rect width="100%" height="100%" fill="url(#community-dot-grid)" />
@@ -52,21 +52,21 @@ function RoughFrame({ children, className }) {
       const rc = rough.canvas(canvas)
 
       rc.rectangle(4, 4, w - 8, h - 8, {
-        stroke: '#5B57D1',
+        stroke: '#3a65c7',
         strokeWidth: 1.2,
         roughness: 1.5,
         bowing: 0.8,
       })
 
       const cs = 12
-      rc.line(2, cs + 2, 2, 2, { stroke: '#c873e4', strokeWidth: 1, roughness: 1 })
-      rc.line(2, 2, cs + 2, 2, { stroke: '#c873e4', strokeWidth: 1, roughness: 1 })
-      rc.line(w - cs - 2, 2, w - 2, 2, { stroke: '#c873e4', strokeWidth: 1, roughness: 1 })
-      rc.line(w - 2, 2, w - 2, cs + 2, { stroke: '#c873e4', strokeWidth: 1, roughness: 1 })
-      rc.line(2, h - cs - 2, 2, h - 2, { stroke: '#444480', strokeWidth: 1, roughness: 1 })
-      rc.line(2, h - 2, cs + 2, h - 2, { stroke: '#444480', strokeWidth: 1, roughness: 1 })
-      rc.line(w - cs - 2, h - 2, w - 2, h - 2, { stroke: '#444480', strokeWidth: 1, roughness: 1 })
-      rc.line(w - 2, h - cs - 2, w - 2, h - 2, { stroke: '#444480', strokeWidth: 1, roughness: 1 })
+      rc.line(2, cs + 2, 2, 2, { stroke: '#e76043', strokeWidth: 1, roughness: 1 })
+      rc.line(2, 2, cs + 2, 2, { stroke: '#e76043', strokeWidth: 1, roughness: 1 })
+      rc.line(w - cs - 2, 2, w - 2, 2, { stroke: '#e76043', strokeWidth: 1, roughness: 1 })
+      rc.line(w - 2, 2, w - 2, cs + 2, { stroke: '#e76043', strokeWidth: 1, roughness: 1 })
+      rc.line(2, h - cs - 2, 2, h - 2, { stroke: '#8f9890', strokeWidth: 1, roughness: 1 })
+      rc.line(2, h - 2, cs + 2, h - 2, { stroke: '#8f9890', strokeWidth: 1, roughness: 1 })
+      rc.line(w - cs - 2, h - 2, w - 2, h - 2, { stroke: '#8f9890', strokeWidth: 1, roughness: 1 })
+      rc.line(w - 2, h - cs - 2, w - 2, h - 2, { stroke: '#8f9890', strokeWidth: 1, roughness: 1 })
     }
 
     const timer = setTimeout(draw, 50)
@@ -82,7 +82,7 @@ function RoughFrame({ children, className }) {
 }
 
 // ── RoughJS underline ─────────────────────────────────────────────────────────
-function RoughUnderline({ width = 300, color = '#5B57D1' }) {
+function RoughUnderline({ width = 300, color = '#3a65c7' }) {
   const canvasRef = useRef(null)
 
   useEffect(() => {
@@ -146,14 +146,14 @@ function MarginDoodles() {
 
       const rc = rough.canvas(canvas)
 
-      rc.circle(30, 120, 20, { stroke: '#5B57D1', strokeWidth: 0.8, roughness: 2.5, fill: 'rgba(91,87,209,0.03)', fillStyle: 'solid' })
-      rc.rectangle(w - 60, 200, 35, 25, { stroke: '#c873e4', strokeWidth: 0.8, roughness: 2 })
-      rc.line(20, 350, 55, 340, { stroke: '#444480', strokeWidth: 0.8, roughness: 2 })
-      rc.ellipse(w - 40, 500, 30, 18, { stroke: '#5B57D1', strokeWidth: 0.7, roughness: 2.5 })
-      rc.circle(35, 650, 14, { stroke: '#3a3a50', strokeWidth: 0.8, roughness: 3 })
-      rc.rectangle(w - 55, 800, 28, 20, { stroke: '#444480', strokeWidth: 0.7, roughness: 2.5 })
-      rc.line(25, 950, 50, 960, { stroke: '#c873e4', strokeWidth: 0.7, roughness: 2 })
-      rc.circle(w - 35, 1100, 16, { stroke: '#3a3a50', strokeWidth: 0.7, roughness: 2.5 })
+      rc.circle(30, 120, 20, { stroke: '#3a65c7', strokeWidth: 0.8, roughness: 2.5, fill: 'rgba(58, 101, 199, 0.04)', fillStyle: 'solid' })
+      rc.rectangle(w - 60, 200, 35, 25, { stroke: '#e76043', strokeWidth: 0.8, roughness: 2 })
+      rc.line(20, 350, 55, 340, { stroke: '#8f9890', strokeWidth: 0.8, roughness: 2 })
+      rc.ellipse(w - 40, 500, 30, 18, { stroke: '#3a65c7', strokeWidth: 0.7, roughness: 2.5 })
+      rc.circle(35, 650, 14, { stroke: '#c9cec8', strokeWidth: 0.8, roughness: 3 })
+      rc.rectangle(w - 55, 800, 28, 20, { stroke: '#8f9890', strokeWidth: 0.7, roughness: 2.5 })
+      rc.line(25, 950, 50, 960, { stroke: '#e76043', strokeWidth: 0.7, roughness: 2 })
+      rc.circle(w - 35, 1100, 16, { stroke: '#c9cec8', strokeWidth: 0.7, roughness: 2.5 })
     }
 
     const timer = setTimeout(draw, 100)
@@ -164,7 +164,7 @@ function MarginDoodles() {
 }
 
 // ── RoughJS button border ─────────────────────────────────────────────────────
-function RoughButton({ children, href, color = '#5B57D1', className = '' }) {
+function RoughButton({ children, href, color = '#3a65c7', className = '' }) {
   const canvasRef = useRef(null)
   const containerRef = useRef(null)
 
@@ -210,7 +210,7 @@ function RoughButton({ children, href, color = '#5B57D1', className = '' }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={`relative flex items-center justify-center gap-2.5 px-6 py-3.5 font-[lixFont] text-sm transition-all duration-200 hover:brightness-125 ${className}`}
+      className={`relative flex items-center justify-center gap-2.5 px-6 py-3.5 text-sm transition-all duration-200 hover:brightness-125 ${className}`}
     >
       <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
       <span className="relative z-10 flex items-center gap-2.5">{children}</span>
@@ -220,24 +220,24 @@ function RoughButton({ children, href, color = '#5B57D1', className = '' }) {
 
 export default function CommunityPage() {
   return (
-    <div className="min-h-screen bg-[#120e1a] text-white font-[lixFont] relative">
+    <div className="min-h-screen bg-paper text-ink relative">
       <DotGrid className="fixed inset-0 pointer-events-none opacity-60" />
       <MarginDoodles />
 
       {/* Top bar */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#120e1a]/90 backdrop-blur-xl border-b border-[#49385e]">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-paper/90 backdrop-blur-xl border-b border-line">
         <div className="max-w-[1400px] mx-auto flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
             <Link href="/?noredirect=1" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
               <img src="/icon.png" alt="LixSketch" className="w-7 h-7 rounded-md" />
-              <span className="text-white font-medium font-[lixFont]">LixSketch</span>
+              <span className="text-ink font-medium">LixSketch</span>
             </Link>
-            <span className="text-[#444480]">/</span>
-            <Link href="/" className="text-[#a0a0b0] hover:text-white transition-colors font-[lixFont]">Resources</Link>
-            <span className="text-[#444480]">/</span>
-            <span className="text-[#a0a0b0] font-[lixFont]">Community</span>
+            <span className="text-muted">/</span>
+            <Link href="/" className="text-muted hover:text-ink transition-colors">Resources</Link>
+            <span className="text-muted">/</span>
+            <span className="text-muted">Community</span>
           </div>
-          <Link href="/" className="text-[#a0a0b0] text-sm hover:text-white transition-colors font-[lixFont]">
+          <Link href="/" className="text-muted text-sm hover:text-ink transition-colors">
             <i className="bx bx-arrow-back mr-1" />
             Back to Home
           </Link>
@@ -248,20 +248,20 @@ export default function CommunityPage() {
         {/* Header frame */}
         <RoughFrame className="mb-10 p-8">
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-xl bg-[#8B88E8]/10 border border-[#8B88E8]/20 flex items-center justify-center">
-              <i className="bx bx-conversation text-xl text-[#b4b2ee]" />
+            <div className="w-10 h-10 rounded-xl bg-lx-blue/10 border border-lx-blue/20 flex items-center justify-center">
+              <i className="bx bx-conversation text-xl text-lx-blue" />
             </div>
             <div className="flex flex-wrap gap-2">
               {['open-source', 'community', 'contribute'].map(tag => (
-                <span key={tag} className="px-2 py-0.5 text-[10px] rounded-md bg-[#8B88E8]/8 border border-[#8B88E8]/15 text-[#b4b2ee]/90 uppercase tracking-wider font-[lixFont]">
+                <span key={tag} className="px-2 py-0.5 text-[10px] rounded-md bg-lx-blue/8 border border-lx-blue/15 text-lx-blue/90 uppercase tracking-wider">
                   {tag}
                 </span>
               ))}
             </div>
           </div>
-          <h1 className="text-3xl md:text-4xl font-[lixFont] text-white mb-2 leading-tight">Community</h1>
+          <h1 className="text-3xl md:text-4xl text-ink mb-2 leading-tight">Community</h1>
           <RoughUnderline width={220} color="#8B88E8" />
-          <p className="text-[#c9d1d9] text-lg leading-relaxed font-[lixFont]">
+          <p className="text-[#c9d1d9] text-lg leading-relaxed">
             LixSketch is open source and community-driven. Star, fork, contribute, or just come say hi.
           </p>
         </RoughFrame>
@@ -289,12 +289,12 @@ export default function CommunityPage() {
               Request a Feature
             </RoughButton>
 
-            <RoughButton href={`${GITHUB_URL}/pulls`} color="#c873e4" className="text-[#c873e4]">
+            <RoughButton href={`${GITHUB_URL}/pulls`} color="#c873e4" className="text-lx-orange">
               <i className="bx bx-git-pull-request text-lg" />
               View Pull Requests
             </RoughButton>
 
-            <RoughButton href={`${GITHUB_URL}/discussions`} color="#5B57D1" className="text-[#5B57D1]">
+            <RoughButton href={`${GITHUB_URL}/discussions`} color="#5B57D1" className="text-lx-blue">
               <i className="bx bx-chat text-lg" />
               Join Discussions
             </RoughButton>
@@ -311,13 +311,13 @@ export default function CommunityPage() {
           <RoughFrame className="p-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <i className="bx bxl-github text-3xl text-white" />
+                <i className="bx bxl-github text-3xl text-ink" />
                 <div>
-                  <p className="text-white font-[lixFont] text-base">elixpo/sketch.elixpo</p>
-                  <p className="text-[#b4b2ee] font-[lixFont] text-xs mt-0.5">Open-source WYSIWYG canvas for diagrams, wireframes, and docs</p>
+                  <p className="text-ink text-base">elixpo/sketch.elixpo</p>
+                  <p className="text-lx-blue text-xs mt-0.5">Open-source WYSIWYG canvas for diagrams, wireframes, and docs</p>
                 </div>
               </div>
-              <i className="bx bx-link-external text-[#5B57D1] text-xl group-hover:translate-x-1 transition-transform" />
+              <i className="bx bx-link-external text-lx-blue text-xl group-hover:translate-x-1 transition-transform" />
             </div>
           </RoughFrame>
         </a>

@@ -3,12 +3,12 @@ import Link from 'next/link'
 const DEPLOYED_ORIGIN = 'https://sketch.elixpo.com'
 
 function Value({ children }) {
-  return <code className="break-all rounded-md border border-white/[0.08] bg-[#171120] px-2 py-1 font-[lixCode] text-xs text-[#cbb7f5]">{children}</code>
+  return <code className="break-all rounded-md border border-line bg-paper-deep px-2 py-1 font-[lixCode] text-xs text-lx-blue">{children}</code>
 }
 
 function DetailRow({ label, value }) {
   return (
-    <div className="grid gap-2 border-b border-white/[0.055] py-3 last:border-0 sm:grid-cols-[150px_1fr]">
+    <div className="grid gap-2 border-b border-line py-3 last:border-0 sm:grid-cols-[150px_1fr]">
       <dt className="text-xs text-text-dim">{label}</dt>
       <dd><Value>{value}</Value></dd>
     </div>
@@ -17,7 +17,7 @@ function DetailRow({ label, value }) {
 
 function ConnectorCard({ id, icon, title, summary, children }) {
   return (
-    <section id={id} className="scroll-mt-24 rounded-2xl border border-white/[0.08] bg-surface-card p-5 sm:p-7">
+    <section id={id} className="scroll-mt-24 rounded-2xl border border-line bg-surface-card p-5 sm:p-7">
       <div className="flex gap-3">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent">
           <i className={`bx ${icon} text-2xl`} />
@@ -34,8 +34,8 @@ function ConnectorCard({ id, icon, title, summary, children }) {
 
 export default function ConnectorsDocsPage() {
   return (
-    <div className="min-h-screen bg-surface-dark font-[lixFont] text-text-primary">
-      <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-surface-dark/90 backdrop-blur-xl">
+    <div className="min-h-screen bg-surface-dark text-text-primary">
+      <header className="sticky top-0 z-50 border-b border-line bg-surface-dark/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3 sm:px-6">
           <div className="flex items-center gap-3">
             <Link href="/?noredirect=1" className="flex items-center gap-2 transition-opacity hover:opacity-80">
@@ -47,7 +47,7 @@ export default function ConnectorsDocsPage() {
             <span className="text-text-dim">/</span>
             <span className="text-text-secondary">Connectors</span>
           </div>
-          <Link href="/profile?tab=integrations" className="cursor-pointer rounded-lg bg-accent px-3.5 py-2 text-xs text-white transition hover:bg-accent/85">
+          <Link href="/profile?tab=integrations" className="cursor-pointer rounded-lg bg-accent px-3.5 py-2 text-xs text-ink transition hover:bg-accent/85">
             Manage integrations
           </Link>
         </div>
@@ -55,7 +55,7 @@ export default function ConnectorsDocsPage() {
 
       <main className="mx-auto grid max-w-6xl gap-8 px-5 py-10 sm:px-6 lg:grid-cols-[210px_1fr]">
         <aside className="hidden lg:block">
-          <nav className="sticky top-24 space-y-1 rounded-xl border border-white/[0.06] bg-surface-card p-3 text-sm">
+          <nav className="sticky top-24 space-y-1 rounded-xl border border-line bg-surface-card p-3 text-sm">
             <a href="#overview" className="block rounded-lg px-3 py-2 text-text-muted hover:bg-surface-hover hover:text-text-primary">Overview</a>
             <a href="#cloudinary" className="block rounded-lg px-3 py-2 text-text-muted hover:bg-surface-hover hover:text-text-primary">Cloudinary</a>
             <a href="#pollinations" className="block rounded-lg px-3 py-2 text-text-muted hover:bg-surface-hover hover:text-text-primary">Pollinations</a>
@@ -90,7 +90,7 @@ export default function ConnectorsDocsPage() {
             </ol>
 
             <h3 className="mt-6 text-sm text-text-secondary">Production OAuth configuration</h3>
-            <dl className="mt-2 rounded-xl border border-white/[0.07] bg-black/10 px-4">
+            <dl className="mt-2 rounded-xl border border-line bg-paper-deep px-4">
               <DetailRow label="Application URL" value={DEPLOYED_ORIGIN} />
               <DetailRow label="Redirect URI" value={`${DEPLOYED_ORIGIN}/api/integrations/cloudinary/callback`} />
               <DetailRow label="Post-logout URI" value={`${DEPLOYED_ORIGIN}/settings?tab=integrations`} />
@@ -114,7 +114,7 @@ export default function ConnectorsDocsPage() {
             </ol>
 
             <h3 className="mt-6 text-sm text-text-secondary">Production OAuth configuration</h3>
-            <dl className="mt-2 rounded-xl border border-white/[0.07] bg-black/10 px-4">
+            <dl className="mt-2 rounded-xl border border-line bg-paper-deep px-4">
               <DetailRow label="Application URL" value={DEPLOYED_ORIGIN} />
               <DetailRow label="Connect URL" value={`${DEPLOYED_ORIGIN}/api/integrations/pollinations/connect`} />
               <DetailRow label="Redirect URI" value={`${DEPLOYED_ORIGIN}/api/integrations/pollinations/callback`} />
@@ -125,7 +125,7 @@ export default function ConnectorsDocsPage() {
             <p className="mt-4 text-xs leading-5 text-text-dim">The publishable Pollinations App Key identifies LixSketch. The issued user key is encrypted server-side and is never sent to the browser.</p>
           </ConnectorCard>
 
-          <section id="security" className="scroll-mt-24 rounded-2xl border border-white/[0.08] bg-surface-card p-5 sm:p-7">
+          <section id="security" className="scroll-mt-24 rounded-2xl border border-line bg-surface-card p-5 sm:p-7">
             <h2 className="text-xl text-text-primary">Security and data boundaries</h2>
             <ul className="mt-4 space-y-3 text-sm leading-6 text-text-muted">
               <li className="flex gap-2"><i className="bx bx-check-shield mt-1 text-accent" />OAuth callbacks are bound to the signed-in LixSketch user and protected with short-lived state.</li>
@@ -135,7 +135,7 @@ export default function ConnectorsDocsPage() {
             </ul>
           </section>
 
-          <section id="troubleshooting" className="scroll-mt-24 rounded-2xl border border-white/[0.08] bg-surface-card p-5 sm:p-7">
+          <section id="troubleshooting" className="scroll-mt-24 rounded-2xl border border-line bg-surface-card p-5 sm:p-7">
             <h2 className="text-xl text-text-primary">Troubleshooting</h2>
             <div className="mt-4 space-y-4 text-sm leading-6 text-text-muted">
               <div><h3 className="text-text-secondary">The provider returns a redirect mismatch</h3><p className="mt-1">Copy the production redirect URI above exactly, including HTTPS and the full callback path. Do not register the localhost callback for the deployed application.</p></div>
@@ -144,7 +144,7 @@ export default function ConnectorsDocsPage() {
             </div>
           </section>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] py-5 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line py-5 text-sm">
             <Link href="/docs" className="text-text-muted hover:text-text-primary"><i className="bx bx-left-arrow-alt mr-1" />Back to Docs</Link>
             <Link href="/profile?tab=integrations" className="text-accent hover:underline">Manage connectors</Link>
           </div>

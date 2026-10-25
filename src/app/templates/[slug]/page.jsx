@@ -133,7 +133,7 @@ export default function TemplateDetailPage() {
   }
 
   return (
-    <main className="min-h-screen bg-surface-dark font-[lixFont] text-text-primary">
+    <main className="min-h-screen bg-surface-dark text-text-primary">
       <LandingNav />
       <section className="mx-auto max-w-6xl px-6 pb-20 pt-28">
         <Link href="/templates" className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-accent-blue"><i className="bx bx-left-arrow-alt" />All templates</Link>
@@ -141,7 +141,7 @@ export default function TemplateDetailPage() {
         {!loading && !template && <div className="py-32 text-center"><h1 className="text-3xl">Template unavailable</h1><p className="mt-3 text-text-muted">{error}</p></div>}
         {template && <div className="mt-8 grid gap-10 lg:grid-cols-[1.45fr_0.75fr]">
           <div>
-            <div className="overflow-hidden rounded-2xl border border-border-light bg-gradient-to-br from-[#2c2142] via-[#191323] to-[#111019] aspect-[16/9]">
+            <div className="overflow-hidden rounded-2xl border border-border-light bg-gradient-to-br from-blue-wash via-paper to-paper-deep aspect-[16/9]">
               {template.coverDataUrl ? <img src={template.coverDataUrl} alt={`${template.title} preview`} className="h-full w-full object-contain" /> : <div className="flex h-full items-center justify-center"><i className="bx bx-palette text-7xl text-accent-blue/40" /></div>}
             </div>
             {editing ? <div className="mt-7 space-y-3 rounded-2xl border border-accent-blue/30 bg-surface-card p-5">

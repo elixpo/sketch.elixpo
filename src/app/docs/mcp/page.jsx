@@ -118,7 +118,7 @@ const TOOLS = [
 
 function CodeBlock({ children }) {
   return (
-    <pre className="overflow-x-auto rounded-xl border border-white/[0.08] bg-[#171120] p-4 text-xs leading-6 text-[#d8c9f5] sm:text-sm">
+    <pre className="overflow-x-auto rounded-xl border border-line bg-paper-deep p-4 text-xs leading-6 text-lx-blue sm:text-sm">
       <code className="font-[lixCode]">{children}</code>
     </pre>
   )
@@ -126,7 +126,7 @@ function CodeBlock({ children }) {
 
 function DocSection({ id, title, children }) {
   return (
-    <section id={id} className="scroll-mt-24 rounded-2xl border border-white/[0.08] bg-surface-card p-5 sm:p-7">
+    <section id={id} className="scroll-mt-24 rounded-2xl border border-line bg-surface-card p-5 sm:p-7">
       <h2 className="text-xl text-text-primary">{title}</h2>
       <div className="mt-4 text-sm leading-7 text-text-muted">{children}</div>
     </section>
@@ -135,8 +135,8 @@ function DocSection({ id, title, children }) {
 
 export default function McpDocsPage() {
   return (
-    <div className="min-h-screen bg-surface-dark font-[lixFont] text-text-primary">
-      <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-surface-dark/90 backdrop-blur-xl">
+    <div className="min-h-screen bg-surface-dark text-text-primary">
+      <header className="sticky top-0 z-50 border-b border-line bg-surface-dark/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3 sm:px-6">
           <div className="flex items-center gap-3">
             <Link href="/?noredirect=1" className="flex items-center gap-2 transition-opacity hover:opacity-80">
@@ -148,7 +148,7 @@ export default function McpDocsPage() {
             <span className="text-text-dim">/</span>
             <span className="text-text-secondary">MCP Server</span>
           </div>
-          <Link href="/resources/npm-package" className="rounded-lg bg-accent px-3.5 py-2 text-xs text-white transition hover:bg-accent/85">
+          <Link href="/resources/npm-package" className="rounded-lg bg-accent px-3.5 py-2 text-xs text-ink transition hover:bg-accent/85">
             Package docs
           </Link>
         </div>
@@ -156,7 +156,7 @@ export default function McpDocsPage() {
 
       <main className="mx-auto grid max-w-6xl gap-8 px-5 py-10 sm:px-6 lg:grid-cols-[210px_1fr]">
         <aside className="hidden lg:block">
-          <nav className="sticky top-24 space-y-1 rounded-xl border border-white/[0.06] bg-surface-card p-3 text-sm">
+          <nav className="sticky top-24 space-y-1 rounded-xl border border-line bg-surface-card p-3 text-sm">
             {[
               ['overview', 'Overview'],
               ['quick-start', 'Quick start'],
@@ -220,19 +220,19 @@ export default function McpDocsPage() {
                 <p className="mt-3 text-xs">Verify with <code className="font-[lixCode] text-accent">codex mcp list</code>, then restart the active Codex session. See the <a href="https://developers.openai.com/codex/mcp/" target="_blank" rel="noreferrer" className="text-accent hover:underline">Codex MCP guide</a>.</p>
               </div>
 
-              <div className="border-t border-white/[0.07] pt-6">
+              <div className="border-t border-line pt-6">
                 <h3 className="text-base text-text-secondary">Claude Code and Claude Desktop</h3>
                 <p className="mb-3 mt-1 text-xs">Claude Desktop accepts the generated <strong className="font-normal text-text-secondary">MCP JSON</strong>. Claude Code can use that JSON or this command:</p>
                 <CodeBlock>{CLAUDE_COMMAND}</CodeBlock>
                 <p className="mt-3 text-xs">Verify with <code className="font-[lixCode] text-accent">claude mcp get lixsketch</code>. See Anthropic’s <a href="https://docs.anthropic.com/en/docs/claude-code/mcp" target="_blank" rel="noreferrer" className="text-accent hover:underline">Claude Code MCP guide</a>.</p>
               </div>
 
-              <div className="border-t border-white/[0.07] pt-6">
+              <div className="border-t border-line pt-6">
                 <h3 className="text-base text-text-secondary">Cursor and Windsurf</h3>
                 <p className="mt-1 text-xs">Paste the generated <strong className="font-normal text-text-secondary">MCP JSON</strong> unchanged into <code className="font-[lixCode] text-accent">~/.cursor/mcp.json</code> for Cursor or <code className="font-[lixCode] text-accent">~/.codeium/windsurf/mcp_config.json</code> for Windsurf. Restart the MCP server from the client after saving.</p>
               </div>
 
-              <div className="border-t border-white/[0.07] pt-6">
+              <div className="border-t border-line pt-6">
                 <h3 className="text-base text-text-secondary">VS Code agent mode</h3>
                 <p className="mb-3 mt-1 text-xs">VS Code uses a different top-level key. Create <code className="font-[lixCode] text-accent">.vscode/mcp.json</code> for the current project, replace the placeholders with values from the generated configuration, and use:</p>
                 <CodeBlock>{VSCODE_CONFIG}</CodeBlock>
@@ -280,14 +280,14 @@ export default function McpDocsPage() {
           </DocSection>
 
           <DocSection id="tools" title="Available tools">
-            <div className="overflow-x-auto rounded-xl border border-white/[0.07]">
+            <div className="overflow-x-auto rounded-xl border border-line">
               <table className="w-full min-w-[620px] text-left">
-                <thead className="border-b border-white/[0.07] bg-black/10 text-xs text-text-dim">
+                <thead className="border-b border-line bg-paper-deep text-xs text-text-dim">
                   <tr><th className="px-4 py-3 font-normal">Tool</th><th className="px-4 py-3 font-normal">Purpose</th></tr>
                 </thead>
                 <tbody>
                   {TOOLS.map(([name, purpose]) => (
-                    <tr key={name} className="border-b border-white/[0.055] last:border-0">
+                    <tr key={name} className="border-b border-line last:border-0">
                       <td className="px-4 py-3 font-[lixCode] text-xs text-accent">{name}</td>
                       <td className="px-4 py-3 text-xs text-text-muted">{purpose}</td>
                     </tr>
@@ -340,7 +340,7 @@ export default function McpDocsPage() {
             </ul>
           </DocSection>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] py-5 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line py-5 text-sm">
             <Link href="/docs" className="text-text-muted hover:text-text-primary"><i className="bx bx-left-arrow-alt mr-1" />Back to Docs</Link>
             <Link href="/templates" className="text-accent hover:underline">Explore templates</Link>
           </div>

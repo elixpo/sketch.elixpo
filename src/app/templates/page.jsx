@@ -8,13 +8,13 @@ import LandingFooter from '@/components/landing/LandingFooter'
 function TemplateCard({ template }) {
   return (
     <Link href={`/templates/${template.slug}`} className="group overflow-hidden rounded-2xl border border-border-light bg-surface-card transition hover:-translate-y-1 hover:border-accent-blue/60 hover:shadow-xl hover:shadow-accent-blue/10">
-      <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-[#2c2142] via-[#191323] to-[#111019]">
+      <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-blue-wash via-paper to-paper-deep">
         {template.coverDataUrl ? (
           <img src={template.coverDataUrl} alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-accent-blue/50"><i className="bx bx-palette text-5xl" /></div>
         )}
-        <div className="absolute bottom-3 right-3 rounded-full border border-white/10 bg-black/50 px-2.5 py-1 text-[11px] text-white/75 backdrop-blur">
+        <div className="absolute bottom-3 right-3 rounded-full border border-line bg-ink/50 px-2.5 py-1 text-[11px] text-white/75 backdrop-blur">
           {template.forks + template.clones} uses
         </div>
       </div>
@@ -68,7 +68,7 @@ export default function TemplatesPage() {
   }, [templates])
 
   return (
-    <main className="min-h-screen bg-surface-dark font-[lixFont] text-text-primary">
+    <main className="min-h-screen bg-surface-dark text-text-primary">
       <LandingNav />
       <section className="mx-auto max-w-7xl px-6 pb-20 pt-32">
         <div className="max-w-3xl">

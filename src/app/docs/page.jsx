@@ -20,7 +20,7 @@ function CopyButton({ text, label = 'Copy' }) {
       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
         copied
           ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-          : 'bg-surface-hover text-text-muted border border-white/[0.08] hover:border-white/[0.2] hover:text-text-primary'
+          : 'bg-surface-hover text-text-muted border border-line hover:border-ink/30 hover:text-text-primary'
       }`}
     >
       <i className={`bx ${copied ? 'bx-check' : 'bx-copy'} text-sm`} />
@@ -35,7 +35,7 @@ function CodeBlock({ code, language = 'lixscript' }) {
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
         <CopyButton text={code} label="Copy" />
       </div>
-      <pre className="bg-[#171120] border border-white/[0.08] rounded-xl p-4 overflow-x-auto text-sm leading-relaxed">
+      <pre className="bg-paper-deep border border-line rounded-xl p-4 overflow-x-auto text-sm leading-relaxed">
         <code className="text-text-secondary font-[lixCode]">{code}</code>
       </pre>
     </div>
@@ -45,16 +45,16 @@ function CodeBlock({ code, language = 'lixscript' }) {
 function Section({ id, title, icon, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <section id={id} className="border border-white/[0.06] rounded-2xl overflow-hidden">
+    <section id={id} className="border border-line rounded-2xl overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 px-6 py-4 text-left hover:bg-white/[0.02] transition-colors"
+        className="w-full flex items-center gap-3 px-6 py-4 text-left hover:bg-ink/[0.06] transition-colors"
       >
         <i className={`bx ${icon} text-xl text-accent-blue`} />
         <h2 className="text-text-primary text-base font-medium flex-1">{title}</h2>
         <i className={`bx bx-chevron-down text-xl text-text-dim transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
-      {open && <div className="px-6 pb-6 border-t border-white/[0.04]">{children}</div>}
+      {open && <div className="px-6 pb-6 border-t border-line">{children}</div>}
     </section>
   )
 }
@@ -64,7 +64,7 @@ function PropTable({ rows }) {
     <div className="overflow-x-auto mt-3">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-white/[0.08]">
+          <tr className="border-b border-line">
             <th className="text-left py-2 pr-4 text-text-muted font-medium">Property</th>
             <th className="text-left py-2 pr-4 text-text-muted font-medium">Type</th>
             <th className="text-left py-2 text-text-muted font-medium">Description</th>
@@ -72,7 +72,7 @@ function PropTable({ rows }) {
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={i} className="border-b border-white/[0.04]">
+            <tr key={i} className="border-b border-line">
               <td className="py-2 pr-4 font-[lixCode] text-accent-blue text-xs">{r[0]}</td>
               <td className="py-2 pr-4 text-text-dim text-xs">{r[1]}</td>
               <td className="py-2 text-text-secondary text-xs">{r[2]}</td>
@@ -89,7 +89,7 @@ function NavItem({ href, label, icon, active }) {
     <a
       href={href}
       className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
-        active ? 'bg-accent-blue/10 text-accent-blue' : 'text-text-muted hover:text-text-primary hover:bg-white/[0.04]'
+        active ? 'bg-accent-blue/10 text-accent-blue' : 'text-text-muted hover:text-text-primary hover:bg-ink/[0.06]'
       }`}
     >
       <i className={`bx ${icon} text-base`} />
@@ -118,9 +118,9 @@ export default function DocsPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-surface-dark text-text-primary font-[lixFont]">
+    <div className="min-h-screen bg-surface-dark text-text-primary">
       {/* Top bar */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-surface-dark/80 backdrop-blur-xl border-b border-white/[0.06]">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-surface-dark/80 backdrop-blur-xl border-b border-line">
         <div className="max-w-[1400px] mx-auto flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
             <a href="/?noredirect=1" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -141,7 +141,7 @@ export default function DocsPage() {
 
       <div className="flex max-w-[1400px] mx-auto pt-14">
         {/* Sidebar */}
-        <nav className="hidden lg:block w-64 shrink-0 sticky top-14 h-[calc(100vh-56px)] overflow-y-auto docs-scroll p-4 border-r border-white/[0.06]">
+        <nav className="hidden lg:block w-64 shrink-0 sticky top-14 h-[calc(100vh-56px)] overflow-y-auto docs-scroll p-4 border-r border-line">
           <div className="space-y-1">
             <p className="text-text-dim text-[10px] uppercase tracking-widest px-3 pt-3 pb-2">Getting Started</p>
             <NavItem href="#overview" label="Overview" icon="bx-info-circle" active={activeSection === 'overview'} />
@@ -157,14 +157,14 @@ export default function DocsPage() {
             <p className="text-text-dim text-[10px] uppercase tracking-widest px-3 pt-5 pb-2">Integration</p>
             <Link
               href="/docs/connectors"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary hover:bg-white/[0.04] transition-all"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary hover:bg-ink/[0.06] transition-all"
             >
               <i className="bx bx-plug text-base" />
               Connectors
             </Link>
             <Link
               href="/docs/mcp"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary hover:bg-white/[0.04] transition-all"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary hover:bg-ink/[0.06] transition-all"
             >
               <i className="bx bx-plug text-base" />
               MCP Server
@@ -175,14 +175,14 @@ export default function DocsPage() {
             <p className="text-text-dim text-[10px] uppercase tracking-widest px-3 pt-5 pb-2">Install</p>
             <Link
               href="/resources/npm-package"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary hover:bg-white/[0.04] transition-all"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary hover:bg-ink/[0.06] transition-all"
             >
               <i className="bx bxl-nodejs text-base text-text-dim" />
               NPM Package
             </Link>
             <Link
               href="/resources/vscode-extension"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary hover:bg-white/[0.04] transition-all"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary hover:bg-ink/[0.06] transition-all"
             >
               <i className="bx bxl-visual-studio text-base text-text-dim" />
               VS Code Extension
@@ -194,7 +194,7 @@ export default function DocsPage() {
               <Link
                 key={post.slug}
                 href={`/docs/blog/${post.slug}`}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary hover:bg-white/[0.04] transition-all"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary hover:bg-ink/[0.06] transition-all"
               >
                 <i className={`${post.icon} text-base text-text-dim`} />
                 <span className="truncate">{post.title.split(':')[0]}</span>
@@ -203,7 +203,7 @@ export default function DocsPage() {
           </div>
 
           {/* MCP link in sidebar */}
-          <div className="mt-8 p-3 rounded-xl bg-surface-card border border-white/[0.06]">
+          <div className="mt-8 p-3 rounded-xl bg-surface-card border border-line">
             <p className="text-text-dim text-[10px] uppercase tracking-widest mb-2">Package MCP</p>
             <Link
               href="/docs/mcp"
@@ -236,19 +236,19 @@ export default function DocsPage() {
             </div>
 
             <div className="flex flex-wrap gap-3 mt-6">
-              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-card border border-white/[0.06] text-sm">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-card border border-line text-sm">
                 <i className="bx bx-shape-square text-accent-blue" />
                 <span className="text-text-muted">7 shape types</span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-card border border-white/[0.06] text-sm">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-card border border-line text-sm">
                 <i className="bx bx-link text-green-400" />
                 <span className="text-text-muted">Auto-attached arrows</span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-card border border-white/[0.06] text-sm">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-card border border-line text-sm">
                 <i className="bx bx-move text-purple-400" />
                 <span className="text-text-muted">Relative positioning</span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-card border border-white/[0.06] text-sm">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-card border border-line text-sm">
                 <i className="bx bx-bot text-orange-400" />
                 <span className="text-text-muted">LLM-optimized spec</span>
               </div>
@@ -485,8 +485,8 @@ rect node3 at node1.x, node1.bottom + 30 size 160x60 {
                   { color: '#E67E22', name: 'Orange' },
                   { color: '#e0e0e0', name: 'Gray' },
                 ].map(({ color, name }) => (
-                  <div key={color} className="flex items-center gap-2 p-2 rounded-lg bg-surface-card border border-white/[0.06]">
-                    <div className="w-5 h-5 rounded-md border border-white/10" style={{ background: color }} />
+                  <div key={color} className="flex items-center gap-2 p-2 rounded-lg bg-surface-card border border-line">
+                    <div className="w-5 h-5 rounded-md border border-line" style={{ background: color }} />
                     <span className="text-text-secondary text-xs">{name}</span>
                     <span className="text-text-dim text-[10px] font-[lixCode] ml-auto">{color}</span>
                   </div>
@@ -568,7 +568,7 @@ const result = window.__lixscriptRender(parsed)`} />
               </div>
 
               <div className="relative group">
-                <pre className="bg-[#171120] border border-white/[0.08] rounded-xl p-4 overflow-x-auto text-xs leading-relaxed max-h-[500px] overflow-y-auto">
+                <pre className="bg-paper-deep border border-line rounded-xl p-4 overflow-x-auto text-xs leading-relaxed max-h-[500px] overflow-y-auto">
                   <code className="text-text-dim font-[lixCode] whitespace-pre-wrap">{LIXSCRIPT_LLM_SPEC}</code>
                 </pre>
               </div>
@@ -654,7 +654,7 @@ arrow a5 from error.top to login.right {
                 <Link
                   key={post.slug}
                   href={`/docs/blog/${post.slug}`}
-                  className="group p-5 rounded-xl border border-white/[0.06] hover:border-accent-blue/30 hover:bg-white/[0.02] transition-all duration-200"
+                  className="group p-5 rounded-xl border border-line hover:border-accent-blue/30 hover:bg-ink/[0.06] transition-all duration-200"
                 >
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-8 h-8 rounded-lg bg-accent-blue/10 flex items-center justify-center shrink-0">
@@ -675,7 +675,7 @@ arrow a5 from error.top to login.right {
           </div>
 
           {/* Footer */}
-          <footer className="border-t border-white/[0.06] pt-8 pb-12">
+          <footer className="border-t border-line pt-8 pb-12">
             <div className="flex items-center justify-between">
               <p className="text-text-dim text-xs">LixScript is part of <a href="/" className="text-accent-blue hover:underline">LixSketch</a> — an open-source alternative to app.eraser.io</p>
               <span className="text-text-dim text-[10px] uppercase">Beta</span>
