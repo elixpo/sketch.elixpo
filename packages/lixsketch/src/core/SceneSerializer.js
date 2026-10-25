@@ -156,9 +156,15 @@ const INSTANCE_OPTION_KEYS = {
     elbowX: (s) => (s.shapeName === 'arrow' && s.elbowX !== null && s.elbowX !== undefined ? s.elbowX : undefined),
 };
 
+// Rectangle/circle labels are persisted top-level by serializeContainerLabel
+// (ShapeLabelState.js), which also keeps theme-default label colors unfrozen.
+const CONTAINER_LABEL_KEYS = new Set(['label', 'labelColor', 'labelFontSize']);
+
 function shapeOptions(shape) {
     const options = cloneOptions(shape.options);
+    const isContainer = shape.shapeName === 'rectangle' || shape.shapeName === 'circle';
     for (const key in INSTANCE_OPTION_KEYS) {
+        if (isContainer && CONTAINER_LABEL_KEYS.has(key)) continue;
         const value = INSTANCE_OPTION_KEYS[key](shape);
         if (value !== undefined) options[key] = clonePlain(value);
     }

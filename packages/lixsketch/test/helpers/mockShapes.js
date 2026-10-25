@@ -47,6 +47,11 @@ export class BasicShape {
         this.options = fields.options || {}
         globalThis.window.svg.appendChild(this.group)
     }
+
+    // Mirrors Rectangle/Circle.applyLabelState (ShapeLabelState.applyContainerLabel).
+    applyLabelState(state) {
+        Object.assign(this, state)
+    }
 }
 
 class DomBackedShape {
