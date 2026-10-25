@@ -15,6 +15,8 @@
  * moving nodes keeps edges connected.
  */
 
+import { getSharedIconLibrary } from './IconLibrary.js';
+
 const PADDING = 80;
 const NODE_W = 160;
 const NODE_H = 60;
@@ -884,13 +886,12 @@ export function autoAttach(arrow, shape, isStart, contactPoint) {
  */
 async function fetchAndPlaceIcon(keyword, x, y, w, h, placeholderShape, frame) {
     try {
-        const res = await fetch(`/api/icons/search?q=${encodeURIComponent(keyword)}&inline=1`);
-        if (!res.ok) return;
-        const data = await res.json();
-        const results = data.results;
-        if (!results || results.length === 0 || !results[0].svg) return;
-
-        const svgContent = results[0].svg;
+        // Client-side index (shared with the icon sidebar); no server round trip.
+        const library = getSharedIconLibrary();
+        const results = await library.search({ q: keyword, limit: 1 });
+        if (!results || results.length === 0) return;
+        const svgContent = results[0].svg || await library.getSvg(results[0].filename);
+        if (!svgContent) return;
 
         // Use the engine's icon placement bridge if available
         if (window.svg && window.IconShape) {
