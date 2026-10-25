@@ -22,8 +22,8 @@ export default function SVGCanvas() {
   // (--lixsketch-grid-fine / --lixsketch-grid-major) so both canvas themes
   // keep a quiet, low-alpha grid. The fallbacks only apply outside canvas mode.
   const isLight = resolvedTheme === 'light'
-  const gridStrokeFine  = `var(--lixsketch-grid-fine, ${isLight ? 'rgba(30,30,40,0.06)' : 'rgba(255,255,255,0.05)'})`
-  const gridStrokeMajor = `var(--lixsketch-grid-major, ${isLight ? 'rgba(30,30,40,0.11)' : 'rgba(255,255,255,0.09)'})`
+  const gridStrokeFine  = `var(--lixsketch-grid-fine, ${isLight ? 'rgba(30,30,40,0.1)' : 'rgba(255,255,255,0.08)'})`
+  const gridStrokeMajor = `var(--lixsketch-grid-major, ${isLight ? 'rgba(30,30,40,0.18)' : 'rgba(255,255,255,0.14)'})`
   const getCursor = useSketchStore((s) => s.getCursor)
   const cursor = getCursor()
 
