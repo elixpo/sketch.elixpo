@@ -4,6 +4,7 @@ import { getThemeForeground as getThemeStroke } from '../utils/themeColors.js';
 import { pushCreateAction, pushDeleteAction, pushOptionsChangeAction, pushTransformAction, pushFrameAttachmentAction } from '../core/UndoRedo.js';
 import { updateAttachedArrows as updateArrowsForShape, cleanupAttachments } from './arrowTool.js';
 import { calculateSnap, clearSnapGuides } from '../core/SnapGuides.js';
+import { snapToAngle } from '../core/DrawConstraints.js';
 
 
 
@@ -212,16 +213,8 @@ const handleMouseMove = (e) => {
     };
     
     if (isDrawingLine && currentLine) {
-        let endX = x, endY = y;
-        if (e.shiftKey) {
-            const dx = x - currentLine.startPoint.x;
-            const dy = y - currentLine.startPoint.y;
-            const angle = Math.atan2(dy, dx);
-            const snapAngle = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            endX = currentLine.startPoint.x + dist * Math.cos(snapAngle);
-            endY = currentLine.startPoint.y + dist * Math.sin(snapAngle);
-        }
+        // Shift snaps to 45° steps
+        const { x: endX, y: endY } = snapToAngle(currentLine.startPoint, { x, y }, e.shiftKey);
         currentLine.endPoint = { x: endX, y: endY };
         currentLine.draw();
         

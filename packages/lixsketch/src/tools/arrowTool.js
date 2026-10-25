@@ -3,6 +3,7 @@ import { getThemeForeground as getThemeStroke } from '../utils/themeColors.js';
 // Arrow tool event handlers - extracted from drawArrow.js
 import { pushCreateAction, pushDeleteAction, pushOptionsChangeAction, pushTransformAction, pushFrameAttachmentAction } from '../core/UndoRedo.js';
 import { calculateSnap, clearSnapGuides } from '../core/SnapGuides.js';
+import { snapToAngle } from '../core/DrawConstraints.js';
 
 
 
@@ -164,16 +165,8 @@ const handleMouseMove = (e) => {
     const { x, y } = getSVGCoordsFromMouse(e);
 
     if (isDrawingArrow && currentArrow) {
-            let endX = x, endY = y;
-            if (e.shiftKey) {
-                const dx = x - currentArrow.startPoint.x;
-                const dy = y - currentArrow.startPoint.y;
-                const angle = Math.atan2(dy, dx);
-                const snapAngle = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                endX = currentArrow.startPoint.x + dist * Math.cos(snapAngle);
-                endY = currentArrow.startPoint.y + dist * Math.sin(snapAngle);
-            }
+            // Shift snaps to 45° steps
+            const { x: endX, y: endY } = snapToAngle(currentArrow.startPoint, { x, y }, e.shiftKey);
             currentArrow.endPoint = { x: endX, y: endY };
 
             // Check for potential attachment and show preview

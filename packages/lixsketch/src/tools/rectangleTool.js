@@ -7,6 +7,7 @@ import { getThemeForeground as getThemeStroke } from '../utils/themeColors.js';
 import { pushCreateAction, pushDeleteAction, pushOptionsChangeAction, pushTransformAction, pushFrameAttachmentAction } from '../core/UndoRedo.js';
 import { cleanupAttachments } from './arrowTool.js';
 import { calculateSnap, clearSnapGuides } from '../core/SnapGuides.js';
+import { constrainToSquare } from '../core/DrawConstraints.js';
 
 let isDrawingSquare = false;
 let isDraggingShapeSquare = false;
@@ -186,8 +187,10 @@ const handleMouseMoveRect = (e) => {
     };
 
     if (isDrawingSquare && isSquareToolActive && currentShape) {
-        let width = mouseX - startX;
-        let height = mouseY - startY;
+        // Shift draws a square
+        const end = constrainToSquare({ x: startX, y: startY }, { x: mouseX, y: mouseY }, e.shiftKey);
+        let width = end.x - startX;
+        let height = end.y - startY;
         currentShape.x = width < 0 ? startX + width : startX;
         currentShape.y = height < 0 ? startY + height : startY;
         currentShape.width = Math.abs(width);

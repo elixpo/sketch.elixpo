@@ -4,6 +4,7 @@ import { getThemeForeground as getThemeStroke } from '../utils/themeColors.js';
 import { pushCreateAction, pushDeleteAction, pushOptionsChangeAction, pushTransformAction, pushFrameAttachmentAction } from '../core/UndoRedo.js';
 import { cleanupAttachments } from './arrowTool.js';
 import { calculateSnap, clearSnapGuides } from '../core/SnapGuides.js';
+import { constrainToSquare } from '../core/DrawConstraints.js';
 
 
 
@@ -218,10 +219,12 @@ const handleMouseMove = (e) => {
 
     if(isDrawingCircle && isCircleToolActive && currentShape)   
     {
-        currentShape.x = (startX + svgMouseX) / 2;
-        currentShape.y = (startY + svgMouseY) / 2;
-        currentShape.rx = Math.abs(svgMouseX - startX) / 2;
-        currentShape.ry = Math.abs(svgMouseY - startY) / 2;
+        // Shift draws a circle
+        const end = constrainToSquare({ x: startX, y: startY }, { x: svgMouseX, y: svgMouseY }, e.shiftKey);
+        currentShape.x = (startX + end.x) / 2;
+        currentShape.y = (startY + end.y) / 2;
+        currentShape.rx = Math.abs(end.x - startX) / 2;
+        currentShape.ry = Math.abs(end.y - startY) / 2;
         currentShape.scheduleDrawingRender();
         
         // Check for frame containment while drawing (but don't apply clipping yet)
