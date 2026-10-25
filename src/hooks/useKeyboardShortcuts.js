@@ -302,6 +302,11 @@ export default function useKeyboardShortcuts() {
           useSketchStore.getState().toggleSnapToObjects()
           return
         }
+        if (e.shiftKey && e.code === 'KeyC') {
+          e.preventDefault()
+          window.__sceneSerializer?.copyAsPNG?.()
+          return
+        }
         return
       }
 
