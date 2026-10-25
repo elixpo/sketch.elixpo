@@ -177,6 +177,19 @@ describe('rectangle label auto-grow', () => {
     expect({ w: shape.userWidth, h: shape.userHeight }).toEqual({ w: 100, h: 60 })
   })
 
+  it('draws the label on a transparent background (no backdrop rect)', () => {
+    const shape = rect('Try now :D')
+    expect(shape._labelBg).toBeNull()
+    expect(shape.group.children).toContain(shape.labelElement)
+    // The label is the last child so it paints above the fill.
+    expect(shape.group.children.at(-1)).toBe(shape.labelElement)
+
+    const ellipse = new Circle(200, 200, 60, 40, { label: 'Hi', labelFontSize: FONT })
+    shapes.push(ellipse)
+    expect(ellipse._labelBg).toBeNull()
+    expect(ellipse.group.children.at(-1)).toBe(ellipse.labelElement)
+  })
+
   it('grows the width only for an unbreakable word', () => {
     const shape = rect()
     shape.setLabel('supercalifragilistic')

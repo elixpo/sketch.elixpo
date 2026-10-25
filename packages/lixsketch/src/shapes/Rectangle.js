@@ -333,40 +333,11 @@ class Rectangle {
         this.labelElement.setAttribute('font-size', this.labelFontSize);
         this.labelElement.setAttribute('font-family', 'lixFont, sans-serif');
 
-        // Background padding rect behind text (like arrows have) — skippable
-        // via labelBg:false for dense multi-row content (e.g. mermaid ER
-        // attribute rows) where a pill backdrop looks out of place and
-        // doesn't match the SVG preview.
-        if (!this.labelBg) {
-            if (this._labelBg && this._labelBg.parentNode === this.group) {
-                this.group.removeChild(this._labelBg);
-                this._labelBg = null;
-            }
-            if (this.labelElement.parentNode === this.group) this.group.removeChild(this.labelElement);
-            this.group.appendChild(this.labelElement);
-            return;
-        }
-        const canvasBg = window.getComputedStyle(svg).backgroundColor || '#000';
-        if (!this._labelBg) {
-            this._labelBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            this._labelBg.setAttribute('pointer-events', 'none');
-        }
-        this._labelBg.setAttribute('fill', canvasBg);
-        const hPadding = 6;
-        const vPadding = 2;
-        const bgW = labelLayout.contentWidth + hPadding * 2;
-        const bgH = labelLayout.contentHeight + vPadding * 2;
-        this._labelBg.setAttribute('x', this.width / 2 - bgW / 2);
-        this._labelBg.setAttribute('y', this.height / 2 - bgH / 2);
-        this._labelBg.setAttribute('width', bgW);
-        this._labelBg.setAttribute('height', bgH);
-        this._labelBg.setAttribute('rx', 3);
-        this._labelBg.setAttribute('visibility', this._isEditingLabel ? 'hidden' : 'visible');
-
-        // Re-append bg then text on top
-        if (this._labelBg.parentNode === this.group) this.group.removeChild(this._labelBg);
+        // Text sits directly on the shape (transparent background, like
+        // Excalidraw); only arrow/line labels keep a cut-out over the stroke.
+        if (this._labelBg && this._labelBg.parentNode === this.group) this.group.removeChild(this._labelBg);
+        this._labelBg = null;
         if (this.labelElement.parentNode === this.group) this.group.removeChild(this.labelElement);
-        this.group.appendChild(this._labelBg);
         this.group.appendChild(this.labelElement);
     }
 
