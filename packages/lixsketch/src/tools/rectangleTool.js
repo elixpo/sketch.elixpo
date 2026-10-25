@@ -28,6 +28,7 @@ let squareBackgroundColor = "transparent";
 let squareFillStyleValue = "none";
 let squareStrokeThicknes = 2;
 let squareOutlineStyle = "solid";
+let squareRoughness = 1.5; // sloppiness: 0 architect, 1.5 artist, 3 cartoonist
 let dragOldPosSquare = null;
 let draggedShapeInitialFrame = null;
 let hoveredFrame = null;
@@ -87,6 +88,7 @@ const handleMouseDownRect = (e) => {
             fill: squareBackgroundColor,
             fillStyle: squareFillStyleValue,
             strokeWidth: squareStrokeThicknes,
+            roughness: squareRoughness,
         };
         if (squareOutlineStyle === "dashed") {
             initialOptions.strokeDasharray = "10,10";
@@ -546,6 +548,7 @@ window.updateSelectedRectStyle = function(changes) {
         if (changes.fill !== undefined) { squareBackgroundColor = changes.fill; currentShape.options.fill = changes.fill; }
         if (changes.fillStyle !== undefined) { squareFillStyleValue = changes.fillStyle; currentShape.options.fillStyle = changes.fillStyle; }
         if (changes.strokeWidth !== undefined) { squareStrokeThicknes = changes.strokeWidth; currentShape.options.strokeWidth = changes.strokeWidth; }
+        if (changes.roughness !== undefined) { squareRoughness = changes.roughness; currentShape.options.roughness = changes.roughness; }
         if (changes.outlineStyle !== undefined) {
             squareOutlineStyle = changes.outlineStyle;
             if (changes.outlineStyle === "dashed") currentShape.options.strokeDasharray = "10,10";
@@ -558,6 +561,7 @@ window.updateSelectedRectStyle = function(changes) {
         if (changes.fill !== undefined) squareBackgroundColor = changes.fill;
         if (changes.fillStyle !== undefined) squareFillStyleValue = changes.fillStyle;
         if (changes.strokeWidth !== undefined) squareStrokeThicknes = changes.strokeWidth;
+        if (changes.roughness !== undefined) squareRoughness = changes.roughness;
         if (changes.outlineStyle !== undefined) squareOutlineStyle = changes.outlineStyle;
     }
 };

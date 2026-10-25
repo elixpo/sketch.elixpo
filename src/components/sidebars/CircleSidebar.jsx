@@ -1,7 +1,7 @@
 "use client"
 
 import useSketchStore, { TOOLS } from '@/store/useSketchStore'
-import ShapeSidebar, { ToolbarButton, Divider, LayerControls } from './ShapeSidebar'
+import ShapeSidebar, { ToolbarButton, Divider, LayerControls, SloppinessControl } from './ShapeSidebar'
 import { useState, useCallback } from 'react'
 import { useTranslation } from '@/hooks/useTranslation'
 import { BACKGROUND_SWATCHES, getStrokeSwatches, getThemeInk } from '@elixpo/lixsketch/src/utils/themeColors.js'
@@ -52,12 +52,15 @@ export default function CircleSidebar() {
   const [thickness, setThickness] = useState(2)
   const [lineStyle, setLineStyle] = useState('solid')
   const [fillStyle, setFillStyle] = useState('hachure')
+  const [roughness, setRoughness] = useState(1.5)
 
   const updateStroke = useCallback((v) => { setStrokeColor(v); if (window.updateSelectedCircleStyle) window.updateSelectedCircleStyle({ stroke: v }) }, [])
   const updateBg = useCallback((v) => { setBgColor(v); if (window.updateSelectedCircleStyle) window.updateSelectedCircleStyle({ fill: v }) }, [])
   const updateThickness = useCallback((v) => { setThickness(v); if (window.updateSelectedCircleStyle) window.updateSelectedCircleStyle({ strokeWidth: v }) }, [])
   const updateStyle = useCallback((v) => { setLineStyle(v); if (window.updateSelectedCircleStyle) window.updateSelectedCircleStyle({ outlineStyle: v }) }, [])
   const updateFill = useCallback((v) => { setFillStyle(v); if (window.updateSelectedCircleStyle) window.updateSelectedCircleStyle({ fillStyle: v }) }, [])
+
+  const updateRoughness = useCallback((v) => { setRoughness(v); if (window.updateSelectedCircleStyle) window.updateSelectedCircleStyle({ roughness: v }) }, [])
 
   return (
     <ShapeSidebar visible={activeTool === TOOLS.CIRCLE || selectedShapeSidebar === 'circle'}>
@@ -128,6 +131,9 @@ export default function CircleSidebar() {
           ))}
         </div>
       </ToolbarButton>
+      <Divider />
+      <SloppinessControl value={roughness} onChange={updateRoughness} />
+
       <Divider />
       <LayerControls />
     </ShapeSidebar>

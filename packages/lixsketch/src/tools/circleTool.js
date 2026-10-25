@@ -25,6 +25,7 @@ let circleBackgroundColor = "transparent";
 let circleFillStyleValue = "none";
 let circleStrokeThicknes = 2;
 let circleOutlineStyle = "solid";
+let circleRoughness = 1.5; // sloppiness: 0 architect, 1.5 artist, 3 cartoonist
 
 let dragOldPosCircle = null;
 let draggedShapeInitialFrameCircle = null;
@@ -91,6 +92,7 @@ const handleMouseDown = (e) => {
             fill: circleBackgroundColor,
             fillStyle: circleFillStyleValue,
             strokeWidth: circleStrokeThicknes,
+            roughness: circleRoughness,
         };
         if(circleOutlineStyle === "dashed") {
             initialOptions.strokeDasharray = "5,5";
@@ -603,6 +605,7 @@ window.updateSelectedCircleStyle = function(changes) {
         if (changes.fill !== undefined) { circleBackgroundColor = changes.fill; currentShape.options.fill = changes.fill; }
         if (changes.fillStyle !== undefined) { circleFillStyleValue = changes.fillStyle; currentShape.options.fillStyle = changes.fillStyle; }
         if (changes.strokeWidth !== undefined) { circleStrokeThicknes = changes.strokeWidth; currentShape.options.strokeWidth = changes.strokeWidth; }
+        if (changes.roughness !== undefined) { circleRoughness = changes.roughness; currentShape.options.roughness = changes.roughness; }
         if (changes.outlineStyle !== undefined) {
             circleOutlineStyle = changes.outlineStyle;
             if (changes.outlineStyle === "dashed") currentShape.options.strokeDasharray = "5,5";
@@ -615,6 +618,7 @@ window.updateSelectedCircleStyle = function(changes) {
         if (changes.fill !== undefined) circleBackgroundColor = changes.fill;
         if (changes.fillStyle !== undefined) circleFillStyleValue = changes.fillStyle;
         if (changes.strokeWidth !== undefined) circleStrokeThicknes = changes.strokeWidth;
+        if (changes.roughness !== undefined) circleRoughness = changes.roughness;
         if (changes.outlineStyle !== undefined) circleOutlineStyle = changes.outlineStyle;
     }
 };

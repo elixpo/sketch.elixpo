@@ -1,7 +1,7 @@
 "use client"
 
 import useSketchStore, { TOOLS } from '@/store/useSketchStore'
-import ShapeSidebar, { ToolbarButton, Divider, LayerControls } from './ShapeSidebar'
+import ShapeSidebar, { ToolbarButton, Divider, LayerControls, SloppinessControl } from './ShapeSidebar'
 import { useState, useCallback } from 'react'
 import { useTranslation } from '@/hooks/useTranslation'
 import { BACKGROUND_SWATCHES, getStrokeSwatches, getThemeInk } from '@elixpo/lixsketch/src/utils/themeColors.js'
@@ -52,6 +52,7 @@ export default function RectangleSidebar() {
   const [thickness, setThickness] = useState(2)
   const [lineStyle, setLineStyle] = useState('solid')
   const [fillStyle, setFillStyle] = useState('hachure')
+  const [roughness, setRoughness] = useState(1.5)
 
   const update = useCallback((changes, localSetters) => {
     Object.entries(localSetters).forEach(([, fn]) => fn())
@@ -63,6 +64,8 @@ export default function RectangleSidebar() {
   const updateThickness = useCallback((v) => { setThickness(v); if (window.updateSelectedRectStyle) window.updateSelectedRectStyle({ strokeWidth: v }) }, [])
   const updateStyle = useCallback((v) => { setLineStyle(v); if (window.updateSelectedRectStyle) window.updateSelectedRectStyle({ outlineStyle: v }) }, [])
   const updateFill = useCallback((v) => { setFillStyle(v); if (window.updateSelectedRectStyle) window.updateSelectedRectStyle({ fillStyle: v }) }, [])
+
+  const updateRoughness = useCallback((v) => { setRoughness(v); if (window.updateSelectedRectStyle) window.updateSelectedRectStyle({ roughness: v }) }, [])
 
   return (
     <ShapeSidebar visible={activeTool === TOOLS.RECTANGLE || selectedShapeSidebar === 'rectangle'}>
@@ -158,6 +161,9 @@ export default function RectangleSidebar() {
           ))}
         </div>
       </ToolbarButton>
+
+      <Divider />
+      <SloppinessControl value={roughness} onChange={updateRoughness} />
 
       <Divider />
       <LayerControls />
