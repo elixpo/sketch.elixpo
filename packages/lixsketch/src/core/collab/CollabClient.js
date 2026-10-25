@@ -144,6 +144,21 @@ export class CollabClient {
         return [];
     }
 
+    /**
+     * Drop a pending message that can never be sent (e.g. over the size
+     * cap) and rebuild `local` without it. Returns true if it was pending.
+     */
+    discardPending(clientSeq) {
+        const index = this.pending.findIndex((entry) => entry.clientSeq === clientSeq);
+        if (index < 0) return false;
+        const before = this.local;
+        this.pending.splice(index, 1);
+        this.local = cloneDoc(this.confirmed);
+        for (const entry of this.pending) applyOps(this.local, entry.ops);
+        this._transformHistory(diffDocs(before, this.local));
+        return true;
+    }
+
     /** Pending ops to (re)send after a reconnect, rebased on lastSeq. */
     pendingMessages() {
         return this.pending.map((entry) => ({

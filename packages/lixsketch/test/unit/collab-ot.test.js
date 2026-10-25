@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
     Z_KEY,
@@ -250,6 +251,15 @@ describe('SceneDoc bridge', () => {
         }
     });
 
+    it('round-trips a saved scene fixture without spurious ops', () => {
+        const fixture = JSON.parse(readFileSync(new URL('../fixtures/legacy-v1-scene.json', import.meta.url), 'utf8'));
+        const doc = docFromScene(fixture);
+        const back = docToScene(doc);
+        expect(back.shapes.map((s) => s.shapeID)).toEqual(fixture.shapes.map((s) => s.shapeID));
+        expect(diffSceneAgainstDoc(doc, back)).toEqual([]);
+        expect(diffSceneAgainstDoc(doc, fixture)).toEqual([]);
+    });
+
     it('unflattenRecord produces serializer-compatible defaults', () => {
         const shape = unflattenRecord('x', flattenShape({ type: 'rectangle', x: 1, options: {}, parentFrame: null }));
         expect(shape).toMatchObject({ shapeID: 'x', type: 'rectangle', x: 1, options: {}, parentFrame: null, groupId: null, docBlockIds: [] });
@@ -273,6 +283,16 @@ describe('CollabClient basics', () => {
         expect(c.lastSeq).toBe(2);
         expect(c.local.shapes.s1.x).toBe(2);
         expect(c.receive({ serverSeq: 1, clientId: 'p', clientSeq: 1, ops: [] }).changed).toBe(false);
+    });
+
+    it('discardPending drops an unsendable op and restores local state', () => {
+        const c = new CollabClient({ clientId: 'c', doc: seedDoc(2) });
+        const [big] = c.submit([{ t: 'update', id: 's1', set: { x: 999 } }]);
+        c.submit([{ t: 'update', id: 's0', set: { y: 5 } }]);
+        expect(c.discardPending(big.clientSeq)).toBe(true);
+        expect(c.local.shapes.s1.x).toBe(10);
+        expect(c.local.shapes.s0.y).toBe(5);
+        expect(c.pending).toHaveLength(1);
     });
 
     it('applies legacy full-scene ops relative to the confirmed doc', () => {
