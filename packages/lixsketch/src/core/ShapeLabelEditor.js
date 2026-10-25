@@ -99,10 +99,11 @@ export function openShapeLabelEditor(shape, getLocalBounds) {
     });
 
     let finished = false;
+    let cancelled = false;
     const finishEdit = () => {
         if (finished) return;
         finished = true;
-        const newText = readLabelEditorText(input);
+        const newText = cancelled ? originalLabel : readLabelEditorText(input);
         shape.label = newText;
         shape._isEditingLabel = false;
         if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
@@ -116,7 +117,7 @@ export function openShapeLabelEditor(shape, getLocalBounds) {
     input.addEventListener('keydown', (e) => {
         e.stopPropagation();
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); input.blur(); }
-        if (e.key === 'Escape') { input.textContent = originalLabel; input.blur(); }
+        if (e.key === 'Escape') { cancelled = true; input.textContent = originalLabel; input.blur(); }
     });
     input.addEventListener('pointerdown', (e) => e.stopPropagation());
     input.addEventListener('pointermove', (e) => e.stopPropagation());
