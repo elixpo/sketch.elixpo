@@ -102,15 +102,15 @@ body.canvas-mode.ui-dark {
  * (THEME_INK) and is mirrored here as --lix-canvas-ink for chrome previews. */
 body.canvas-mode,
 body.canvas-mode.theme-light {
-  --lixsketch-grid-fine: rgba(30, 30, 40, 0.06);
-  --lixsketch-grid-major: rgba(30, 30, 40, 0.11);
+  --lixsketch-grid-fine: rgba(30, 30, 40, 0.1);
+  --lixsketch-grid-major: rgba(30, 30, 40, 0.18);
   --lix-canvas-ink: #1e1e1e;
   --lix-handle-fill: #ffffff;
 }
 
 body.canvas-mode.theme-dark {
-  --lixsketch-grid-fine: rgba(255, 255, 255, 0.05);
-  --lixsketch-grid-major: rgba(255, 255, 255, 0.09);
+  --lixsketch-grid-fine: rgba(255, 255, 255, 0.08);
+  --lixsketch-grid-major: rgba(255, 255, 255, 0.14);
   --lix-canvas-ink: #e3e3e8;
   --lix-handle-fill: #1b1a20;
 }
