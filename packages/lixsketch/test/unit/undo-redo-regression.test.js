@@ -46,6 +46,7 @@ const {
   pushFrameAttachmentAction,
   pushTransformAction,
   pushAppearanceChangeAction,
+  pushOptionsChangeAction,
   rebindUndoHistory,
   redo,
   setTextReferences,
@@ -432,5 +433,43 @@ describe('appearance undo', () => {
     expect([a.opacity, b.opacity]).toEqual([1, 1])
     redo()
     expect([a.opacity, b.opacity]).toEqual([0.2, 0.2])
+  })
+})
+
+describe('arrowhead undo', () => {
+  beforeEach(() => clearUndoHistory())
+
+  it('restores both heads from an options snapshot, including legacy snapshots', () => {
+    const arrow = { shapeName: 'arrow', options: { stroke: '#000' }, startArrowhead: 'none', endArrowhead: 'arrow', arrowOutlineStyle: 'solid', draw: vi.fn() }
+    const before = { ...arrow.options, arrowOutlineStyle: 'solid', startArrowhead: 'none', endArrowhead: 'arrow' }
+    arrow.startArrowhead = 'bar'
+    arrow.endArrowhead = 'diamond'
+    pushOptionsChangeAction(arrow, before, { ...arrow.options, arrowOutlineStyle: 'solid', startArrowhead: 'bar', endArrowhead: 'diamond' })
+    undo()
+    expect([arrow.startArrowhead, arrow.endArrowhead]).toEqual(['none', 'arrow'])
+    expect(arrow.options).not.toHaveProperty('startArrowhead')
+    redo()
+    expect([arrow.startArrowhead, arrow.endArrowhead]).toEqual(['bar', 'diamond'])
+
+    // Snapshots written before start/end heads only had arrowHeadStyle.
+    pushOptionsChangeAction(arrow, { stroke: '#000', arrowHeadStyle: 'solid' }, { stroke: '#000', startArrowhead: 'bar', endArrowhead: 'diamond' })
+    undo()
+    expect([arrow.startArrowhead, arrow.endArrowhead]).toEqual(['none', 'triangle'])
+  })
+})
+
+describe('line arrowhead undo', () => {
+  beforeEach(() => clearUndoHistory())
+
+  it('restores line heads from options snapshots', () => {
+    const line = { shapeName: 'line', options: { stroke: '#000' }, startArrowhead: 'none', endArrowhead: 'none', draw: vi.fn() }
+    const before = { stroke: '#000', startArrowhead: 'none', endArrowhead: 'none' }
+    line.endArrowhead = 'arrow'
+    pushOptionsChangeAction(line, before, { stroke: '#000', startArrowhead: 'none', endArrowhead: 'arrow' })
+    undo()
+    expect(line.endArrowhead).toBe('none')
+    expect(line.options).toEqual({ stroke: '#000' })
+    redo()
+    expect(line.endArrowhead).toBe('arrow')
   })
 })

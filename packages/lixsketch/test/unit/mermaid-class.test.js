@@ -127,9 +127,17 @@ describe('class diagram rendering', () => {
         expect(headers).toContain('Duck<T>')
         const arrows = created.filter(c => c.kind === 'arrow')
         const inheritance = arrows[0]
-        expect(inheritance.options.arrowHeadStyle).toBe('outline')
-        expect(inheritance.boundEnd).toBeTruthy() // points at Animal
-        expect(arrows.find(a => a.options.label.includes('lays')).options.arrowHeadStyle).toBe('solid')
+        // Animal <|-- Duck: one arrow, hollow triangle at Animal's end.
+        expect(inheritance.options).toMatchObject({ startArrowhead: 'triangle_outline', endArrowhead: 'none' })
+        expect(inheritance.boundStart).toBeTruthy() // bound at Animal (the arrow's start)
+        const lays = arrows.find(a => a.options.label.includes('lays'))
+        expect(lays.options).toMatchObject({ startArrowhead: 'diamond', endArrowhead: 'none' }) // composition
+        expect(arrows.some(a => a.options.startArrowhead === 'diamond_outline')).toBe(true) // aggregation (Pond o-- Duck)
+        expect(arrows.find(a => a.options.label === 'needs').options).toMatchObject({ startArrowhead: 'none', endArrowhead: 'arrow' }) // dependency
+        // Two-way relation: a single arrow with both heads, no grouped halves.
+        const twoWay = arrows.filter(a => a.options.startArrowhead === 'triangle_outline' && a.options.endArrowhead === 'triangle_outline')
+        expect(twoWay).toHaveLength(1)
+        expect(created.some(c => c.groupId?.startsWith('mermaid-rel'))).toBe(false)
         expect(arrows.find(a => a.options.label === 'needs').options.strokeDasharray).toBe('5 3')
         const classGroups = new Set(created.filter(c => c.kind === 'rect' && c.groupId?.startsWith('mermaid-class-Animal')).map(c => c.groupId))
         expect(classGroups.size).toBe(1)

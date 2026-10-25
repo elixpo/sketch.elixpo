@@ -8,7 +8,7 @@
  *  actor       → stick figure (Circle + Lines) with a label, grouped
  *  lifeline    → dashed Line; activation → narrow filled Rectangle
  *  message     → Arrow (->> -->> -) --)), Line (-> -->), Line + X (-x --x),
- *                two grouped half arrows (<<->>), 3-segment loop (self)
+ *                one arrow with both heads (<<->>), 3-segment loop (self)
  *  note        → filled Rectangle; block → dashed Rectangle + section Lines
  *  box         → filled Rectangle behind its participants' columns
  */
@@ -426,16 +426,12 @@ export function renderSequenceOnCanvas(diagram) {
             const sp = { x: X(m.x1), y: Y(m.y) };
             const ep = { x: X(m.x2), y: Y(m.y) };
             if (m.bidirectional) {
-                const mid = { x: (sp.x + ep.x) / 2, y: sp.y };
-                group([add(new window.Arrow(mid, ep, opts)), add(new window.Arrow(mid, sp, { ...opts, label: '' }))]);
+                // One arrow with heads at both ends (<<->>, <<-->>).
+                add(new window.Arrow(sp, ep, { ...opts, startArrowhead: 'arrow', endArrowhead: 'arrow' }));
             } else if (m.arrowHead === 'open' || m.arrowHead === 'async') {
-                add(new window.Arrow(sp, ep, opts));
+                add(new window.Arrow(sp, ep, { ...opts, startArrowhead: 'none', endArrowhead: 'arrow' }));
             } else if (m.cross) {
-                group([
-                    add(new window.Line(sp, ep, opts)),
-                    add(new window.Line({ x: ep.x - 6, y: ep.y - 6 }, { x: ep.x + 6, y: ep.y + 6 }, { stroke: T.crossColor, strokeWidth: 2, roughness: 0 })),
-                    add(new window.Line({ x: ep.x + 6, y: ep.y - 6 }, { x: ep.x - 6, y: ep.y + 6 }, { stroke: T.crossColor, strokeWidth: 2, roughness: 0 })),
-                ]);
+                add(new window.Arrow(sp, ep, { ...opts, startArrowhead: 'none', endArrowhead: 'cross' }));
             } else {
                 add(new window.Line(sp, ep, opts));
             }

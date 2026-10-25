@@ -2,22 +2,12 @@
 
 import useSketchStore, { TOOLS } from '@/store/useSketchStore'
 import ShapeSidebar, { ToolbarButton, Divider, LayerControls } from './ShapeSidebar'
+import { ArrowheadControls } from './ArrowheadPicker'
 import { OpacityControl } from './AppearanceControls'
 import { useState, useCallback } from 'react'
 import { useTranslation } from '@/hooks/useTranslation'
 import useUIStore from '@/store/useUIStore'
 import { getStrokeSwatches, getThemeInk } from '@elixpo/lixsketch/src/utils/themeColors.js'
-
-const HEAD_STYLES = [
-  { value: 'default', svg: '<svg width="22" height="12" viewBox="0 0 24 14"><line x1="2" y1="7" x2="16" y2="7" stroke="currentColor" stroke-width="2"/><polyline points="13,2 19,7 13,12" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>' },
-  { value: 'square', svg: '<svg width="22" height="12" viewBox="0 0 24 14"><line x1="2" y1="7" x2="14" y2="7" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="6" height="8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>' },
-  { value: 'outline', svg: '<svg width="22" height="12" viewBox="0 0 24 14"><line x1="2" y1="7" x2="13" y2="7" stroke="currentColor" stroke-width="2"/><polygon points="13,2 21,7 13,12" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>' },
-  { value: 'solid', svg: '<svg width="22" height="12" viewBox="0 0 24 14"><line x1="2" y1="7" x2="13" y2="7" stroke="currentColor" stroke-width="2"/><polygon points="13,2 21,7 13,12" fill="currentColor"/></svg>' },
-]
-
-function SvgIcon({ svg }) {
-  return <span dangerouslySetInnerHTML={{ __html: svg }} />
-}
 
 function ColorGrid({ colors, selected, onSelect }) {
   return (
@@ -36,7 +26,6 @@ export default function ArrowSidebar() {
   const { t } = useTranslation()
   const activeTool = useSketchStore((s) => s.activeTool)
   const selectedShapeSidebar = useSketchStore((s) => s.selectedShapeSidebar)
-  const [headStyle, setHeadStyle] = useState('default')
   const resolvedTheme = useUIStore((s) => s.resolvedTheme)
   const [strokeColor, setStrokeColor] = useState(null)
   const displayedStrokeColor = strokeColor ?? getThemeInk(resolvedTheme)
@@ -46,12 +35,6 @@ export default function ArrowSidebar() {
   const [curvature, setCurvature] = useState(20)
 
   // Bridge helpers: update React state + engine state + selected arrow
-  const updateHead = useCallback((v) => {
-    setHeadStyle(v)
-    if (window.arrowToolSettings) window.arrowToolSettings.headStyle = v
-    if (window.updateSelectedArrowStyle) window.updateSelectedArrowStyle({ arrowHeadStyle: v })
-  }, [])
-
   const updateStroke = useCallback((v) => {
     setStrokeColor(v)
     if (window.arrowToolSettings) window.arrowToolSettings.strokeColor = v
@@ -84,19 +67,8 @@ export default function ArrowSidebar() {
 
   return (
     <ShapeSidebar visible={activeTool === TOOLS.ARROW || selectedShapeSidebar === 'arrow'}>
-      {/* Head style */}
-      <ToolbarButton icon="bxs-right-arrow" tooltip="Arrow head">
-        <p className="text-xs text-text-secondary uppercase tracking-wider mb-2">{t('sidebar.sectionHeader.head')}</p>
-        <div className="flex items-center gap-1">
-          {HEAD_STYLES.map((h) => (
-            <button key={h.value} onClick={() => updateHead(h.value)}
-              className={`w-10 h-8 flex items-center justify-center rounded-lg transition-all duration-100 ${headStyle === h.value ? 'bg-accent/15 text-accent' : 'text-text-secondary hover:bg-surface-hover'}`}
-            >
-              <SvgIcon svg={h.svg} />
-            </button>
-          ))}
-        </div>
-      </ToolbarButton>
+      {/* Start / end arrowheads (Excalidraw) */}
+      <ArrowheadControls />
 
       <Divider />
 

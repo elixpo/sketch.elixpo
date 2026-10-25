@@ -263,3 +263,38 @@ describe('opacity slider drag', () => {
     setNextShapeOpacity(1)
   })
 })
+
+describe('copy / paste styles on arrows', () => {
+  it('carries both arrowheads and records an undo snapshot with them', () => {
+    const source = shape('src', { shapeName: 'arrow', startArrowhead: 'dot', endArrowhead: 'triangle', options: { stroke: '#e03131' } })
+    copyStyles(fakeWindow({ current: source }))
+    const target = shape('t', { shapeName: 'arrow', startArrowhead: 'none', endArrowhead: 'arrow', arrowOutlineStyle: 'solid', options: { stroke: '#000' } })
+    const win = fakeWindow({ current: target })
+    expect(pasteStyles(win)).toBe(1)
+    expect([target.startArrowhead, target.endArrowhead]).toEqual(['dot', 'triangle'])
+    const change = win.undo.find(u => u.type === 'options')
+    expect(change.before).toMatchObject({ startArrowhead: 'none', endArrowhead: 'arrow', stroke: '#000' })
+    expect(change.after).toMatchObject({ startArrowhead: 'dot', endArrowhead: 'triangle', stroke: '#e03131' })
+  })
+
+  it('does not put arrowheads on non-arrow shapes', () => {
+    const source = shape('src', { shapeName: 'arrow', startArrowhead: 'dot', endArrowhead: 'triangle' })
+    copyStyles(fakeWindow({ current: source }))
+    const rect = shape('r')
+    pasteStyles(fakeWindow({ current: rect }))
+    expect(rect).not.toHaveProperty('startArrowhead')
+  })
+})
+
+describe('copy / paste styles onto lines', () => {
+  it('carries arrowheads between arrows and lines with an undoable snapshot', () => {
+    const source = shape('src', { shapeName: 'arrow', startArrowhead: 'dot', endArrowhead: 'arrow', options: {} })
+    copyStyles(fakeWindow({ current: source }))
+    const line = shape('ln', { shapeName: 'line', startArrowhead: 'none', endArrowhead: 'none', options: {} })
+    const win = fakeWindow({ current: line })
+    expect(pasteStyles(win)).toBe(1)
+    expect([line.startArrowhead, line.endArrowhead]).toEqual(['dot', 'arrow'])
+    const change = win.undo.find(u => u.type === 'options')
+    expect(change.before).toMatchObject({ startArrowhead: 'none', endArrowhead: 'none' })
+  })
+})

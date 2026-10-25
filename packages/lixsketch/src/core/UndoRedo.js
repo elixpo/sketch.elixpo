@@ -1,6 +1,7 @@
 /* eslint-disable */
 // Undo/Redo system - copied from undoAndRedo.js
 import { appearanceEquals, applyAppearance, captureAppearance, initNewShapeAppearance } from './ShapeAppearance.js';
+import { normalizeArrowhead, readArrowheads } from './ArrowHeads.js';
 
 // Stacks for undo/redo
 const undoStack = [];
@@ -642,7 +643,31 @@ export function pushOptionsChangeAction(shape, oldOptions, newOptions = null) {
     notifyCollaboration();
 }
 
+// Arrow option snapshots carry instance state (heads, outline, curve) next
+// to the RoughJS options; older snapshots used the end-only arrowHeadStyle.
+function applyArrowSnapshot(shape, snapshot) {
+    const { startArrowhead, endArrowhead, arrowHeadStyle, ...options } = snapshot || {};
+    const heads = readArrowheads(snapshot || {});
+    shape.options = { ...options };
+    shape.startArrowhead = heads.startArrowhead;
+    shape.endArrowhead = heads.endArrowhead;
+    shape.arrowOutlineStyle = snapshot.arrowOutlineStyle;
+    shape.arrowCurved = snapshot.arrowCurved;
+    shape.arrowCurveAmount = snapshot.arrowCurveAmount;
+    shape.draw();
+}
+
 function applyOptionsSnapshot(shape, options) {
+    if (shape.shapeName === 'line') {
+        // Line snapshots carry the instance-level arrowheads next to options;
+        // snapshots without them (older) mean no heads.
+        const { startArrowhead, endArrowhead, ...rest } = options || {};
+        shape.startArrowhead = normalizeArrowhead(startArrowhead, 'none');
+        shape.endArrowhead = normalizeArrowhead(endArrowhead, 'none');
+        shape.options = { ...rest };
+        shape.draw();
+        return;
+    }
     shape.options = { ...options };
     if (shape.shapeName === 'frame') {
         shape.fillColor = options.fillColor;
@@ -1216,11 +1241,14 @@ export function undo() {
                 ? {
                     ...action.shape.options,
                     arrowOutlineStyle: action.shape.arrowOutlineStyle,
-                    arrowHeadStyle: action.shape.arrowHeadStyle,
+                    startArrowhead: action.shape.startArrowhead,
+                    endArrowhead: action.shape.endArrowhead,
                     arrowCurved: action.shape.arrowCurved,
                     arrowCurveAmount: action.shape.arrowCurveAmount,
                 }
-                : { ...action.shape.options };
+                : action.shape.shapeName === 'line'
+                    ? { ...action.shape.options, startArrowhead: action.shape.startArrowhead, endArrowhead: action.shape.endArrowhead }
+                    : { ...action.shape.options };
         }
         if (action.shape.type === 'text') {
             // Handle text options change undo
@@ -1238,12 +1266,7 @@ export function undo() {
             }
         } else if (action.shape.shapeName === 'arrow') {
             // Handle arrow options change undo
-            action.shape.options = { ...action.oldOptions };
-            action.shape.arrowOutlineStyle = action.oldOptions.arrowOutlineStyle;
-            action.shape.arrowHeadStyle = action.oldOptions.arrowHeadStyle;
-            action.shape.arrowCurved = action.oldOptions.arrowCurved;
-            action.shape.arrowCurveAmount = action.oldOptions.arrowCurveAmount;
-            action.shape.draw();
+            applyArrowSnapshot(action.shape, action.oldOptions);
         } else {
             // Handle other shape options change undo
             applyOptionsSnapshot(action.shape, action.oldOptions);
@@ -1759,12 +1782,7 @@ export function redo() {
                 }
             }
         } else if (action.shape.shapeName === 'arrow') {
-            action.shape.options = { ...action.newOptions };
-            action.shape.arrowOutlineStyle = action.newOptions.arrowOutlineStyle;
-            action.shape.arrowHeadStyle = action.newOptions.arrowHeadStyle;
-            action.shape.arrowCurved = action.newOptions.arrowCurved;
-            action.shape.arrowCurveAmount = action.newOptions.arrowCurveAmount;
-            action.shape.draw();
+            applyArrowSnapshot(action.shape, action.newOptions);
         } else {
             applyOptionsSnapshot(action.shape, action.newOptions);
         }

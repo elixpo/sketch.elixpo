@@ -32,6 +32,7 @@
  */
 
 import { ASSET_REF_PREFIX, assetIdFor, inlineAssets } from './ScenePersistence.js';
+import { ARROWHEAD_TYPES, normalizeArrowhead, readArrowheads } from './ArrowHeads.js';
 
 export const LIXSKETCH_FORMAT_VERSION = 1;
 export const LIXSKETCH_EXTENSION = '.lixsketch';
@@ -83,10 +84,16 @@ const TYPE_FIELDS = {
     line: {
         control: { key: 'controlPoint', default: null, kind: 'point' },
         curved: { key: 'isCurved', default: false, kind: 'boolean' },
+        // Optional heads; `none` is never stored for lines.
+        startHead: { key: 'startArrowhead', default: undefined, kind: 'lineArrowhead' },
+        endHead: { key: 'endArrowhead', default: undefined, kind: 'lineArrowhead' },
     },
     arrow: {
         style: { key: 'arrowOutlineStyle', default: 'solid' },
-        head: { key: 'arrowHeadStyle', default: 'default' },
+        // Independent heads (none, arrow, bar, dot, circle, triangle, …).
+        // The pre-v2 single `head:` property is accepted and sets endHead.
+        startHead: { key: 'startArrowhead', default: 'none', kind: 'arrowhead' },
+        endHead: { key: 'endArrowhead', default: 'arrow', kind: 'arrowhead' },
         curve: { key: 'arrowCurved', default: 'straight' },
         curveAmount: { key: 'arrowCurveAmount', default: 50, kind: 'number' },
         control1: { key: 'controlPoint1', default: undefined, kind: 'point' },
@@ -1269,6 +1276,12 @@ function checkKind(prop, kind, type) {
             // Fully opaque is the default and is not stored.
             return value === 1 ? undefined : Math.round(value * 100) / 100;
         }
+        case 'lineArrowhead':
+        case 'arrowhead': {
+            const type = typeof v === 'string' ? normalizeArrowhead(v, null) : (v === null ? 'none' : null);
+            if (!type) fail(`one of ${ARROWHEAD_TYPES.join(', ')}`);
+            return type;
+        }
         case 'edges': {
             if (v !== 'sharp' && v !== 'round') fail("'sharp' or 'round'");
             return v === 'round' ? 'round' : undefined;
@@ -1308,6 +1321,11 @@ function buildRecord(def, ctx, lixscriptMode) {
             rec.parentFrame = prop.value;
             continue;
         }
+        if (key === 'head' && type === 'arrow') {
+            // Legacy single head (default/outline/solid/square or a new type).
+            if (!('endArrowhead' in rec)) rec.endArrowhead = checkKind({ ...prop, key: 'endHead' }, 'arrowhead', type);
+            continue;
+        }
         if (key === 'roundness' && fields.edges) {
             const value = checkKind({ ...prop, key: 'edges' }, 'edges', type);
             if (value !== undefined) rec.edges = value;
@@ -1317,6 +1335,7 @@ function buildRecord(def, ctx, lixscriptMode) {
             const value = checkKind(prop, fields[key].kind, type);
             // Appearance defaults (opacity 1, sharp edges) are never stored.
             if (value === undefined && (fields[key].kind === 'opacity' || fields[key].kind === 'edges')) continue;
+            if (fields[key].kind === 'lineArrowhead' && value === 'none') continue;
             rec[fields[key].key] = value;
             continue;
         }
@@ -1593,6 +1612,11 @@ export function sceneToLixSketch(scene, { assets: assetMode = 'embed', assetMinL
 }
 
 function emitShape(shape, derivedParents, assetCtx) {
+    // Scenes saved before start/end heads carry `arrowHeadStyle`.
+    if (shape.type === 'arrow' && 'arrowHeadStyle' in shape && !('endArrowhead' in shape)) {
+        const { arrowHeadStyle, ...rest } = shape;
+        shape = { ...rest, ...readArrowheads({ arrowHeadStyle, startArrowhead: shape.startArrowhead }) };
+    }
     const type = shape.type;
     const keyword = type === 'frame' && shape.frameType === 'web-embed' ? 'embed' : TYPE_KEYWORD[type];
     const fields = fieldsFor(type);

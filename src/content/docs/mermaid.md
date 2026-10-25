@@ -37,7 +37,7 @@ The type is read from the first line that is not empty and not a `%%` comment. Y
 | [Flowchart](#flowcharts) | `flowchart`, `graph` | **native** | Shapes, arrows, nested frames for subgraphs |
 | [Sequence](#sequence-diagrams) | `sequenceDiagram` | **native** | Participants, lifelines, activations, messages, notes, blocks |
 | [Class](#class-diagrams) | `classDiagram` | **native** | Class boxes, relation arrows, namespace frames |
-| [Entity relationship](#entity-relationship-diagrams) | `erDiagram` | **native** | Entity headers with attribute rows, labelled relations |
+| [Entity relationship](#entity-relationship-diagrams) | `erDiagram` | **native** | Entity headers with attribute rows, crow-foot relations |
 | [Pie](#pie-and-xy-charts) | `pie` | **native** | Slices and legend |
 | [XY chart](#pie-and-xy-charts) | `xychart-beta` | **native** | Bars or lines, axes, legend |
 | State | `stateDiagram`, `stateDiagram-v2` | image | SVG rendered by Mermaid |
@@ -117,9 +117,9 @@ flowchart LR
 | `A -.-> B`, `A -.- B` | dotted | Dash `5 3` |
 | `A ==> B`, `A === B` | thick | Stroke width 3 |
 | `A ~~~ B` | invisible link | Not drawn (still affects layout) |
-| `A --o B` | circle end | Arrow with a square head |
-| `A --x B` | cross end | Arrow with an outline head |
-| `A <--> B`, `A o--o B`, `A x--x B` | both ends | Two half arrows meeting in the middle, grouped |
+| `A --o B` | circle end | Arrow with a circle head |
+| `A --x B` | cross end | Arrow with a cross head |
+| `A <--> B`, `A o--o B`, `A x--x B` | both ends | One arrow with a head at each end |
 | `A ---> B`, `A -..-> B`, `A ===> B` | longer | Same edge type spanning extra layers |
 | `A --> A` | self loop | Curved arrow from the right side to the top |
 
@@ -221,9 +221,9 @@ sequenceDiagram
 | `box Color Label … end` | Coloured panel behind the grouped participants |
 | `->>` `-->>` | Arrow, solid / dashed |
 | `->` `-->` | Line without head, solid / dashed |
-| `-x` `--x` | Line ending in a cross |
+| `-x` `--x` | Arrow with a cross head |
 | `-)` `--)` | Async arrow |
-| `<<->>` `<<-->>` | Two-way arrow (two grouped half arrows) |
+| `<<->>` `<<-->>` | One arrow with heads at both ends |
 | `A->>A: text` | Self-message loop |
 | `activate X` / `deactivate X`, `A->>+B` / `B-->>-A` | Activation bars, nested; messages start and end on the bar |
 | `Note left of`, `Note right of`, `Note over A` / `over A,B` | Note rectangle |
@@ -278,14 +278,14 @@ classDiagram
 | `classDef`, `cssClass "A,B" name`, `class A:::name`, `style A fill:…` | Box colours |
 | `click`, `link`, `callback` | Ignored |
 
-Relations, with the arrow drawn toward the marker end:
+Relations are one arrow from the first class to the second, with each UML marker drawn as the arrowhead at its end:
 
-- **Inheritance** `A <|-- B` and **realization** `A <|.. B`: arrow to A with a hollow-triangle head; realization is dashed.
-- **Composition** `A *-- B`: arrow to A with a solid head.
-- **Aggregation** `A o-- B`: arrow to A with a square head.
-- **Association** `A --> B` and **dependency** `A ..> B`: arrow to B; dependency is dashed.
+- **Inheritance** `A <|-- B` and **realization** `A <|.. B`: hollow triangle at A; realization is dashed.
+- **Composition** `A *-- B`: filled diamond at A.
+- **Aggregation** `A o-- B`: hollow diamond at A.
+- **Association** `A --> B` and **dependency** `A ..> B`: open arrow at B; dependency is dashed.
 - **Links** `A -- B` and `A .. B`: a line, solid or dashed.
-- **Markers on both ends** such as `A <|--|> B`: two grouped half arrows.
+- **Markers on both ends** such as `A <|--|> B`: one arrow with both heads.
 - **Cardinality and label** `A "1" --> "*" B : label`: the arrow is labelled `1   label   *`.
 
 The layout puts parents above children and wholes above parts. Relations bind to the whole class box, so moving a class drags its arrows.
@@ -311,7 +311,9 @@ erDiagram
 | Syntax | Canvas |
 |--------|--------|
 | `NAME { type name [key] }` | Header rectangle with one row rectangle per attribute |
-| `A <card>--<card> B : label`, `A <card>..<card> B : label` | Arrow bound to both headers, labelled `<card> label <card>` |
+| `A <card>--<card> B : label`, `A <card>..<card> B : label` | Arrow bound to both headers with crow's-foot heads, labelled `label` |
+
+Cardinalities become crow's-foot arrowheads at each entity: `||` → one (`crowfoot_one`), `}|` / `|{` → one or many (`crowfoot_one_or_many`), `}o` / `o{` → many (`crowfoot_many`). Zero-or-one (`|o` / `o|`) uses the closest head, one.
 
 Entities are laid out in a grid. Aliases (`A["Alias"]`), attribute comments and quoted entity names are not read by the native importer. When Mermaid accepts such a source, it is placed as an image instead.
 
@@ -379,8 +381,7 @@ Image diagrams can be moved, resized and deleted like any image, but not edited 
 - **Straight edges.** Edges are drawn as straight segments between facing sides; there is no orthogonal routing.
 - **Approximate geometry.**
   - Hexagons, parallelograms, trapezoids and flags are drawn as rectangles.
-  - Circle and cross arrow ends use the closest LixSketch arrowheads (square and outline).
-  - Composition and aggregation diamonds use solid and square heads.
+  - ER zero-or-one and zero-or-many have no separate "zero" ring; they use the one and many crow's feet.
 - **No source link.** Placed shapes keep no link to the Mermaid source.
 - **Theme at placement time.** Colours follow the theme that was active when the diagram was placed.
 

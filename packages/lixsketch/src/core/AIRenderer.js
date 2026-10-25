@@ -256,7 +256,10 @@ export function renderAIDiagram(diagram) {
                 const opts = {
                     stroke: edgeStroke, strokeWidth: edgeStrokeWidth, roughness: 1,
                     arrowOutlineStyle: edgeLineStyle,
-                    arrowHeadStyle: edge.arrowHeadStyle || 'default',
+                    // Independent heads; the legacy single arrowHeadStyle
+                    // (default/outline/solid/square) still maps to the end.
+                    startArrowhead: edge.startArrowhead || (edge.bidirectional ? 'arrow' : 'none'),
+                    endArrowhead: edge.endArrowhead || edge.arrowHeadStyle || 'arrow',
                 };
 
                 if (edgeStyle.type === 'curved') {

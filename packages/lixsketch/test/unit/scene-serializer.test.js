@@ -62,7 +62,10 @@ vi.mock('../../src/shapes/Circle.js', () => ({
 vi.mock('../../src/shapes/Line.js', () => ({
   Line: class extends BasicShape {
     constructor(startPoint, endPoint, options) {
-      super('line', { startPoint: { ...startPoint }, endPoint: { ...endPoint }, options })
+      const { startArrowhead, endArrowhead, ...rest } = options || {}
+      super('line', { startPoint: { ...startPoint }, endPoint: { ...endPoint }, options: rest })
+      this.startArrowhead = startArrowhead || 'none'
+      this.endArrowhead = endArrowhead || 'none'
     }
   },
 }))
@@ -70,7 +73,10 @@ vi.mock('../../src/shapes/Line.js', () => ({
 vi.mock('../../src/shapes/Arrow.js', () => ({
   Arrow: class extends BasicShape {
     constructor(startPoint, endPoint, options) {
-      super('arrow', { startPoint: { ...startPoint }, endPoint: { ...endPoint }, options })
+      const { startArrowhead, endArrowhead, ...rest } = options || {}
+      super('arrow', { startPoint: { ...startPoint }, endPoint: { ...endPoint }, options: rest })
+      this.startArrowhead = startArrowhead
+      this.endArrowhead = endArrowhead
     }
     setStartAttachment(shape) { this.startAttachment = shape }
     setEndAttachment(shape) { this.endAttachment = shape }
@@ -284,6 +290,39 @@ describe('SceneSerializer', () => {
     expect(loaded['frame-round'].edges).toBe('round')
     const appearance = shapes => shapes.map(({ shapeID, opacity, edges }) => ({ shapeID, opacity, edges }))
     expect(appearance(serializer.saveScene('Appearance').shapes)).toEqual(appearance(first.shapes))
+  })
+
+  it('round-trips start/end arrowheads and maps legacy arrowHeadStyle', () => {
+    const scene = {
+      format: 'lixsketch', version: 1, name: 'Heads', shapes: [
+        { shapeID: 'new', type: 'arrow', startPoint: { x: 0, y: 0 }, endPoint: { x: 10, y: 0 }, options: {}, startArrowhead: 'dot', endArrowhead: 'diamond_outline', docBlockIds: [], parentFrame: null, groupId: null },
+        { shapeID: 'old-solid', type: 'arrow', startPoint: { x: 0, y: 0 }, endPoint: { x: 10, y: 0 }, options: {}, arrowHeadStyle: 'solid', docBlockIds: [], parentFrame: null, groupId: null },
+        { shapeID: 'old-square', type: 'arrow', startPoint: { x: 0, y: 0 }, endPoint: { x: 10, y: 0 }, options: {}, arrowHeadStyle: 'square', docBlockIds: [], parentFrame: null, groupId: null },
+        { shapeID: 'old-missing', type: 'arrow', startPoint: { x: 0, y: 0 }, endPoint: { x: 10, y: 0 }, options: {}, docBlockIds: [], parentFrame: null, groupId: null },
+      ],
+    }
+    expect(serializer.loadScene(scene)).toBe(true)
+    const heads = Object.fromEntries(serializer.saveScene('Heads').shapes.map(s => [s.shapeID, [s.startArrowhead, s.endArrowhead, 'arrowHeadStyle' in s]]))
+    expect(heads).toEqual({
+      new: ['dot', 'diamond_outline', false],
+      'old-solid': ['none', 'triangle', false],
+      'old-square': ['none', 'bar', false],
+      'old-missing': ['none', 'arrow', false],
+    })
+  })
+
+  it('round-trips line arrowheads and omits them when none', () => {
+    const scene = {
+      format: 'lixsketch', version: 1, name: 'Lines', shapes: [
+        { shapeID: 'headed', type: 'line', startPoint: { x: 0, y: 0 }, endPoint: { x: 10, y: 0 }, controlPoint: null, isCurved: false, options: {}, startArrowhead: 'bar', endArrowhead: 'triangle', docBlockIds: [], parentFrame: null, groupId: null },
+        { shapeID: 'plain', type: 'line', startPoint: { x: 0, y: 0 }, endPoint: { x: 10, y: 0 }, controlPoint: null, isCurved: false, options: {}, docBlockIds: [], parentFrame: null, groupId: null },
+      ],
+    }
+    expect(serializer.loadScene(scene)).toBe(true)
+    const byId = Object.fromEntries(serializer.saveScene('Lines').shapes.map(s => [s.shapeID, s]))
+    expect(byId.headed).toMatchObject({ startArrowhead: 'bar', endArrowhead: 'triangle' })
+    expect(byId.plain).not.toHaveProperty('startArrowhead')
+    expect(byId.plain).not.toHaveProperty('endArrowhead')
   })
 
   it('loads a version-one fixture without newer optional fields', () => {

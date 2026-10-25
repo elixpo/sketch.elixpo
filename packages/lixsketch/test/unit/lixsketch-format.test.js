@@ -70,7 +70,7 @@ function kitchenSink() {
             {
                 ...base, shapeID: 'arrow-1', type: 'arrow', startPoint: { x: 220, y: 105 }, endPoint: { x: 340, y: 120 },
                 options: { stroke: '#e0e0e0', strokeWidth: 2, arrowHeadLength: 22, label: 'Yes', labelOffsetY: -6, elbowX: 280 },
-                arrowOutlineStyle: 'dashed', arrowHeadStyle: 'square', arrowCurved: 'curved', arrowCurveAmount: 80,
+                arrowOutlineStyle: 'dashed', startArrowhead: 'dot', endArrowhead: 'bar', arrowCurved: 'curved', arrowCurveAmount: 80,
                 controlPoint1: { x: 250, y: 60 }, controlPoint2: { x: 300, y: 150 },
                 startAttachmentID: 'box-a', endAttachmentID: 'ellipse-b',
                 startBinding: { shapeID: 'box-a', side: 'right', offset: { x: 0, y: 5 } },
@@ -78,7 +78,7 @@ function kitchenSink() {
             },
             {
                 ...base, shapeID: 'arrow-legacy', type: 'arrow', startPoint: { x: 0, y: 0 }, endPoint: { x: 10, y: 10 },
-                options: {}, arrowOutlineStyle: 'solid', arrowHeadStyle: 'default', arrowCurved: 'elbow', arrowCurveAmount: 50,
+                options: {}, arrowOutlineStyle: 'solid', startArrowhead: 'none', endArrowhead: 'arrow', arrowCurved: 'elbow', arrowCurveAmount: 50,
                 startAttachmentID: 'box-a',
             },
             {
@@ -202,7 +202,7 @@ embed video at 0, 0 size 320x180 { url: "https://www.youtube.com/embed/x" }
         expect(byId.next).toMatchObject({ x: 650, y: 60, options: { strokeDasharray: '2,8', fontFamily: 'lixFont, sans-serif' }, parentFrame: 'f' })
         expect(byId.check).toMatchObject({ type: 'circle', x: 255, y: 330, rx: 55, ry: 55 })
         expect(byId.a1).toMatchObject({
-            startPoint: { x: 400, y: 92.5 }, endPoint: { x: 650, y: 92.5 }, arrowCurved: 'curved', arrowHeadStyle: 'arrow',
+            startPoint: { x: 400, y: 92.5 }, endPoint: { x: 650, y: 92.5 }, arrowCurved: 'curved', startArrowhead: 'none', endArrowhead: 'arrow',
             startAttachmentID: 'login', startBinding: { shapeID: 'login', side: 'right' },
             endAttachmentID: 'next', endBinding: { side: 'left' },
         })
@@ -298,7 +298,12 @@ describe('legacy JSON import', () => {
             const { scene } = lixSketchToScene(text)
             // Legacy records gain the defaults saveScene() writes today …
             expect(scene.shapes.map(s => s.shapeID)).toEqual(legacy.shapes.map(s => s.shapeID))
-            for (const [i, shape] of legacy.shapes.entries()) expect(scene.shapes[i]).toMatchObject(shape)
+            for (const [i, shape] of legacy.shapes.entries()) {
+                // The end-only legacy arrowHeadStyle becomes start/end heads.
+                const { arrowHeadStyle, ...rest } = shape
+                expect(scene.shapes[i]).toMatchObject(rest)
+                if (arrowHeadStyle) expect(scene.shapes[i]).toMatchObject({ startArrowhead: 'none', endArrowhead: 'arrow' })
+            }
             // … and are stable from then on.
             expect(lixSketchToScene(sceneToLixSketch(scene)).scene).toEqual(scene)
         }
@@ -385,5 +390,73 @@ describe('opacity and edges', () => {
     it('rejects invalid values', () => {
         expect(compileLixSketch('lixsketch 1\nrect a at 0, 0 size 10x10 { edges: wobbly }').errors[0].message).toMatch(/sharp' or 'round/)
         expect(compileLixSketch('lixsketch 1\nrect a at 0, 0 size 10x10 { opacity: 400 }').errors[0].message).toMatch(/0 to 1/)
+    })
+})
+
+describe('arrowheads', () => {
+    const src = [
+        'lixsketch 1',
+        'rect a at 0, 0 size 100x50',
+        'rect b at 300, 0 size 100x50',
+        'arrow both from a.right to b.left {',
+        '  startHead: crowfoot_one',
+        '  endHead: crowfoot_one_or_many',
+        '}',
+        'arrow legacy from 0, 200 to 100, 200 { head: solid }',
+        'arrow plain from 0, 300 to 100, 300',
+        '',
+    ].join('\n')
+
+    it('compiles start/end heads and the legacy head property', () => {
+        const { scene, errors } = compileLixSketch(src)
+        expect(errors).toEqual([])
+        const byId = Object.fromEntries(scene.shapes.map(shape => [shape.shapeID, shape]))
+        expect(byId.both).toMatchObject({ startArrowhead: 'crowfoot_one', endArrowhead: 'crowfoot_one_or_many' })
+        expect(byId.legacy).toMatchObject({ startArrowhead: 'none', endArrowhead: 'triangle' })
+        expect(byId.plain).toMatchObject({ startArrowhead: 'none', endArrowhead: 'arrow' })
+        expect(byId.legacy).not.toHaveProperty('arrowHeadStyle')
+    })
+
+    it('round-trips losslessly and writes only non-default heads', () => {
+        const { scene } = compileLixSketch(src)
+        const { text, back } = roundTrip(scene)
+        expect(back).toEqual(scene)
+        expect(text).toContain('startHead: crowfoot_one')
+        expect(text).toContain('endHead: triangle')
+        expect(text).not.toMatch(/\bhead:/)
+    })
+
+    it('rejects unknown heads', () => {
+        const { errors } = compileLixSketch('lixsketch 1\narrow x from 0, 0 to 1, 1 { endHead: spiral }')
+        expect(errors[0].message).toMatch(/one of none, arrow/)
+    })
+
+    it('upgrades legacy scenes on export', () => {
+        const legacy = {
+            format: 'lixsketch', version: 1, name: 'L', shapes: [
+                { shapeID: 'old', type: 'arrow', startPoint: { x: 0, y: 0 }, endPoint: { x: 1, y: 1 }, options: {}, arrowHeadStyle: 'outline', docBlockIds: [], groupId: null, parentFrame: null },
+            ],
+        }
+        const { back } = roundTrip(legacy)
+        expect(back.shapes[0]).toMatchObject({ startArrowhead: 'none', endArrowhead: 'triangle_outline' })
+        expect(back.shapes[0]).not.toHaveProperty('arrowHeadStyle')
+    })
+})
+
+describe('line arrowheads', () => {
+    it('compiles startHead/endHead on lines, never storing none', () => {
+        const { scene, errors } = compileLixSketch('lixsketch 1\nline a from 0, 0 to 100, 0 { endHead: triangle }\nline b from 0, 50 to 100, 50 { startHead: none }\n')
+        expect(errors).toEqual([])
+        const [a, b] = scene.shapes
+        expect(a.endArrowhead).toBe('triangle')
+        expect(a).not.toHaveProperty('startArrowhead')
+        expect(b).not.toHaveProperty('startArrowhead')
+        const { text, back } = roundTrip(scene)
+        expect(back).toEqual(scene)
+        expect(text).toContain('endHead: triangle')
+    })
+
+    it('rejects unknown line heads', () => {
+        expect(compileLixSketch('lixsketch 1\nline a from 0, 0 to 1, 1 { endHead: blob }').errors[0].message).toMatch(/one of none/)
     })
 })

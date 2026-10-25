@@ -292,17 +292,18 @@ describe('flowchart rendering', () => {
         const arrows = created.filter(s => s.kind === 'arrow')
         const lines = created.filter(s => s.kind === 'line')
         expect(lines).toHaveLength(1)
-        expect(arrows).toHaveLength(7) // <--> becomes two grouped half arrows; ~~~ draws nothing
+        expect(arrows).toHaveLength(6) // <--> is one arrow with two heads; ~~~ draws nothing
         expect(arrows[0].boundStart.options.label).toBe('A')
         expect(arrows[0].boundEnd.options.label).toBe('B')
+        expect(arrows[0].options).toMatchObject({ startArrowhead: 'none', endArrowhead: 'arrow' })
         expect(arrows[1].options.strokeDasharray).toBe('5 3')
         expect(arrows[2].options.strokeWidth).toBe(3)
-        expect(arrows[3].options.arrowHeadStyle).toBe('square')
-        expect(arrows[4].groupId).toBeTruthy()
-        expect(arrows[4].groupId).toBe(arrows[5].groupId)
+        expect(arrows[3].options).toMatchObject({ startArrowhead: 'none', endArrowhead: 'circle' }) // --o
+        expect(arrows[4].options).toMatchObject({ startArrowhead: 'arrow', endArrowhead: 'arrow' }) // <-->
+        expect(arrows[4].boundStart.options.label).toBe('F')
         expect(arrows[4].boundEnd.options.label).toBe('G')
-        expect(arrows[5].boundEnd.options.label).toBe('F')
-        expect(arrows[6].options.arrowHeadStyle).toBe('outline')
+        expect(arrows[4].groupId).toBeFalsy()
+        expect(arrows[5].options).toMatchObject({ startArrowhead: 'none', endArrowhead: 'cross' }) // --x
     })
 
     it('renders a preview SVG with subgraph boxes and every node', () => {

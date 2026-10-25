@@ -4,6 +4,7 @@ import { getThemeForeground as getThemeStroke } from '../utils/themeColors.js';
 import { pushCreateAction, pushDeleteAction, pushOptionsChangeAction, pushTransformAction, pushFrameAttachmentAction } from '../core/UndoRedo.js';
 import { calculateSnap, clearSnapGuides } from '../core/SnapGuides.js';
 import { snapToAngle } from '../core/DrawConstraints.js';
+import { normalizeArrowhead } from '../core/ArrowHeads.js';
 
 
 
@@ -21,7 +22,15 @@ let arrowCurved = "straight";
 let arrowCurveAmount = 20;
 let arrowHeadLength = 10;
 let arrowHeadAngleDeg = 30;
-let arrowHeadStyle = "default";
+// Last chosen heads, used for the next arrow (Excalidraw remembers them).
+let startArrowhead = "none";
+let endArrowhead = "arrow";
+
+function rememberHeads(changes) {
+    if (changes.arrowHeadStyle !== undefined) endArrowhead = normalizeArrowhead(changes.arrowHeadStyle);
+    if (changes.startArrowhead !== undefined) startArrowhead = normalizeArrowhead(changes.startArrowhead, 'none');
+    if (changes.endArrowhead !== undefined) endArrowhead = normalizeArrowhead(changes.endArrowhead);
+}
 let startX, startY;
 let dragOldPosArrow = null;
 let draggedShapeInitialFrameArrow = null;
@@ -75,7 +84,8 @@ const handleMouseDown = (e) => {
             stroke: arrowStrokeColor ?? getThemeStroke(),
             strokeWidth: arrowStrokeThickness,
             arrowOutlineStyle: arrowOutlineStyle,
-            arrowHeadStyle: arrowHeadStyle,
+            startArrowhead,
+            endArrowhead,
             arrowCurved: arrowCurved,
             arrowCurveAmount: arrowCurveAmount
         });
@@ -417,17 +427,19 @@ const updateSelectedArrowStyle = (styleChanges) => {
         const oldOptions = {
             ...currentShape.options,
             arrowOutlineStyle: currentShape.arrowOutlineStyle,
-            arrowHeadStyle: currentShape.arrowHeadStyle,
+            startArrowhead: currentShape.startArrowhead,
+            endArrowhead: currentShape.endArrowhead,
             arrowCurved: currentShape.arrowCurved,
             arrowCurveAmount: currentShape.arrowCurveAmount
         };
+        rememberHeads(styleChanges);
         currentShape.updateStyle(styleChanges);
         pushOptionsChangeAction(currentShape, oldOptions);
     } else {
          if (styleChanges.stroke !== undefined) arrowStrokeColor = styleChanges.stroke;
          if (styleChanges.strokeWidth !== undefined) arrowStrokeThickness = styleChanges.strokeWidth;
          if (styleChanges.arrowOutlineStyle !== undefined) arrowOutlineStyle = styleChanges.arrowOutlineStyle;
-         if (styleChanges.arrowHeadStyle !== undefined) arrowHeadStyle = styleChanges.arrowHeadStyle;
+         rememberHeads(styleChanges);
          if (styleChanges.arrowCurved !== undefined) arrowCurved = styleChanges.arrowCurved;
          if (styleChanges.arrowCurveAmount !== undefined) arrowCurveAmount = styleChanges.arrowCurveAmount;
     }
@@ -579,8 +591,12 @@ window.arrowToolSettings = {
     set strokeWidth(v) { arrowStrokeThickness = v; },
     get outlineStyle() { return arrowOutlineStyle; },
     set outlineStyle(v) { arrowOutlineStyle = v; },
-    get headStyle() { return arrowHeadStyle; },
-    set headStyle(v) { arrowHeadStyle = v; },
+    get headStyle() { return endArrowhead; },
+    set headStyle(v) { endArrowhead = normalizeArrowhead(v); },
+    get startArrowhead() { return startArrowhead; },
+    set startArrowhead(v) { startArrowhead = normalizeArrowhead(v, 'none'); },
+    get endArrowhead() { return endArrowhead; },
+    set endArrowhead(v) { endArrowhead = normalizeArrowhead(v); },
     get arrowCurved() { return arrowCurved; },
     set arrowCurved(v) { arrowCurved = v; },
     get curveAmount() { return arrowCurveAmount; },
