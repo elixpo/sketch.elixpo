@@ -99,7 +99,7 @@ describe('Mermaid behaviour documented in mermaid.md', () => {
         expect(parseMermaid('stateDiagram-v2\n  [*] --> Still')).toBeNull()
         expect(parseMermaid('gantt\n  title Plan')).toBeNull()
         expect(unsupportedMermaidType('%% comment\nmindmap\n  root')).toBe('mindmap')
-        expect(parseMermaid('A --> B')).toMatchObject({ direction: 'TD' })
+        expect(parseMermaid('A --> B')).toMatchObject({ direction: 'TB' })
     })
 
     it('maps participant aliases to one box', () => {
