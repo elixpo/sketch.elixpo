@@ -45,6 +45,7 @@ const {
   pushDeleteAction,
   pushFrameAttachmentAction,
   pushTransformAction,
+  pushAppearanceChangeAction,
   rebindUndoHistory,
   redo,
   setTextReferences,
@@ -381,5 +382,55 @@ describe('UndoRedo regressions for recent tools', () => {
     expect(targetFrame.containedShapes).toEqual([first, second])
     expect(first.group.parentNode).toBe(targetFrame.clipGroup)
     expect(second.group.parentNode).toBe(targetFrame.clipGroup)
+  })
+})
+
+describe('appearance undo', () => {
+  beforeEach(() => {
+    clearUndoHistory()
+    shapes.length = 0
+  })
+
+  it('undoes and redoes an opacity + edges change as one step', () => {
+    const shape = rectangle('appearance', 0, 0)
+    shape.opacity = 1
+    shape.edges = 'sharp'
+    const before = { opacity: 1, edges: 'sharp' }
+    shape.opacity = 0.3
+    shape.edges = 'round'
+    pushAppearanceChangeAction(shape, before)
+
+    undo()
+    expect(shape.opacity).toBe(1)
+    expect(shape.edges).toBe('sharp')
+    expect(shape.draw).toHaveBeenCalled()
+
+    redo()
+    expect(shape.opacity).toBe(0.3)
+    expect(shape.edges).toBe('round')
+  })
+
+  it('records nothing when the appearance did not change', () => {
+    const shape = rectangle('same', 0, 0)
+    shape.opacity = 0.5
+    pushAppearanceChangeAction(shape, { opacity: 0.5, edges: 'sharp' })
+    undo()
+    expect(shape.opacity).toBe(0.5)
+  })
+
+  it('batches a multi-selection change into a single undo', () => {
+    const a = rectangle('a', 0, 0)
+    const b = rectangle('b', 50, 0)
+    for (const s of [a, b]) { s.opacity = 1; s.edges = 'sharp' }
+    const batch = beginUndoBatch()
+    for (const s of [a, b]) {
+      s.opacity = 0.2
+      pushAppearanceChangeAction(s, { opacity: 1, edges: 'sharp' })
+    }
+    endUndoBatch(batch, 'appearance')
+    undo()
+    expect([a.opacity, b.opacity]).toEqual([1, 1])
+    redo()
+    expect([a.opacity, b.opacity]).toEqual([0.2, 0.2])
   })
 })

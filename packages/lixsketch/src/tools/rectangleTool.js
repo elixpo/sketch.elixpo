@@ -8,6 +8,7 @@ import { pushCreateAction, pushDeleteAction, pushOptionsChangeAction, pushTransf
 import { cleanupAttachments } from './arrowTool.js';
 import { calculateSnap, clearSnapGuides } from '../core/SnapGuides.js';
 import { constrainToSquare } from '../core/DrawConstraints.js';
+import { roughRectangle, normalizeEdges } from '../core/ShapeAppearance.js';
 
 let isDrawingSquare = false;
 let isDraggingShapeSquare = false;
@@ -29,6 +30,7 @@ let squareFillStyleValue = "none";
 let squareStrokeThicknes = 2;
 let squareOutlineStyle = "solid";
 let squareRoughness = 1.5; // sloppiness: 0 architect, 1.5 artist, 3 cartoonist
+let squareEdges = 'sharp'; // Excalidraw defaults new rectangles to sharp edges
 let dragOldPosSquare = null;
 let draggedShapeInitialFrame = null;
 let hoveredFrame = null;
@@ -98,7 +100,7 @@ const handleMouseDownRect = (e) => {
             initialOptions.strokeDasharray = "";
         }
 
-        currentShape = new Rectangle(startX, startY, 0, 0, initialOptions);
+        currentShape = new Rectangle(startX, startY, 0, 0, { ...initialOptions, edges: squareEdges });
         currentShape.setDrawingState(true);
 
     } else if (isSelectionToolActive) {
@@ -206,7 +208,7 @@ const handleMouseMoveRect = (e) => {
             }
             
             // Create new rough element with current size
-            const roughRect = rc.rectangle(0, 0, currentShape.width, currentShape.height, currentShape.options);
+            const roughRect = roughRectangle(rc, currentShape.width, currentShape.height, currentShape.options, currentShape.edges);
             currentShape.element = roughRect;
             currentShape.group.appendChild(roughRect);
         }
@@ -549,6 +551,7 @@ window.updateSelectedRectStyle = function(changes) {
         if (changes.fillStyle !== undefined) { squareFillStyleValue = changes.fillStyle; currentShape.options.fillStyle = changes.fillStyle; }
         if (changes.strokeWidth !== undefined) { squareStrokeThicknes = changes.strokeWidth; currentShape.options.strokeWidth = changes.strokeWidth; }
         if (changes.roughness !== undefined) { squareRoughness = changes.roughness; currentShape.options.roughness = changes.roughness; }
+        if (changes.edges !== undefined) squareEdges = normalizeEdges(changes.edges);
         if (changes.outlineStyle !== undefined) {
             squareOutlineStyle = changes.outlineStyle;
             if (changes.outlineStyle === "dashed") currentShape.options.strokeDasharray = "10,10";
@@ -562,6 +565,7 @@ window.updateSelectedRectStyle = function(changes) {
         if (changes.fillStyle !== undefined) squareFillStyleValue = changes.fillStyle;
         if (changes.strokeWidth !== undefined) squareStrokeThicknes = changes.strokeWidth;
         if (changes.roughness !== undefined) squareRoughness = changes.roughness;
+        if (changes.edges !== undefined) squareEdges = normalizeEdges(changes.edges);
         if (changes.outlineStyle !== undefined) squareOutlineStyle = changes.outlineStyle;
     }
 };

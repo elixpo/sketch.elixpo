@@ -20,6 +20,7 @@ import TextSidebar from '@/components/sidebars/TextSidebar'
 import FrameSidebar from '@/components/sidebars/FrameSidebar'
 import IconSidebar from '@/components/sidebars/IconSidebar'
 import ImageSidebar from '@/components/sidebars/ImageSidebar'
+import IconPropertiesSidebar from '@/components/sidebars/IconPropertiesSidebar'
 import PaintBucketSidebar from '@/components/sidebars/PaintBucketSidebar'
 import SVGCanvas from '@/components/canvas/SVGCanvas'
 import CanvasDocConnectors from '@/components/canvas/CanvasDocConnectors'
@@ -105,6 +106,7 @@ export default function CanvasPage() {
                 <FrameSidebar />
                 <IconSidebar />
                 <ImageSidebar />
+                <IconPropertiesSidebar />
                 <PaintBucketSidebar />
                 <MultiSelectActions />
                 <Footer />

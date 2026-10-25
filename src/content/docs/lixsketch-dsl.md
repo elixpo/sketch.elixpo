@@ -189,7 +189,7 @@ Every shape accepts the [common properties](#common-properties). Properties not 
 | `docBlocks` | list of ids | `[]` | Linked document blocks (canvas ↔ docs navigation). |
 | `locked` | boolean | absent | Lock flag, stored with the shape. |
 | `link` | string (URL) | absent | Hyperlink, stored with the shape. |
-| `opacity` | number 0–1 | `1` | Stored on every shape; frames apply it when drawing. |
+| `opacity` | number 0–1, or a percentage (`50`, `"50%"`) | `1` | Opacity of the whole shape (stroke, fill and label). Omitted when fully opaque. Values above 1 are read as percentages. |
 | `options.<key>` | any | — | Force a key into the shape's style options (used when the key collides with a property name, e.g. `options.style`). |
 | `data.<key>` | any | — | Raw scene-record field, applied last. Written by the exporter for fields this reference does not cover. |
 
@@ -210,6 +210,8 @@ rect card at 40, 40 size 220x90 {
   shadeColor: #5b57d1
   shadeOpacity: 0.3
   shadeDirection: top
+  edges: round
+  opacity: 0.8
 }
 ```
 
@@ -230,6 +232,9 @@ rect card at 40, 40 size 220x90 {
 | `shadeOpacity` | number | `0.15` | 0–1 | `shadeOpacity: 0.3` |
 | `shadeDirection` | keyword | `bottom` | `top` · `bottom` · `left` · `right` | `shadeDirection: left` |
 | `rotation` | number | `0` | degrees | `rotation: 12` |
+| `edges` | keyword | `sharp` | `sharp` · `round` (alias: `roundness`) | `edges: round` |
+
+`edges: round` draws hand-drawn rounded corners with an adaptive radius: 25% of the shorter side, capped at 32px. Bound arrows stay on the curved outline.
 
 `style` is shorthand for `strokeDasharray`: `solid` = `""`, `dashed` = `"10,10"`, `dotted` = `"2,8"`.
 
@@ -462,6 +467,7 @@ frame board at 20, 20 size 420x200 {
   gridColor: "rgba(255,255,255,0.08)"
   stroke: #555
   strokeWidth: 1
+  edges: round
 }
 ```
 
@@ -470,11 +476,12 @@ frame board at 20, 20 size 420x200 {
 | `name` | string | the frame id | | Title shown above the frame. |
 | `contains` | ids | `[]` | `a, b, c` or `[a, b]` | Children; each child's `parent` defaults to this frame. Order is kept. |
 | `fillStyle` | keyword | `transparent` | `transparent` · `solid` · `grid` | |
+| `edges` | keyword | `sharp` | `sharp` · `round` | Rounded border; children are clipped to the same outline. |
 | `fillColor` | colour | `#1e1e28` | | Used by `solid` and `grid`. |
 | `gridSize` | number | `20` | px | |
 | `gridColor` | colour | `rgba(255,255,255,0.06)` | | |
 | `frameType` | string | `null` | `lixscript`, `mermaid-er`, … | Set by generators. |
-| `stroke`, `strokeWidth`, `fill`, `opacity` | | `#555`, `1`, `transparent`, `1` | | Border and background. |
+| `stroke`, `strokeWidth`, `fill` | | `#555`, `1`, `transparent` | | Border and background. `options.opacity` is the border's own opacity; the common `opacity` fades the frame itself (border, background, title). Shapes inside a frame keep their own `opacity`, set per shape. |
 
 ### embed
 

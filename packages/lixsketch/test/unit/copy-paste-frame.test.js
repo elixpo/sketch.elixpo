@@ -74,6 +74,22 @@ describe('frame clipboard trees', () => {
   })
 })
 
+describe('clipboard appearance', () => {
+  it('copies opacity and round edges with the shape and its frame children', () => {
+    const child = { ...rectangle('child', 40, 60), opacity: 0.5, edges: 'round' }
+    const plain = rectangle('plain', 0, 0)
+    const source = frame('frame', [child])
+    source.edges = 'round'
+
+    expect(serializeShape(child)).toMatchObject({ opacity: 0.5, edges: 'round' })
+    expect(serializeShape(plain)).not.toHaveProperty('opacity')
+    expect(serializeShape(plain)).not.toHaveProperty('edges')
+    const data = serializeShape(source)
+    expect(data.edges).toBe('round')
+    expect(data.children[0]).toMatchObject({ opacity: 0.5, edges: 'round' })
+  })
+})
+
 describe('duplicateSelected', () => {
   it('returns no shapes and leaves the clipboard alone without a selection', () => {
     globalThis.window.multiSelection = { selectedShapes: new Set() }
