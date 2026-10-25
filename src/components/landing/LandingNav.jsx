@@ -359,7 +359,7 @@ export default function LandingNav() {
             rel="noopener noreferrer"
             aria-label={starsLabel ? `GitHub · ${starsLabel} stars` : 'GitHub'}
             title={starsLabel ? `${stars.toLocaleString()} stars on GitHub` : 'GitHub'}
-            className="lx-ghost hidden md:inline-flex"
+            className="lx-ghost lx-gh-pill"
           >
             <i className="bx bxl-github text-lg" />
             {starsLabel && <span className="tabular-nums">{starsLabel}</span>}
@@ -381,7 +381,7 @@ export default function LandingNav() {
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={mobileOpen}
-            className="lx-ghost md:hidden"
+            className="lx-ghost lx-nav-toggle"
           >
             <i className={`bx ${mobileOpen ? 'bx-x' : 'bx-menu'} text-xl`} />
           </button>
