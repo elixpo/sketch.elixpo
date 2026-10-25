@@ -2,6 +2,7 @@
   "menu": {
     "open": "Отвори",
     "quickSave": "Запази .lixjson",
+    "saveLixSketch": "Запази .lixsketch",
     "saveShare": "Запази и сподели",
     "exportImage": "Експортирай изображение",
     "commands": "Команди",

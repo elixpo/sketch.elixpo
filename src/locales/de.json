@@ -2,6 +2,7 @@
   "menu": {
     "open": "Öffnen",
     "quickSave": ".lixjson speichern",
+    "saveLixSketch": "Als .lixsketch speichern",
     "saveShare": "Speichern & Teilen",
     "exportImage": "Bild exportieren",
     "commands": "Befehle",

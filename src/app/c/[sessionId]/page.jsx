@@ -33,6 +33,7 @@ import useSessionID from '@/hooks/useSessionID'
 import useGuestProfile from '@/hooks/useGuestProfile'
 import useAuth from '@/hooks/useAuth'
 import useAutoSave from '@/hooks/useAutoSave'
+import useSceneFileBridge from '@/hooks/useSceneFileBridge'
 import CanvasLoadingOverlay from '@/components/canvas/CanvasLoadingOverlay'
 import ContextMenu from '@/components/canvas/ContextMenu'
 import FindBar from '@/components/canvas/FindBar'
@@ -72,6 +73,7 @@ export default function CanvasPage() {
   useSessionID()
   useGuestProfile()
   useAutoSave()
+  useSceneFileBridge()
 
   const activeRoomId = useCollabStore((s) => s.activeRoomId)
   useCollaboration(activeRoomId)

@@ -2,6 +2,7 @@
   "menu": {
     "open": "खोलें",
     "quickSave": ".lixjson सहेजें",
+    "saveLixSketch": ".lixsketch सहेजें",
     "saveShare": "सहेजें और साझा करें",
     "exportImage": "चित्र निर्यात करें",
     "commands": "कमांड",

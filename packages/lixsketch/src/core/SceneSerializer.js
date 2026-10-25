@@ -19,6 +19,7 @@ import { ImageShape } from '../shapes/ImageShape.js';
 import { IconShape } from '../shapes/IconShape.js';
 import { clearUndoHistory, pushCanvasResetAction } from './UndoRedo.js';
 import { applyContainerLabel, serializeContainerLabel } from './ShapeLabelState.js';
+import { LIXSKETCH_EXTENSION, LIXSKETCH_MIME_TYPE, formatDiagnostic, sceneFromFileText, sceneToLixSketch } from './LixSketchFormat.js';
 
 const FORMAT_VERSION = 1;
 const GZIP_MAGIC = [0x1f, 0x8b];
@@ -824,6 +825,82 @@ export async function downloadScene(workspaceName = 'Untitled') {
 }
 
 // ============================================================
+// .lixsketch text export / import
+// ============================================================
+
+// Scene settings (background/theme/grid) live in the host app's stores; the
+// app registers window.__lixsketchSceneSettings (getter) and
+// window.__applyLixsketchSceneSettings (setter) to take part in export/import.
+function currentSceneSettings() {
+    try {
+        const settings = typeof window.__lixsketchSceneSettings === 'function' ? window.__lixsketchSceneSettings() : null;
+        return settings && typeof settings === 'object' ? settings : null;
+    } catch {
+        return null;
+    }
+}
+
+/** Current canvas as `.lixsketch` text. */
+export function saveSceneAsLixSketch(workspaceName = 'Untitled') {
+    const scene = saveScene(workspaceName);
+    const settings = currentSceneSettings();
+    if (settings && Object.keys(settings).length) scene.settings = settings;
+    return sceneToLixSketch(scene);
+}
+
+export function downloadLixSketch(workspaceName = 'Untitled') {
+    const text = saveSceneAsLixSketch(workspaceName);
+    const blob = new Blob([text], { type: LIXSKETCH_MIME_TYPE });
+    const url = URL.createObjectURL(blob);
+    const fileName = `${safeWorkspaceFileName(workspaceName)}-${sceneFileTimestamp()}${LIXSKETCH_EXTENSION}`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+    return { fileName, sizeBytes: blob.size };
+}
+
+export const SCENE_FILE_ACCEPT = '.lixsketch,.lixjson,.json';
+
+export function isSceneFileName(name) {
+    return /\.(lixsketch|lixjson|json)$/i.test(String(name || ''));
+}
+
+/**
+ * Load a `.lixsketch` (DSL text), `.lixjson` (gzip/plain JSON) or `.json`
+ * file onto the canvas. Resolves { success, error?, warnings?, validation?, kind? }.
+ */
+export async function openSceneFile(file) {
+    try {
+        const text = await decodeSceneFile(await file.arrayBuffer());
+        let parsed;
+        try {
+            parsed = sceneFromFileText(text);
+        } catch (err) {
+            const message = err?.errors?.length
+                ? `${file.name || 'file'}:${formatDiagnostic(err.errors[0])}`
+                : (err.message || 'Could not read the file');
+            return { success: false, error: message, errors: err?.errors || [] };
+        }
+        const { scene, warnings = [], kind } = parsed;
+        const validation = validateScene(scene);
+        if (!validation.valid) return { success: false, error: validation.error };
+        resetSessionID(); // New session for loaded scene
+        const result = loadScene(scene);
+        if (result && scene.settings && typeof window.__applyLixsketchSceneSettings === 'function') {
+            try { window.__applyLixsketchSceneSettings(scene.settings); } catch (err) { console.warn('[SceneSerializer] settings apply failed:', err); }
+        }
+        return { success: result, validation, warnings, kind };
+    } catch (err) {
+        console.error('[SceneSerializer] Failed to open file:', err);
+        return { success: false, error: err.message || 'Failed to open scene file' };
+    }
+}
+
+// ============================================================
 // UPLOAD: Open file picker and load .lixsketch file
 // ============================================================
 // Validate scene JSON structure before loading
@@ -854,27 +931,13 @@ export function uploadScene() {
     return new Promise((resolve, reject) => {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.lixjson,.json';
+        input.accept = SCENE_FILE_ACCEPT;
         input.onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return resolve(false);
-
-            try {
-                const json = await decodeSceneFile(await file.arrayBuffer());
-                const data = JSON.parse(json);
-                const validation = validateScene(data);
-                if (!validation.valid) {
-                    console.error('[SceneSerializer] Invalid file:', validation.error);
-                    resolve({ success: false, error: validation.error });
-                    return;
-                }
-                resetSessionID(); // New session for loaded scene
-                const result = loadScene(data);
-                resolve({ success: result, validation });
-            } catch (err) {
-                console.error('[SceneSerializer] Failed to parse file:', err);
-                resolve({ success: false, error: err.message || 'Failed to parse .lixjson file' });
-            }
+            const result = await openSceneFile(file);
+            if (!result.success && result.error) console.error('[SceneSerializer] Invalid file:', result.error);
+            resolve(result);
         };
         input.click();
     });
@@ -1138,6 +1201,10 @@ export function initSceneSerializer() {
         save: saveScene,
         load: loadScene,
         download: downloadScene,
+        downloadLixSketch,
+        toLixSketch: saveSceneAsLixSketch,
+        openFile: openSceneFile,
+        isSceneFile: isSceneFileName,
         upload: uploadScene,
         exportPNG: exportAsPNG,
         exportPDF: exportAsPDF,
