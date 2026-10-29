@@ -190,6 +190,20 @@ This runs the Next.js app and the Cloudflare Worker together. Then open
 > `ws://localhost:8787`; set `NEXT_PUBLIC_ROOM_WS_URL` in `.env.local` to
 > override that endpoint.
 
+### Local setup without secrets
+
+The committed `.env` is SOPS-encrypted for maintainers, so you cannot read it
+and do not need it. Start from the example file instead:
+
+```bash
+cp .env.example .env.local   # Next.js app
+cp .env.example .dev.vars    # collaboration worker (wrangler dev)
+```
+
+Leave values empty to disable optional integrations (Elixpo sign-in, AI
+generation, Cloudinary, Pollinations). Comments in `.env.example` explain each
+variable and how to generate throwaway local keys. Both files are git-ignored.
+
 ## Built by the community
 
 Elixpo is made by people, in the open. **45+ contributors** have shaped these
