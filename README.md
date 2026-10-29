@@ -210,6 +210,33 @@ know from the [Issues Tab](https://github.com/elixpo/sketch.elixpo/issues).
 Elixpo has taken part in and been supported by **GSSOC**, **Hacktoberfest**,
 **Pollinations.AI**, **MS Startup Foundations**, and **OSCI**.
 
+### Google Summer of Code 2027
+
+Elixpo is applying to be a mentoring organisation for Google Summer of Code
+2027. Google has not announced the 2027 programme yet, and Elixpo has not been
+accepted. LixSketch hosts one proposed project idea:
+
+| Idea | Size | Difficulty | Mentors (primary / backup) |
+| --- | --- | --- | --- |
+| [Accessible LixSketch canvas](https://gsoc.elixpo.com/ideas/accessible-lixsketch-canvas/) | 175 h | Intermediate | [Vivek Yadav](https://github.com/ez-vivek) / [Divyanshu](https://github.com/divyanshuj91) |
+
+**How to start**
+
+1. Read the idea page and the programme site at [gsoc.elixpo.com](https://gsoc.elixpo.com).
+2. Run LixSketch locally by following
+   [Running this project locally](#running-this-project-locally); no secrets
+   are needed for the local canvas.
+3. Read [CONTRIBUTING.md](CONTRIBUTING.md) (including how to run the tests),
+   then try the canvas with only a keyboard and note what you cannot do.
+4. Pick a small issue from the [issue tracker](https://github.com/elixpo/sketch.elixpo/issues)
+   to learn the codebase and review process.
+
+Questions go to **gsoc@elixpo.com**. GitHub Discussions for GSoC open once
+Google announces the 2027 dates.
+
+_Google Summer of Code is a programme of Google LLC; Elixpo is applying as a
+mentoring organisation and is not affiliated with or endorsed by Google._
+
 ## Get involved
 
 - 💬 **Join the conversation** in [GitHub Discussions](https://github.com/orgs/elixpo/discussions).
