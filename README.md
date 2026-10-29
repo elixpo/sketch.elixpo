@@ -175,6 +175,37 @@ open source with security and transparency.
 
 <img width="1861" height="863" alt="LixSketch docs" src="https://github.com/user-attachments/assets/03130310-9ebb-4916-b0af-ee1c3c78ec60" />
 
+## Warm-up (no keys)
+
+<!-- Commands match .github/workflows/quality-gate.yml, which reads ci.test_cmd and ci.build_cmd from .elixpo/project.yml and uses Node 20. -->
+
+You need Node.js 20 (see [`.nvmrc`](.nvmrc)) on Linux, macOS, or Windows via
+WSL. No Elixpo keys, accounts or `.env.local` are needed.
+
+```bash
+npm ci
+npm test
+npm run build
+```
+
+**What works:** installing from the lockfile, the engine's unit tests (Vitest)
+and MCP tests (`node --test`), and the production build. `npm run dev` then
+starts the canvas at [http://localhost:3000](http://localhost:3000) and the
+local collaboration worker on port 8787; encrypted values in the committed
+`.env` are ignored. **What is skipped:** sign-in and anything that needs an
+Elixpo Accounts client or another key. **Expected result:** every test passes
+and the build finishes without errors. If something asks you for a secret,
+open an issue instead of working around it.
+
+## Configuration and access
+
+This repository keeps configuration encrypted with SOPS. Applicants do not need
+any keys: setup, tests and warm-up tasks run locally without decrypting
+configuration. Once accepted, contributors receive SOPS access scoped to their
+work (for example integration tests or staging), revoked when the programme
+ends. Do not try to decrypt or commit configuration; if setup asks for a
+secret, open an issue.
+
 ## Running this project locally
 
 ```bash
