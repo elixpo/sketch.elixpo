@@ -224,12 +224,20 @@ accepted. LixSketch hosts one proposed project idea:
 
 1. Read the idea page and the programme site at [gsoc.elixpo.com](https://gsoc.elixpo.com).
 2. Run LixSketch locally by following
-   [Running this project locally](#running-this-project-locally); no secrets
-   are needed for the local canvas.
+   [Running this project locally](#running-this-project-locally); no keys
+   are needed for the local canvas (see "Configuration and access" below).
 3. Read [CONTRIBUTING.md](CONTRIBUTING.md) (including how to run the tests),
    then try the canvas with only a keyboard and note what you cannot do.
 4. Pick a small issue from the [issue tracker](https://github.com/elixpo/sketch.elixpo/issues)
    to learn the codebase and review process.
+
+**Configuration and access**
+
+This repository keeps configuration encrypted with SOPS. Applicants do not need
+any keys: the warm-up tasks and the core of the idea run locally without
+decrypting configuration. Once accepted, contributors receive SOPS access
+scoped to their project (for example for integration tests or staging), which
+is revoked when the programme ends.
 
 Questions go to **gsoc@elixpo.com**. GitHub Discussions for GSoC open once
 Google announces the 2027 dates.
