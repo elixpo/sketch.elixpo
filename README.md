@@ -225,14 +225,12 @@ kit is at **[elixpo.com/assets](https://elixpo.com/assets)**.
 
 ## License
 
-Elixpo uses one **licensing standard** across every repository:
+- **Code** - [MIT](LICENSE).
+- **Brand & visual assets** - [CC-BY-4.0](LICENSES/preferred/CC-BY-4.0).
 
-- **Code** - [MIT](LICENSES/preferred/MIT) (with the [Oreo-trademarks exception](LICENSES/exceptions/Oreo-trademarks)).
-- **Brand & visual assets** - [CC-BY-4.0](LICENSES/preferred/CC-BY-4.0) (with the same exception).
-
-The Oreo mascot, the chest E-badge, and the "Elixpo" and "Oreo" names, domains,
-and palette are reserved - this protects the brand and its royalties while
-keeping the code and assets free. See [`LICENSE`](LICENSE) and the per-product
+The "Elixpo" and "Oreo" names, the Oreo mascot, the E-badge mark, and the
+elixpo.com domains are trademarks of the Elixpo project and are not licensed by
+MIT or CC-BY-4.0. See [`TRADEMARKS.md`](TRADEMARKS.md) and the per-product
 notice board, [`NOTICE`](LICENSES/NOTICE).
 
 ## Exclusive
