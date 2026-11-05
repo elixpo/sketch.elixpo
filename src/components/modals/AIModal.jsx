@@ -13,6 +13,10 @@ function registerMermaidLoader() {
   if (typeof window === 'undefined' || window.__lixsketchMermaidLoader) return
   window.__lixsketchMermaidLoader = () => import('mermaid').then((m) => m.default || m)
 }
+// Register up front (only the loader function; nothing downloads until a
+// diagram is rendered) so every Mermaid path — the Mermaid tab, AI text to
+// diagram, and placing a preview — lays out with Mermaid like mermaid.live.
+registerMermaidLoader()
 
 export function formatMermaidErrors(errors) {
   if (!errors?.length) return 'Invalid Mermaid syntax'
