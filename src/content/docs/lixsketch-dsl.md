@@ -81,7 +81,7 @@ A document **without** a header is read as a LixScript document. The syntax is i
 | `@created` | ISO timestamp string | none | `@created "2026-10-25T10:00:00.000Z"` |
 | `@meta.<key>` | any value | — | `@meta.mcpRevision 4` |
 
-`@background`, `@theme` and `@grid` are applied to the editor when the file is opened. `@meta.*` keeps extra top-level scene fields (written by integrations such as the MCP server) so they survive a round trip.
+`@background`, `@theme` and `@grid` are applied to the editor when the file is opened. `@meta.*` keeps extra top-level scene fields (written by integrations) so they survive a round trip.
 
 ### Variables
 
