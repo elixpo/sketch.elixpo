@@ -129,7 +129,6 @@ export default function FrameSidebar() {
                   ? 'bg-accent-blue/20 text-accent-blue'
                   : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
               }`}
-              
             >
               <i className={`bx ${s.icon} text-sm`} />
               {s.label}

@@ -128,7 +128,7 @@ function AIToast({ status, message, onDismiss }) {
           <>
             <i className="bx bx-error-circle text-red-400 text-lg" aria-hidden="true" />
             <span className="text-red-300 text-sm">{message}</span>
-            <button onClick={onDismiss} aria-label="Close" className="text-text-dim hover:text-text-primary ml-1">
+            <button onClick={onDismiss} aria-label="Dismiss" className="text-text-dim hover:text-text-primary ml-1">
               <i className="bx bx-x text-base" aria-hidden="true" />
             </button>
           </>
@@ -1483,7 +1483,7 @@ export default function AIModal() {
                         <button
                           onClick={() => removeEquation(eq.id)}
                           className="w-7 h-7 flex items-center justify-center rounded-lg text-text-dim hover:text-red-400 hover:bg-red-500/10 transition-all shrink-0"
-                          aria-label="Remove"
+                          aria-label="Remove equation"
                         >
                           <i className="bx bx-x text-lg" aria-hidden="true" />
                         </button>
@@ -1494,7 +1494,6 @@ export default function AIModal() {
                   <button
                     onClick={addEquation}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg text-text-dim text-xs hover:text-text-secondary hover:bg-white/[0.04] transition-all border border-dashed border-white/[0.08] hover:border-white/[0.15]"
-                    aria-label="Add"
                   >
                     <i className="bx bx-plus text-sm" aria-hidden="true" />
                     Add equation
@@ -1636,7 +1635,7 @@ export default function AIModal() {
                           className={`px-4 py-2.5 rounded-xl text-sm transition-all duration-200 ${
                             !editPrompt.trim() || isGenerating ? 'bg-surface-hover text-text-dim cursor-not-allowed' : 'bg-surface-active text-text-primary hover:bg-white/[0.12]'
                           }`}
-                          aria-label="Send"
+                          aria-label="Apply edit"
                         >
                           {isGenerating ? (
                             <div className="relative w-4 h-4"><div className="absolute inset-0 rounded-full border-2 border-transparent border-t-white animate-spin" /></div>

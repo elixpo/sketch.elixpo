@@ -235,7 +235,7 @@ export default function ImageGenerateModal() {
                 {Number.isFinite(connector?.account?.balance) ? ` · ${connector.account.balance.toFixed(3)} Pollen` : ''}
               </span>
             )}
-            <button onClick={handleClose} className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-text-muted transition hover:bg-surface-hover hover:text-text-primary" aria-label="Close"><i className="bx bx-x text-2xl" aria-hidden="true" /></button>
+            <button onClick={handleClose} className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-text-muted transition hover:bg-surface-hover hover:text-text-primary" aria-label="Close image generator"><i className="bx bx-x text-2xl" aria-hidden="true" /></button>
           </div>
         </header>
 
