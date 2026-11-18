@@ -294,7 +294,7 @@ kit is at **[elixpo.com/assets](https://elixpo.com/assets)**.
 - **Code** - [MIT](LICENSE).
 - **Brand & visual assets** - [CC-BY-4.0](LICENSES/preferred/CC-BY-4.0).
 
-The "Elixpo" and "Oreo" names, the Oreo mascot, the E-badge mark, and the
+The "Elixpo" and "Lumi" names, the Lumi mascot, the E-badge mark, and the
 elixpo.com domains are trademarks of the Elixpo project and are not licensed by
 MIT or CC-BY-4.0. See [`TRADEMARKS.md`](TRADEMARKS.md) and the per-product
 notice board, [`NOTICE`](LICENSES/NOTICE).
