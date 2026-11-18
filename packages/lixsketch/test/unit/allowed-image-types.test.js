@@ -75,6 +75,13 @@ describe('isAllowedImage rejects unsupported files', () => {
     expect(isAllowedImage({ name: 'document.pdf', type: 'application/pdf' })).toBe(false)
   })
 
+  it('rejects disallowed image/* MIME types even when filename has an allowed extension', () => {
+    expect(isAllowedImage({ name: 'anim.png', type: 'image/gif' })).toBe(false)
+    expect(isAllowedImage({ name: 'photo.jpg', type: 'image/heic' })).toBe(false)
+    expect(isAllowedImage({ name: 'banner.webp', type: 'image/tiff' })).toBe(false)
+    expect(isAllowedImage({ name: 'logo.svg', type: 'image/x-icon' })).toBe(false)
+  })
+
   it('rejects unsupported extensions when the type is empty', () => {
     expect(isAllowedImage({ name: 'animation.gif', type: '' })).toBe(false)
     expect(isAllowedImage({ name: 'photo.heic', type: '' })).toBe(false)
