@@ -328,7 +328,7 @@ arrow flow from a.right to b.left {
 See [Connections and bindings](#connections-and-bindings).
 
 
-Arrowhead types (`startHead` / `endHead`): `none` · `arrow` (open V) · `bar` · `dot` (filled circle) · `circle` (outline) · `triangle` · `triangle_outline` · `diamond` · `diamond_outline` · `crowfoot_one` · `crowfoot_many` · `crowfoot_one_or_many` · `cross`.
+Arrowhead types (`startHead` / `endHead`): `none` · `arrow` (open V) · `bar` · `dot` (filled circle) · `circle` (outline) · `triangle` · `triangle_outline` · `diamond` · `diamond_outline` · `crowfoot_one` · `crowfoot_many` · `crowfoot_one_or_many` · `crowfoot_zero_or_one` · `crowfoot_zero_or_many` · `cross`.
 
 Heads are drawn hand-drawn with the shaft's roughness and seed, always with a solid stroke (a dashed `style` only affects the shaft). Filled heads use the stroke colour, head size grows with `strokeWidth`, and the shaft stops at the back of closed heads.
 
