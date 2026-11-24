@@ -29,6 +29,15 @@ class FakeResponse:
 
 
 class TriageCommonTests(unittest.TestCase):
+    def test_pull_request_triage_checks_out_trusted_base(self):
+        workflow = (ROOT / ".github" / "workflows" / "elixpo-triage.yml").read_text()
+
+        self.assertIn("pull_request_target:", workflow)
+        self.assertIn(
+            "ref: ${{ github.event.pull_request.base.sha || github.sha }}",
+            workflow,
+        )
+
     def test_project_config_contains_only_stable_identifiers(self):
         for project in ci_config.PROJECTS.values():
             self.assertEqual(set(project), {"number", "url"})
