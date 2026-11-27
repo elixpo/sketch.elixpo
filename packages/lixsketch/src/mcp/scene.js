@@ -1,4 +1,5 @@
 import { readArrowheads } from '../core/ArrowHeads.js';
+import { extractMarkupText, getSceneBounds, shapeBounds } from '../core/SceneAccessibilityModel.js';
 
 const FORMAT = 'lixsketch';
 const VERSION = 1;
@@ -203,16 +204,12 @@ function applyShapeChanges(shape, changes) {
   const rejected = Object.keys(changes).filter((key) => !allowed.includes(key));
   if (rejected.length) throw new Error(`Cannot update ${shape.type} fields: ${rejected.join(', ')}`);
   if (shape.type === 'text') {
-    const text = changes.text ?? shape.mcpText ?? extractText(shape.groupHTML);
+    const text = changes.text ?? shape.mcpText ?? extractMarkupText(shape.groupHTML, { preserveLines: true });
     return { ...shape, ...createTextShape({ x: changes.x ?? shape.x, y: changes.y ?? shape.y, rotation: changes.rotation ?? shape.rotation, text, fontSize: changes.fontSize ?? shape.mcpFontSize, color: changes.color ?? shape.mcpColor, fontFamily: changes.fontFamily ?? shape.mcpFontFamily }, shape.shapeID), groupId: changes.groupId ?? shape.groupId, parentFrame: changes.parentFrame ?? shape.parentFrame };
   }
   const copy = { ...clone(shape), ...clone(changes), shapeID: shape.shapeID, type: shape.type };
   if (changes.options) copy.options = { ...(shape.options || {}), ...normalizeOptions({ ...(shape.options || {}), ...changes.options }) };
   return copy;
-}
-
-function extractText(groupHTML = '') {
-  return String(groupHTML).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 function validateShapeGeometry(shape, index, errors) {
@@ -238,35 +235,7 @@ export function getSceneSummary(scene) {
   return { name: scene.name, format: scene.format, version: scene.version, revision: Number(scene.mcpRevision || 0), shapeCount: scene.shapes?.length || 0, counts, bounds: getSceneBounds(scene) };
 }
 
-export function getSceneBounds(scene) {
-  const boxes = (scene.shapes || []).map(shapeBounds).filter(Boolean);
-  if (!boxes.length) return null;
-  const minX = Math.min(...boxes.map((b) => b.x)), minY = Math.min(...boxes.map((b) => b.y));
-  const maxX = Math.max(...boxes.map((b) => b.x + b.width)), maxY = Math.max(...boxes.map((b) => b.y + b.height));
-  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-}
-
-export function shapeBounds(shape) {
-  if (shape.type === 'circle') return { x: shape.x - shape.rx, y: shape.y - shape.ry, width: shape.rx * 2, height: shape.ry * 2 };
-  if (shape.startPoint && shape.endPoint) {
-    const x = Math.min(shape.startPoint.x, shape.endPoint.x), y = Math.min(shape.startPoint.y, shape.endPoint.y);
-    return { x, y, width: Math.abs(shape.endPoint.x - shape.startPoint.x), height: Math.abs(shape.endPoint.y - shape.startPoint.y) };
-  }
-  if (Array.isArray(shape.points) && shape.points.length) {
-    const xs = shape.points.map((p) => p[0]), ys = shape.points.map((p) => p[1]);
-    return { x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
-  }
-  if (shape.type === 'text') {
-    const fontSize = positive(shape.mcpFontSize, 20);
-    const rawText = typeof shape.mcpText === 'string' ? shape.mcpText : extractText(shape.groupHTML);
-    const lines = rawText.split('\n');
-    const maxLineLength = Math.max(1, ...lines.map((line) => line.length));
-    const width = Math.ceil(maxLineLength * fontSize * 0.6);
-    const height = Math.ceil(lines.length * fontSize * 1.2);
-    return { x: finite(shape.x), y: finite(shape.y), width, height };
-  }
-  return { x: finite(shape.x), y: finite(shape.y), width: positive(shape.width), height: positive(shape.height) };
-}
+export { getSceneBounds, shapeBounds };
 
 export function mergeTemplateScene(sceneInput, templateInput, { x, y } = {}) {
   const scene = clone(sceneInput), template = clone(templateInput);
